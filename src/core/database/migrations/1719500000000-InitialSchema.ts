@@ -54,17 +54,17 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         last_name     VARCHAR(50)  NOT NULL,
         email         VARCHAR(100) NOT NULL,
         phone         VARCHAR(20),
-        document_id   VARCHAR(20)  NOT NULL,
+        document_number VARCHAR(20)  NOT NULL,
         document_type VARCHAR(20)  NOT NULL,
         role          registry.institutional_role_enum NOT NULL,
-        status        registry.vehicle_status_enum NOT NULL DEFAULT 'ACTIVE',
+        is_active     BOOLEAN NOT NULL DEFAULT true,
         created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
         updated_by    VARCHAR(100),
         CONSTRAINT pk_persons PRIMARY KEY (id),
         CONSTRAINT uq_persons_email UNIQUE (email),
-        CONSTRAINT uq_persons_document_id UNIQUE (document_id)
+        CONSTRAINT uq_persons_document_number UNIQUE (document_number)
       )
     `);
 
@@ -348,7 +348,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
 
         // 19. Indexes
         // registry
-        await queryRunner.query(`CREATE INDEX idx_persons_status ON registry.persons (status)`);
+        await queryRunner.query(`CREATE INDEX idx_persons_is_active ON registry.persons (is_active)`);
         await queryRunner.query(`CREATE INDEX idx_persons_role ON registry.persons (role)`);
         await queryRunner.query(`CREATE INDEX idx_vehicles_status ON registry.vehicles (status)`);
         await queryRunner.query(`CREATE INDEX idx_ownerships_person ON registry.ownerships (person_id)`);

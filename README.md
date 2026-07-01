@@ -127,6 +127,28 @@ npm run migration:run
 npm run start:dev
 ```
 
+### 🧹 Verificación desde cero (Clean DB)
+
+Para verificar que el esquema y los datos iniciales se cargan correctamente en un entorno limpio, ejecuta:
+
+```bash
+# 1. Recrear la base de datos vacía
+psql -U postgres -c "DROP DATABASE IF EXISTS vigia_db;"
+psql -U postgres -c "CREATE DATABASE vigia_db;"
+psql -U vigia_user -d vigia_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+# 2. Compilar el proyecto
+npm run build
+
+# 3. Ejecutar migraciones iniciales
+npm run migration:run
+
+# 4. Poblar datos iniciales (seeds)
+npm run seed
+
+# Si todo es exitoso, no habrán errores en consola y la BD estará lista.
+```
+
 ---
 
 ## 📜 Scripts Disponibles

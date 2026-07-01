@@ -46,30 +46,33 @@ export class InitialSchema1720800000000 implements MigrationInterface {
       $$ LANGUAGE plpgsql
     `);
 
-        // 4. registry.persons
+        // 5. registry.persons
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS registry.persons (
-        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id            UUID DEFAULT gen_random_uuid(),
         first_name    VARCHAR(50)  NOT NULL,
         last_name     VARCHAR(50)  NOT NULL,
-        email         VARCHAR(100) UNIQUE NOT NULL,
+        email         VARCHAR(100) NOT NULL,
         phone         VARCHAR(20),
-        document_id   VARCHAR(20)  UNIQUE NOT NULL,
+        document_id   VARCHAR(20)  NOT NULL,
         document_type VARCHAR(20)  NOT NULL,
         role          registry.institutional_role_enum NOT NULL,
         status        registry.vehicle_status_enum NOT NULL DEFAULT 'ACTIVE',
         created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
-        updated_by    VARCHAR(100)
+        updated_by    VARCHAR(100),
+        CONSTRAINT pk_persons PRIMARY KEY (id),
+        CONSTRAINT uq_persons_email UNIQUE (email),
+        CONSTRAINT uq_persons_document_id UNIQUE (document_id)
       )
     `);
 
-        // 5. registry.vehicles
+        // 6. registry.vehicles
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS registry.vehicles (
-        id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        plate_number VARCHAR(20) UNIQUE NOT NULL,
+        id           UUID DEFAULT gen_random_uuid(),
+        plate_number VARCHAR(20) NOT NULL,
         make         VARCHAR(50) NOT NULL,
         model        VARCHAR(50) NOT NULL,
         year         INTEGER     NOT NULL,
@@ -78,14 +81,16 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
-        updated_by   VARCHAR(100)
+        updated_by   VARCHAR(100),
+        CONSTRAINT pk_vehicles PRIMARY KEY (id),
+        CONSTRAINT uq_vehicles_plate_number UNIQUE (plate_number)
       )
     `);
 
-        // 6. registry.ownerships
+        // 7. registry.ownerships
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS registry.ownerships (
-        id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id             UUID DEFAULT gen_random_uuid(),
         person_id      UUID        NOT NULL,
         vehicle_id     UUID        NOT NULL,
         ownership_type VARCHAR(30) NOT NULL,
@@ -95,14 +100,15 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by     VARCHAR(100),
-        updated_by     VARCHAR(100)
+        updated_by     VARCHAR(100),
+        CONSTRAINT pk_ownerships PRIMARY KEY (id)
       )
     `);
 
-        // 7. authorization.authorizations
+        // 8. authorization.authorizations
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "authorization".authorizations (
-        id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id                 UUID DEFAULT gen_random_uuid(),
         person_id          UUID        NOT NULL,
         vehicle_id         UUID        NOT NULL,
         authorization_type "authorization".authorization_type_enum NOT NULL,
@@ -112,15 +118,16 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by         VARCHAR(100),
-        updated_by         VARCHAR(100)
+        updated_by         VARCHAR(100),
+        CONSTRAINT pk_authorizations PRIMARY KEY (id)
       )
     `);
 
-        // 8. authorization.quick_passes
+        // 9. authorization.quick_passes
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "authorization".quick_passes (
-        id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        code         VARCHAR(50) UNIQUE NOT NULL,
+        id           UUID DEFAULT gen_random_uuid(),
+        code         VARCHAR(50) NOT NULL,
         vehicle_id   UUID        NOT NULL,
         authorized_by UUID       NOT NULL,
         valid_from   TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -131,14 +138,16 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
-        updated_by   VARCHAR(100)
+        updated_by   VARCHAR(100),
+        CONSTRAINT pk_quick_passes PRIMARY KEY (id),
+        CONSTRAINT uq_quick_passes_code UNIQUE (code)
       )
     `);
 
-        // 9. access_control.access_events
+        // 10. access_control.access_events
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS access_control.access_events (
-        id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id                   UUID DEFAULT gen_random_uuid(),
         vehicle_plate        VARCHAR(20) NOT NULL,
         access_type          access_control.access_method_enum NOT NULL,
         decision             access_control.decision_enum NOT NULL,
@@ -148,44 +157,48 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
-        updated_by           VARCHAR(100)
+        updated_by           VARCHAR(100),
+        CONSTRAINT pk_access_events PRIMARY KEY (id)
       )
     `);
 
-        // 10. access_control.guest_invitations
+        // 11. access_control.guest_invitations
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS access_control.guest_invitations (
-        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id            UUID DEFAULT gen_random_uuid(),
         vehicle_plate VARCHAR(20) NOT NULL,
         guest_name    VARCHAR(100) NOT NULL,
         invited_by    UUID         NOT NULL,
         valid_until   TIMESTAMP WITH TIME ZONE NOT NULL,
         status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-        access_code   VARCHAR(50)  UNIQUE NOT NULL,
+        access_code   VARCHAR(50)  NOT NULL,
         created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
-        updated_by    VARCHAR(100)
+        updated_by    VARCHAR(100),
+        CONSTRAINT pk_guest_invitations PRIMARY KEY (id),
+        CONSTRAINT uq_guest_invitations_access_code UNIQUE (access_code)
       )
     `);
 
-        // 11. biometric.facial_embeddings
+        // 12. biometric.facial_embeddings
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS biometric.facial_embeddings (
-        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id         UUID DEFAULT gen_random_uuid(),
         person_id  UUID          NOT NULL,
         embedding  vector(512)   NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
-        updated_by VARCHAR(100)
+        updated_by VARCHAR(100),
+        CONSTRAINT pk_facial_embeddings PRIMARY KEY (id)
       )
     `);
 
-        // 12. biometric.biometric_evidences
+        // 13. biometric.biometric_evidences
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS biometric.biometric_evidences (
-        id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id                   UUID DEFAULT gen_random_uuid(),
         access_event_id      UUID         NOT NULL,
         vehicle_plate        VARCHAR(20)  NOT NULL,
         captured_embedding   JSONB        NOT NULL,
@@ -200,14 +213,15 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
-        updated_by           VARCHAR(100)
+        updated_by           VARCHAR(100),
+        CONSTRAINT pk_biometric_evidences PRIMARY KEY (id)
       )
     `);
 
-        // 13. alerting.alerts
+        // 14. alerting.alerts
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS alerting.alerts (
-        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id          UUID DEFAULT gen_random_uuid(),
         type        VARCHAR(50)  NOT NULL,
         severity    alerting.alert_severity_enum NOT NULL,
         title       VARCHAR(255) NOT NULL,
@@ -218,14 +232,15 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by  VARCHAR(100),
-        updated_by  VARCHAR(100)
+        updated_by  VARCHAR(100),
+        CONSTRAINT pk_alerts PRIMARY KEY (id)
       )
     `);
 
-        // 14. alerting.notifications
+        // 15. alerting.notifications
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS alerting.notifications (
-        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id         UUID DEFAULT gen_random_uuid(),
         user_id    UUID         NOT NULL,
         title      VARCHAR(255) NOT NULL,
         message    TEXT         NOT NULL,
@@ -236,20 +251,23 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
-        updated_by VARCHAR(100)
+        updated_by VARCHAR(100),
+        CONSTRAINT pk_notifications PRIMARY KEY (id)
       )
     `);
 
-        // 15. alerting.notification_preferences
+        // 16. alerting.notification_preferences
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS alerting.notification_preferences (
-        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id    UUID      UNIQUE NOT NULL,
+        id         UUID DEFAULT gen_random_uuid(),
+        user_id    UUID      NOT NULL,
         channels   JSONB     NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
-        updated_by VARCHAR(100)
+        updated_by VARCHAR(100),
+        CONSTRAINT pk_notification_preferences PRIMARY KEY (id),
+        CONSTRAINT uq_notification_preferences_user_id UNIQUE (user_id)
       )
     `);
 

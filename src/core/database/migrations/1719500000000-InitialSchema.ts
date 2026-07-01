@@ -14,7 +14,28 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS alerting`);
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS auth`);
 
-        // 3. Función de auditoría
+        // 3. Enum types de dominio
+        // Registry
+        await queryRunner.query(`CREATE TYPE registry.person_type_enum AS ENUM ('OWNER', 'FAMILY_MEMBER', 'TEMPORARY_GUEST')`);
+        await queryRunner.query(`CREATE TYPE registry.vehicle_status_enum AS ENUM ('ACTIVE', 'INACTIVE')`);
+        await queryRunner.query(`CREATE TYPE registry.institutional_role_enum AS ENUM ('DOCENTE', 'ADMINISTRATIVO', 'ESTUDIANTE', 'TRABAJADOR')`);
+        // Authorization
+        await queryRunner.query(`CREATE TYPE "authorization".authorization_type_enum AS ENUM ('PERMANENT', 'TEMPORARY')`);
+        await queryRunner.query(`CREATE TYPE "authorization".authorization_status_enum AS ENUM ('ACTIVE', 'REVOKED', 'EXPIRED')`);
+        await queryRunner.query(`CREATE TYPE "authorization".quick_pass_status_enum AS ENUM ('ACTIVE', 'CONSUMED', 'EXPIRED', 'REVOKED')`);
+        // Access Control
+        await queryRunner.query(`CREATE TYPE access_control.decision_enum AS ENUM ('SUCCESSFUL', 'PENDING_VERIFY', 'DENIED')`);
+        await queryRunner.query(`CREATE TYPE access_control.access_method_enum AS ENUM ('BIOMETRIC', 'QUICK_PASS', 'MANUAL_OVERRIDE')`);
+        // Biometric
+        await queryRunner.query(`CREATE TYPE biometric.embedding_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'EXPIRED')`);
+        // Alerting
+        await queryRunner.query(`CREATE TYPE alerting.alert_severity_enum AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')`);
+        await queryRunner.query(`CREATE TYPE alerting.notification_status_enum AS ENUM ('UNREAD', 'READ', 'DISMISSED')`);
+        // Auth (transversal)
+        await queryRunner.query(`CREATE TYPE auth.auth_role_enum AS ENUM ('ADMIN', 'GUARD', 'OWNER')`);
+        await queryRunner.query(`CREATE TYPE auth.user_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING_PASSWORD_CHANGE')`);
+
+        // 4. Función de auditoría
         await queryRunner.query(`
       CREATE OR REPLACE FUNCTION update_updated_at_column()
       RETURNS TRIGGER AS $$
@@ -301,6 +322,27 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.notification_preferences`);
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.notifications`);
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.alerts`);
+
+        // Enum types
+        // Auth
+        await queryRunner.query(`DROP TYPE IF EXISTS auth.user_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS auth.auth_role_enum`);
+        // Alerting
+        await queryRunner.query(`DROP TYPE IF EXISTS alerting.notification_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS alerting.alert_severity_enum`);
+        // Biometric
+        await queryRunner.query(`DROP TYPE IF EXISTS biometric.embedding_status_enum`);
+        // Access Control
+        await queryRunner.query(`DROP TYPE IF EXISTS access_control.access_method_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS access_control.decision_enum`);
+        // Authorization
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".quick_pass_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_type_enum`);
+        // Registry
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.institutional_role_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.person_type_enum`);
 
         // Esquemas
         await queryRunner.query(`DROP SCHEMA IF EXISTS access_control CASCADE`);

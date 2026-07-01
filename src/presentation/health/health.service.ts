@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '@core/database/database.service';
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: 'ok' | 'degraded' | 'unhealthy';
   uptime: number;
   timestamp: string;
   version: string;
@@ -35,7 +35,7 @@ export class HealthService {
     const anyDown = Object.values(checks).some((c) => c.status === 'down');
 
     return {
-      status: allUp ? 'healthy' : anyDown ? 'unhealthy' : 'degraded',
+      status: allUp ? 'ok' : anyDown ? 'unhealthy' : 'degraded',
       uptime: this.getUptimeSeconds(),
       timestamp: new Date().toISOString(),
       version: process.env.APP_VERSION ?? '0.1.0',

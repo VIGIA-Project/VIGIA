@@ -272,7 +272,47 @@ export class InitialSchema1720800000000 implements MigrationInterface {
     `);
 
 
-        // 16. Triggers de auditoría
+        // 17. Foreign Key constraints
+        // registry.ownerships
+        await queryRunner.query(`
+      ALTER TABLE registry.ownerships
+        ADD CONSTRAINT fk_ownerships_person FOREIGN KEY (person_id) REFERENCES registry.persons(id),
+        ADD CONSTRAINT fk_ownerships_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id)
+    `);
+
+        // authorization.authorizations
+        await queryRunner.query(`
+      ALTER TABLE "authorization".authorizations
+        ADD CONSTRAINT fk_authorizations_person FOREIGN KEY (person_id) REFERENCES registry.persons(id),
+        ADD CONSTRAINT fk_authorizations_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id)
+    `);
+
+        // authorization.quick_passes
+        await queryRunner.query(`
+      ALTER TABLE "authorization".quick_passes
+        ADD CONSTRAINT fk_quick_passes_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id),
+        ADD CONSTRAINT fk_quick_passes_authorized_by FOREIGN KEY (authorized_by) REFERENCES registry.persons(id)
+    `);
+
+        // biometric.facial_embeddings
+        await queryRunner.query(`
+      ALTER TABLE biometric.facial_embeddings
+        ADD CONSTRAINT fk_facial_embeddings_person FOREIGN KEY (person_id) REFERENCES registry.persons(id)
+    `);
+
+        // biometric.biometric_evidences
+        await queryRunner.query(`
+      ALTER TABLE biometric.biometric_evidences
+        ADD CONSTRAINT fk_biometric_evidences_access_event FOREIGN KEY (access_event_id) REFERENCES access_control.access_events(id)
+    `);
+
+        // access_control.guest_invitations
+        await queryRunner.query(`
+      ALTER TABLE access_control.guest_invitations
+        ADD CONSTRAINT fk_guest_invitations_invited_by FOREIGN KEY (invited_by) REFERENCES registry.persons(id)
+    `);
+
+        // 18. Triggers de auditoría
         const tables = [
             'access_control.access_events',
             'access_control.guest_invitations',

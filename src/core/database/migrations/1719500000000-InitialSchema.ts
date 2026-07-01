@@ -58,8 +58,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         document_type VARCHAR(20)  NOT NULL,
         role          VARCHAR(30)  NOT NULL,
         status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-        created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
         updated_by    VARCHAR(100)
       )
@@ -75,8 +75,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         year         INTEGER     NOT NULL,
         color        VARCHAR(30) NOT NULL,
         status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
         updated_by   VARCHAR(100)
       )
@@ -89,11 +89,11 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         person_id      UUID        NOT NULL,
         vehicle_id     UUID        NOT NULL,
         ownership_type VARCHAR(30) NOT NULL,
-        start_date     TIMESTAMP   NOT NULL DEFAULT NOW(),
-        end_date       TIMESTAMP,
+        start_date     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        end_date       TIMESTAMP WITH TIME ZONE,
         status         VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at     TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at     TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by     VARCHAR(100),
         updated_by     VARCHAR(100)
       )
@@ -107,10 +107,10 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         vehicle_id         UUID        NOT NULL,
         authorization_type VARCHAR(30) NOT NULL,
         status             VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        valid_from         TIMESTAMP   NOT NULL,
-        valid_until        TIMESTAMP,
-        created_at         TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at         TIMESTAMP   NOT NULL DEFAULT NOW(),
+        valid_from         TIMESTAMP WITH TIME ZONE NOT NULL,
+        valid_until        TIMESTAMP WITH TIME ZONE,
+        created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by         VARCHAR(100),
         updated_by         VARCHAR(100)
       )
@@ -123,13 +123,13 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         code         VARCHAR(50) UNIQUE NOT NULL,
         vehicle_id   UUID        NOT NULL,
         authorized_by UUID       NOT NULL,
-        valid_from   TIMESTAMP   NOT NULL,
-        valid_until  TIMESTAMP   NOT NULL,
+        valid_from   TIMESTAMP WITH TIME ZONE NOT NULL,
+        valid_until  TIMESTAMP WITH TIME ZONE NOT NULL,
         max_uses     INTEGER     DEFAULT 1,
         used_count   INTEGER     DEFAULT 0,
         status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
         updated_by   VARCHAR(100)
       )
@@ -145,8 +145,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         reason               VARCHAR(255),
         authorized_person_id UUID,
         biometric_evidence_id UUID,
-        created_at           TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
         updated_by           VARCHAR(100)
       )
@@ -159,11 +159,11 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         vehicle_plate VARCHAR(20) NOT NULL,
         guest_name    VARCHAR(100) NOT NULL,
         invited_by    UUID         NOT NULL,
-        valid_until   TIMESTAMP    NOT NULL,
+        valid_until   TIMESTAMP WITH TIME ZONE NOT NULL,
         status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
         access_code   VARCHAR(50)  UNIQUE NOT NULL,
-        created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
         updated_by    VARCHAR(100)
       )
@@ -175,8 +175,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         person_id  UUID          NOT NULL,
         embedding  vector(512)   NOT NULL,
-        created_at TIMESTAMP     NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP     NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
@@ -195,10 +195,10 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         confidence_threshold DECIMAL(5,4) NOT NULL,
         status               VARCHAR(30)  NOT NULL,
         reason               TEXT,
-        timestamp            TIMESTAMP    NOT NULL DEFAULT NOW(),
+        timestamp            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         metadata             JSONB,
-        created_at           TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
         updated_by           VARCHAR(100)
       )
@@ -215,8 +215,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         source      VARCHAR(100) NOT NULL,
         status      VARCHAR(20)  NOT NULL DEFAULT 'OPEN',
         metadata    JSONB,
-        created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by  VARCHAR(100),
         updated_by  VARCHAR(100)
       )
@@ -231,10 +231,10 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         message    TEXT         NOT NULL,
         type       VARCHAR(30)  NOT NULL,
         status     VARCHAR(20)  NOT NULL DEFAULT 'SENT',
-        read_at    TIMESTAMP,
+        read_at    TIMESTAMP WITH TIME ZONE,
         metadata   JSONB,
-        created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
@@ -246,12 +246,13 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id    UUID      UNIQUE NOT NULL,
         channels   JSONB     NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
     `);
+
 
         // 16. Triggers de auditoría
         const tables = [

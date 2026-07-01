@@ -46,5 +46,22 @@ export async function runInitialSeed(dataSource: DataSource): Promise<void> {
     ON CONFLICT (id) DO NOTHING
   `);
 
+  // Usuario administrador de prueba
+  await dataSource.query(`
+    INSERT INTO auth.users
+      (user_id, email, password_hash, role, status, must_change_password, created_at, updated_at)
+    VALUES (
+      '55555555-5555-5555-5555-555555555555',
+      'admin@uce.edu.ec',
+      '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+      'ADMIN',
+      'PENDING_PASSWORD_CHANGE',
+      true,
+      NOW(),
+      NOW()
+    )
+    ON CONFLICT (email) DO NOTHING
+  `);
+
   console.log('🎉 Seeds completados. Placas de prueba: TST0001, TST0002');
 }

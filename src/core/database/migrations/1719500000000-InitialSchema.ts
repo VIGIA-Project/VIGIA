@@ -2,8 +2,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class InitialSchema1720800000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // 1. pgvector
+        // 1. pgvector y uuid-ossp
         await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS vector`);
+        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
 
         // 2. Esquemas
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS access_control`);
@@ -309,5 +310,6 @@ export class InitialSchema1720800000000 implements MigrationInterface {
 
         // Extensión
         await queryRunner.query(`DROP EXTENSION IF EXISTS vector CASCADE`);
+        await queryRunner.query(`DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE`);
     }
 }

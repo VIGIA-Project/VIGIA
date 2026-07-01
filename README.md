@@ -200,11 +200,32 @@ Los endpoints de health **no llevan el prefijo** `api/v1`:
 
 ## 🗄️ Base de Datos
 
-- **Motor**: PostgreSQL + extensión `pgvector` (para embeddings biométricos)
-- **ORM**: TypeORM
-- **Migraciones**: gestionadas con TypeORM CLI usando `data-source.ts`
-- `DB_SYNCHRONIZE=false` siempre en producción
+### Ejecutar migración desde cero
+```bash
+# Levantar PostgreSQL
+docker compose up -d postgres
+# Ejecutar migración
+npm run migration:run
+# Ejecutar seeds de desarrollo
+npm run seed
+```
 
+### Credenciales de desarrollo (seeds)
+| Email | Contraseña | Rol | Nota |
+|---|---|---|---|
+| admin@uce.edu.ec | password | ADMIN | Cambio obligatorio en primer login |
+
+### Esquemas creados
+| Esquema | Tablas | Tipo |
+|---|---|---|
+| auth | 1 | Infraestructura transversal |
+| registry | 3 | Bounded Context |
+| authorization | 3 | Bounded Context |
+| biometric | 3 | Bounded Context |
+| access_control | 4 | Bounded Context |
+| alerting | 2 | Bounded Context |
+
+**Total:** 6 esquemas, 16 tablas, 26 enums, 0 FKs cross-schema.
 ---
 
 ## 📡 Alerting

@@ -10,6 +10,7 @@ import { BiometricModule } from '@modules/biometric/presentation/biometric.modul
 import { AlertingModule } from '@modules/alerting/presentation/alerting.module';
 import appConfig from '@core/config/app.config';
 import databaseConfig from '@core/config/database.config';
+import { envValidationSchema } from '@core/config/env.validation';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import databaseConfig from '@core/config/database.config';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, databaseConfig],
+      validationSchema: envValidationSchema,
       envFilePath: ['.env', '.env.local'],
       cache: true,
       expandVariables: true,

@@ -14,7 +14,28 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS alerting`);
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS auth`);
 
-        // 3. Función de auditoría
+        // 3. Enum types de dominio
+        // Registry
+        await queryRunner.query(`CREATE TYPE registry.person_type_enum AS ENUM ('OWNER', 'FAMILY_MEMBER', 'TEMPORARY_GUEST')`);
+        await queryRunner.query(`CREATE TYPE registry.vehicle_status_enum AS ENUM ('ACTIVE', 'INACTIVE')`);
+        await queryRunner.query(`CREATE TYPE registry.institutional_role_enum AS ENUM ('DOCENTE', 'ADMINISTRATIVO', 'ESTUDIANTE', 'TRABAJADOR')`);
+        // Authorization
+        await queryRunner.query(`CREATE TYPE "authorization".authorization_type_enum AS ENUM ('PERMANENT', 'TEMPORARY')`);
+        await queryRunner.query(`CREATE TYPE "authorization".authorization_status_enum AS ENUM ('ACTIVE', 'REVOKED', 'EXPIRED')`);
+        await queryRunner.query(`CREATE TYPE "authorization".quick_pass_status_enum AS ENUM ('ACTIVE', 'CONSUMED', 'EXPIRED', 'REVOKED')`);
+        // Access Control
+        await queryRunner.query(`CREATE TYPE access_control.decision_enum AS ENUM ('SUCCESSFUL', 'PENDING_VERIFY', 'DENIED')`);
+        await queryRunner.query(`CREATE TYPE access_control.access_method_enum AS ENUM ('BIOMETRIC', 'QUICK_PASS', 'MANUAL_OVERRIDE')`);
+        // Biometric
+        await queryRunner.query(`CREATE TYPE biometric.embedding_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'EXPIRED')`);
+        // Alerting
+        await queryRunner.query(`CREATE TYPE alerting.alert_severity_enum AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')`);
+        await queryRunner.query(`CREATE TYPE alerting.notification_status_enum AS ENUM ('UNREAD', 'READ', 'DISMISSED')`);
+        // Auth (transversal)
+        await queryRunner.query(`CREATE TYPE auth.auth_role_enum AS ENUM ('ADMIN', 'GUARD', 'OWNER')`);
+        await queryRunner.query(`CREATE TYPE auth.user_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING_PASSWORD_CHANGE')`);
+
+        // 4. Función de auditoría
         await queryRunner.query(`
       CREATE OR REPLACE FUNCTION update_updated_at_column()
       RETURNS TRIGGER AS $$
@@ -35,10 +56,10 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         phone         VARCHAR(20),
         document_id   VARCHAR(20)  UNIQUE NOT NULL,
         document_type VARCHAR(20)  NOT NULL,
-        role          VARCHAR(30)  NOT NULL,
-        status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-        created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+        role          registry.institutional_role_enum NOT NULL,
+        status        registry.vehicle_status_enum NOT NULL DEFAULT 'ACTIVE',
+        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
         updated_by    VARCHAR(100)
       )
@@ -53,9 +74,9 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         model        VARCHAR(50) NOT NULL,
         year         INTEGER     NOT NULL,
         color        VARCHAR(30) NOT NULL,
-        status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
+        status       registry.vehicle_status_enum NOT NULL DEFAULT 'ACTIVE',
+        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
         updated_by   VARCHAR(100)
       )
@@ -68,11 +89,11 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         person_id      UUID        NOT NULL,
         vehicle_id     UUID        NOT NULL,
         ownership_type VARCHAR(30) NOT NULL,
-        start_date     TIMESTAMP   NOT NULL DEFAULT NOW(),
-        end_date       TIMESTAMP,
+        start_date     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        end_date       TIMESTAMP WITH TIME ZONE,
         status         VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at     TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at     TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by     VARCHAR(100),
         updated_by     VARCHAR(100)
       )
@@ -84,12 +105,12 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         person_id          UUID        NOT NULL,
         vehicle_id         UUID        NOT NULL,
-        authorization_type VARCHAR(30) NOT NULL,
-        status             VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        valid_from         TIMESTAMP   NOT NULL,
-        valid_until        TIMESTAMP,
-        created_at         TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at         TIMESTAMP   NOT NULL DEFAULT NOW(),
+        authorization_type "authorization".authorization_type_enum NOT NULL,
+        status             "authorization".authorization_status_enum NOT NULL DEFAULT 'ACTIVE',
+        valid_from         TIMESTAMP WITH TIME ZONE NOT NULL,
+        valid_until        TIMESTAMP WITH TIME ZONE,
+        created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by         VARCHAR(100),
         updated_by         VARCHAR(100)
       )
@@ -102,13 +123,13 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         code         VARCHAR(50) UNIQUE NOT NULL,
         vehicle_id   UUID        NOT NULL,
         authorized_by UUID       NOT NULL,
-        valid_from   TIMESTAMP   NOT NULL,
-        valid_until  TIMESTAMP   NOT NULL,
+        valid_from   TIMESTAMP WITH TIME ZONE NOT NULL,
+        valid_until  TIMESTAMP WITH TIME ZONE NOT NULL,
         max_uses     INTEGER     DEFAULT 1,
         used_count   INTEGER     DEFAULT 0,
-        status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP   NOT NULL DEFAULT NOW(),
+        status       "authorization".quick_pass_status_enum NOT NULL DEFAULT 'ACTIVE',
+        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
         updated_by   VARCHAR(100)
       )
@@ -119,13 +140,13 @@ export class InitialSchema1720800000000 implements MigrationInterface {
       CREATE TABLE IF NOT EXISTS access_control.access_events (
         id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         vehicle_plate        VARCHAR(20) NOT NULL,
-        access_type          VARCHAR(50) NOT NULL,
-        decision             VARCHAR(20) NOT NULL,
+        access_type          access_control.access_method_enum NOT NULL,
+        decision             access_control.decision_enum NOT NULL,
         reason               VARCHAR(255),
         authorized_person_id UUID,
         biometric_evidence_id UUID,
-        created_at           TIMESTAMP   NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP   NOT NULL DEFAULT NOW(),
+        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
         updated_by           VARCHAR(100)
       )
@@ -138,11 +159,11 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         vehicle_plate VARCHAR(20) NOT NULL,
         guest_name    VARCHAR(100) NOT NULL,
         invited_by    UUID         NOT NULL,
-        valid_until   TIMESTAMP    NOT NULL,
+        valid_until   TIMESTAMP WITH TIME ZONE NOT NULL,
         status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
         access_code   VARCHAR(50)  UNIQUE NOT NULL,
-        created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by    VARCHAR(100),
         updated_by    VARCHAR(100)
       )
@@ -154,8 +175,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         person_id  UUID          NOT NULL,
         embedding  vector(512)   NOT NULL,
-        created_at TIMESTAMP     NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP     NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
@@ -172,12 +193,12 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         match_result         VARCHAR(20)  NOT NULL,
         similarity_score     DECIMAL(5,4),
         confidence_threshold DECIMAL(5,4) NOT NULL,
-        status               VARCHAR(30)  NOT NULL,
+        status               biometric.embedding_status_enum NOT NULL,
         reason               TEXT,
-        timestamp            TIMESTAMP    NOT NULL DEFAULT NOW(),
+        timestamp            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         metadata             JSONB,
-        created_at           TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by           VARCHAR(100),
         updated_by           VARCHAR(100)
       )
@@ -188,14 +209,14 @@ export class InitialSchema1720800000000 implements MigrationInterface {
       CREATE TABLE IF NOT EXISTS alerting.alerts (
         id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         type        VARCHAR(50)  NOT NULL,
-        severity    VARCHAR(20)  NOT NULL,
+        severity    alerting.alert_severity_enum NOT NULL,
         title       VARCHAR(255) NOT NULL,
         description TEXT         NOT NULL,
         source      VARCHAR(100) NOT NULL,
         status      VARCHAR(20)  NOT NULL DEFAULT 'OPEN',
         metadata    JSONB,
-        created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by  VARCHAR(100),
         updated_by  VARCHAR(100)
       )
@@ -209,11 +230,11 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         title      VARCHAR(255) NOT NULL,
         message    TEXT         NOT NULL,
         type       VARCHAR(30)  NOT NULL,
-        status     VARCHAR(20)  NOT NULL DEFAULT 'SENT',
-        read_at    TIMESTAMP,
+        status     alerting.notification_status_enum NOT NULL DEFAULT 'UNREAD',
+        read_at    TIMESTAMP WITH TIME ZONE,
         metadata   JSONB,
-        created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
@@ -225,12 +246,13 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id    UUID      UNIQUE NOT NULL,
         channels   JSONB     NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by VARCHAR(100),
         updated_by VARCHAR(100)
       )
     `);
+
 
         // 16. Triggers de auditoría
         const tables = [
@@ -301,6 +323,27 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.notification_preferences`);
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.notifications`);
         await queryRunner.query(`DROP TABLE IF EXISTS alerting.alerts`);
+
+        // Enum types
+        // Auth
+        await queryRunner.query(`DROP TYPE IF EXISTS auth.user_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS auth.auth_role_enum`);
+        // Alerting
+        await queryRunner.query(`DROP TYPE IF EXISTS alerting.notification_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS alerting.alert_severity_enum`);
+        // Biometric
+        await queryRunner.query(`DROP TYPE IF EXISTS biometric.embedding_status_enum`);
+        // Access Control
+        await queryRunner.query(`DROP TYPE IF EXISTS access_control.access_method_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS access_control.decision_enum`);
+        // Authorization
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".quick_pass_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_type_enum`);
+        // Registry
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.institutional_role_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.person_type_enum`);
 
         // Esquemas
         await queryRunner.query(`DROP SCHEMA IF EXISTS access_control CASCADE`);

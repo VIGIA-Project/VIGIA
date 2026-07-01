@@ -312,7 +312,41 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         ADD CONSTRAINT fk_guest_invitations_invited_by FOREIGN KEY (invited_by) REFERENCES registry.persons(id)
     `);
 
-        // 18. Triggers de auditoría
+        // 18. Check constraints
+        // registry.persons — email institucional
+        await queryRunner.query(`
+      ALTER TABLE registry.persons
+        ADD CONSTRAINT ck_persons_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+    `);
+
+        // authorization.authorizations — valid_until debe ser posterior a valid_from
+        await queryRunner.query(`
+      ALTER TABLE "authorization".authorizations
+        ADD CONSTRAINT ck_authorizations_valid_range CHECK (valid_until IS NULL OR valid_until > valid_from)
+    `);
+
+        // authorization.quick_passes — valid_until posterior a valid_from y used_count >= 0
+        await queryRunner.query(`
+      ALTER TABLE "authorization".quick_passes
+        ADD CONSTRAINT ck_quick_passes_valid_range CHECK (valid_until > valid_from),
+        ADD CONSTRAINT ck_quick_passes_used_count CHECK (used_count >= 0),
+        ADD CONSTRAINT ck_quick_passes_max_uses CHECK (max_uses >= 1)
+    `);
+
+        // biometric.biometric_evidences — similarity_score entre 0 y 1
+        await queryRunner.query(`
+      ALTER TABLE biometric.biometric_evidences
+        ADD CONSTRAINT ck_biometric_evidences_similarity CHECK (similarity_score IS NULL OR (similarity_score >= 0 AND similarity_score <= 1)),
+        ADD CONSTRAINT ck_biometric_evidences_threshold CHECK (confidence_threshold >= 0 AND confidence_threshold <= 1)
+    `);
+
+        // registry.vehicles — year válido
+        await queryRunner.query(`
+      ALTER TABLE registry.vehicles
+        ADD CONSTRAINT ck_vehicles_year CHECK (year >= 1900 AND year <= 2100)
+    `);
+
+        // 19. Triggers de auditoría
         const tables = [
             'access_control.access_events',
             'access_control.guest_invitations',

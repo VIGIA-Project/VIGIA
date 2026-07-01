@@ -3,65 +3,55 @@ import { DataSource } from 'typeorm';
 export async function runInitialSeed(dataSource: DataSource): Promise<void> {
   console.log('🌱 Ejecutando seeds iniciales...');
 
-  // Personas de prueba
+  // 1. Persona de prueba (propietario)
   await dataSource.query(`
-    INSERT INTO registry.persons
-      (id, first_name, last_name, email, document_number, document_type, role, is_active)
+    INSERT INTO registry.personas
+      (persona_id, identificacion_tipo, identificacion_numero, nombres, apellidos, correo_institucional, estado_registro)
     VALUES
-      ('00000000-0000-0000-0000-000000000001', 'Usuario',  'Prueba1', 'prueba1@test.vigia', '1700000001', 'CEDULA', 'DOCENTE', true),
-      ('00000000-0000-0000-0000-000000000002', 'Usuario',  'Prueba2', 'prueba2@test.vigia', '1700000002', 'CEDULA', 'ESTUDIANTE', true),
-      ('00000000-0000-0000-0000-000000000003', 'Admin',    'Sistema', 'admin@test.vigia',   '1700000003', 'CEDULA', 'ADMINISTRATIVO', true)
-    ON CONFLICT (document_number) DO NOTHING
+      ('00000000-0000-0000-0000-000000000001', 'CEDULA', '1700000001', 'Carlos', 'Mendoza', 'cmendoza@uce.edu.ec', 'ACTIVO'),
+      ('00000000-0000-0000-0000-000000000002', 'CEDULA', '1700000002', 'María', 'López', 'mlopez@uce.edu.ec', 'ACTIVO'),
+      ('00000000-0000-0000-0000-000000000003', 'CEDULA', '1700000003', 'Admin', 'Sistema', 'admin@uce.edu.ec', 'ACTIVO')
+    ON CONFLICT (identificacion_tipo, identificacion_numero) DO NOTHING
   `);
 
-  // Vehículos de prueba
+  // 2. Asignaciones de rol
   await dataSource.query(`
-    INSERT INTO registry.vehicles
-      (id, license_plate, type, brand, model, year, color, owner_id, is_active)
+    INSERT INTO registry.asignaciones_rol
+      (asignacion_rol_id, persona_id, rol_institucional, estado_asignacion)
     VALUES
-      ('11111111-1111-1111-1111-111111111111', 'TST0001', 'CAR', 'Toyota', 'Corolla', 2020, 'Blanco', '00000000-0000-0000-0000-000000000001', true),
-      ('22222222-2222-2222-2222-222222222222', 'TST0002', 'MOTORCYCLE', 'Yamaha', 'FZ', 2021, 'Negro', '00000000-0000-0000-0000-000000000002', true)
-    ON CONFLICT (license_plate) DO NOTHING
+      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000003', 'ADMIN_OPERATIVO', 'ACTIVA'),
+      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000002', 'GUARDIA', 'ACTIVA')
+    ON CONFLICT (asignacion_rol_id) DO NOTHING
   `);
 
-  // Autorización de prueba (permanente)
+  // 3. Vehículo de prueba
   await dataSource.query(`
-    INSERT INTO "authorization".authorizations
-      (id, person_id, vehicle_id, authorization_type, status, valid_from, access_point_id)
+    INSERT INTO registry.vehiculos
+      (vehiculo_id, propietario_persona_id, placa, marca, modelo, color, anio, estado_registro)
     VALUES
-      ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'PERMANENT', 'ACTIVE', NOW(), '00000000-0000-0000-0000-000000000000')
-    ON CONFLICT (id) DO NOTHING
+      ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'PCH0001', 'Toyota', 'Corolla', 'Blanco', 2020, 'ACTIVO')
+    ON CONFLICT (placa) DO NOTHING
   `);
 
-  // Alerta de sistema
+  // 4. Autorización permanente
   await dataSource.query(`
-    INSERT INTO alerting.alerts
-      (id, type, severity, title, description, source, status)
-    VALUES (
-      '44444444-4444-4444-4444-444444444444', 'SYSTEM', 'LOW',
-      'Sistema inicializado',
-      'VIGIA inicializado correctamente con datos de prueba.',
-      'system', 'OPEN'
-    )
-    ON CONFLICT (id) DO NOTHING
+    INSERT INTO "authorization".autorizaciones_permanentes
+      (autorizacion_permanente_id, vehiculo_id, persona_id, otorgado_por_persona_id, estado_autorizacion, tipo_autorizacion)
+    VALUES
+      ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000003', 'ACTIVA', 'PERMANENTE')
+    ON CONFLICT (autorizacion_permanente_id) DO NOTHING
   `);
 
-  // Usuario administrador de prueba
+  // 5. Usuario administrador (contraseña: "password" — solo para desarrollo)
   await dataSource.query(`
     INSERT INTO auth.users
-      (user_id, email, password_hash, role, status, must_change_password, created_at, updated_at)
-    VALUES (
-      '55555555-5555-5555-5555-555555555555',
-      'admin@uce.edu.ec',
-      '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
-      'ADMIN',
-      'PENDING_PASSWORD_CHANGE',
-      true,
-      NOW(),
-      NOW()
-    )
+      (user_id, persona_id, email, password_hash, role, status, must_change_password)
+    VALUES
+      ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000003', 'admin@uce.edu.ec', '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'ADMIN', 'PENDING_PASSWORD_CHANGE', true)
     ON CONFLICT (email) DO NOTHING
   `);
 
-  console.log('🎉 Seeds completados. Placas de prueba: TST0001, TST0002');
+  console.log('✅ Seeds completados.');
+  console.log('   Placa de prueba: PCH0001');
+  console.log('   Admin: admin@uce.edu.ec / password (cambio obligatorio)');
 }

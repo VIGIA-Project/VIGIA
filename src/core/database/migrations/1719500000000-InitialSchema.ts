@@ -1,526 +1,477 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1720800000000 implements MigrationInterface {
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        // 1. pgvector y uuid-ossp
-        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS vector`);
-        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+export class InitialSchema1719500000000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // ═══════════════════════════════════════════════════════════════
+    // 1. EXTENSIONES
+    // ═══════════════════════════════════════════════════════════════
+    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "vector"`);
 
-        // 2. Esquemas
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS access_control`);
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "authorization"`);
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS registry`);
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS biometric`);
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS alerting`);
-        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS auth`);
+    // ═══════════════════════════════════════════════════════════════
+    // 2. ESQUEMAS (5 dominio + 1 transversal)
+    // ═══════════════════════════════════════════════════════════════
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS auth`);
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS registry`);
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "authorization"`);
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS biometric`);
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS access_control`);
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS alerting`);
 
-        // 3. Enum types de dominio
-        // Registry
-        await queryRunner.query(`CREATE TYPE registry.person_type_enum AS ENUM ('OWNER', 'FAMILY_MEMBER', 'TEMPORARY_GUEST')`);
-        await queryRunner.query(`CREATE TYPE registry.vehicle_type_enum AS ENUM ('CAR', 'MOTORCYCLE', 'TRUCK', 'VAN', 'BUS', 'BICYCLE', 'OTHER')`);
-        await queryRunner.query(`CREATE TYPE registry.vehicle_status_enum AS ENUM ('ACTIVE', 'INACTIVE')`);
-        await queryRunner.query(`CREATE TYPE registry.institutional_role_enum AS ENUM ('DOCENTE', 'ADMINISTRATIVO', 'ESTUDIANTE', 'TRABAJADOR')`);
-        // Authorization
-        await queryRunner.query(`CREATE TYPE "authorization".authorization_type_enum AS ENUM ('PERMANENT', 'TEMPORARY')`);
-        await queryRunner.query(`CREATE TYPE "authorization".authorization_status_enum AS ENUM ('ACTIVE', 'REVOKED', 'EXPIRED')`);
-        await queryRunner.query(`CREATE TYPE "authorization".quick_pass_status_enum AS ENUM ('ACTIVE', 'CONSUMED', 'EXPIRED', 'REVOKED')`);
-        // Access Control
-        await queryRunner.query(`CREATE TYPE access_control.decision_enum AS ENUM ('SUCCESSFUL', 'PENDING_VERIFY', 'DENIED')`);
-        await queryRunner.query(`CREATE TYPE access_control.access_method_enum AS ENUM ('BIOMETRIC', 'QUICK_PASS', 'MANUAL_OVERRIDE')`);
-        // Biometric
-        await queryRunner.query(`CREATE TYPE biometric.embedding_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'EXPIRED')`);
-        // Alerting
-        await queryRunner.query(`CREATE TYPE alerting.alert_severity_enum AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')`);
-        await queryRunner.query(`CREATE TYPE alerting.notification_status_enum AS ENUM ('UNREAD', 'READ', 'DISMISSED')`);
-        // Auth (transversal)
-        await queryRunner.query(`CREATE TYPE auth.auth_role_enum AS ENUM ('ADMIN', 'GUARD', 'OWNER')`);
-        await queryRunner.query(`CREATE TYPE auth.user_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING_PASSWORD_CHANGE')`);
+    // ═══════════════════════════════════════════════════════════════
+    // 3. TIPOS ENUMERADOS
+    // ═══════════════════════════════════════════════════════════════
+    // Auth (transversal)
+    await queryRunner.query(`CREATE TYPE auth.auth_role_enum AS ENUM ('ADMIN', 'GUARD', 'OWNER')`);
+    await queryRunner.query(`CREATE TYPE auth.user_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING_PASSWORD_CHANGE')`);
+    // Registry
+    await queryRunner.query(`CREATE TYPE registry.estado_registro_enum AS ENUM ('ACTIVO', 'INACTIVO')`);
+    await queryRunner.query(`CREATE TYPE registry.identificacion_tipo_enum AS ENUM ('CEDULA', 'PASAPORTE', 'RUC')`);
+    await queryRunner.query(`CREATE TYPE registry.rol_institucional_enum AS ENUM ('SUPER_ADMIN', 'ADMIN_OPERATIVO', 'GUARDIA')`);
+    await queryRunner.query(`CREATE TYPE registry.estado_asignacion_enum AS ENUM ('ACTIVA', 'INACTIVA')`);
+    // Authorization
+    await queryRunner.query(`CREATE TYPE "authorization".estado_autorizacion_permanente_enum AS ENUM ('ACTIVA', 'INACTIVA')`);
+    await queryRunner.query(`CREATE TYPE "authorization".estado_permiso_temporal_enum AS ENUM ('PROGRAMADO', 'ACTIVA', 'EXPIRADO', 'REVOCADO')`);
+    await queryRunner.query(`CREATE TYPE "authorization".estado_pase_enum AS ENUM ('ACTIVO', 'CONSUMIDO', 'EXPIRADO', 'REVOCADO')`);
+    await queryRunner.query(`CREATE TYPE "authorization".tipo_autorizacion_enum AS ENUM ('PERMANENTE', 'TEMPORAL')`);
+    // Biometric
+    await queryRunner.query(`CREATE TYPE biometric.estado_disponibilidad_biometrica_enum AS ENUM ('DISPONIBLE', 'NO_DISPONIBLE')`);
+    await queryRunner.query(`CREATE TYPE biometric.tipo_captura_enum AS ENUM ('FRONTAL', 'IZQUIERDO', 'DERECHO')`);
+    await queryRunner.query(`CREATE TYPE biometric.resultado_biometrico_enum AS ENUM ('COINCIDENCIA_SUFICIENTE', 'EVIDENCIA_INSUFICIENTE')`);
+    // Access Control
+    await queryRunner.query(`CREATE TYPE access_control.tipo_movimiento_enum AS ENUM ('ENTRADA', 'SALIDA')`);
+    await queryRunner.query(`CREATE TYPE access_control.decision_operativa_enum AS ENUM ('SUCCESSFUL', 'PENDING_VERIFY', 'DENIED')`);
+    await queryRunner.query(`CREATE TYPE access_control.origen_resolucion_enum AS ENUM ('AUTOMATICA', 'MANUAL', 'CONTINGENCIA', 'INVITADO')`);
+    await queryRunner.query(`CREATE TYPE access_control.causa_contingencia_enum AS ENUM ('CAMARA_NO_DISPONIBLE', 'OCR_NO_DISPONIBLE', 'BIOMETRIA_NO_DISPONIBLE', 'CAIDA_RED', 'OPERACION_MANUAL')`);
+    await queryRunner.query(`CREATE TYPE access_control.estado_invitado_enum AS ENUM ('REGISTRADO', 'VIGENTE', 'EXPIRADO', 'CERRADO')`);
+    await queryRunner.query(`CREATE TYPE access_control.motivo_ingreso_enum AS ENUM ('VISITA_ACADEMICA', 'TRAMITE_ADMINISTRATIVO', 'ENTREGA_PROVEEDOR', 'EMERGENCIA', 'OTRO')`);
+    // Alerting
+    await queryRunner.query(`CREATE TYPE alerting.severidad_alerta_enum AS ENUM ('ALTA', 'MEDIA', 'INFORMATIVA')`);
+    await queryRunner.query(`CREATE TYPE alerting.estado_atencion_alerta_enum AS ENUM ('GENERADA', 'ENTREGADA', 'ATENDIDA')`);
+    await queryRunner.query(`CREATE TYPE alerting.canal_notificacion_enum AS ENUM ('DASHBOARD', 'TELEGRAM')`);
+    await queryRunner.query(`CREATE TYPE alerting.estado_entrega_notificacion_enum AS ENUM ('PENDIENTE', 'ENVIADA', 'FALLIDA')`);
 
-        // 4. Función de auditoría
-        await queryRunner.query(`
-      CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.updated_at = NOW();
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql
-    `);
-
-        // 5. registry.persons
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS registry.persons (
-        id            UUID DEFAULT gen_random_uuid(),
-        first_name    VARCHAR(50)  NOT NULL,
-        last_name     VARCHAR(50)  NOT NULL,
-        email         VARCHAR(100) NOT NULL,
-        phone         VARCHAR(20),
-        document_number VARCHAR(20)  NOT NULL,
-        document_type VARCHAR(20)  NOT NULL,
-        role          registry.institutional_role_enum NOT NULL,
-        is_active     BOOLEAN NOT NULL DEFAULT true,
-        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by    VARCHAR(100),
-        updated_by    VARCHAR(100),
-        CONSTRAINT pk_persons PRIMARY KEY (id),
-        CONSTRAINT uq_persons_email UNIQUE (email),
-        CONSTRAINT uq_persons_document_number UNIQUE (document_number)
-      )
-    `);
-
-        // 6. registry.vehicles
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS registry.vehicles (
-        id           UUID DEFAULT gen_random_uuid(),
-        license_plate VARCHAR(20) NOT NULL,
-        type         registry.vehicle_type_enum NOT NULL,
-        brand        VARCHAR(50) NOT NULL,
-        model        VARCHAR(50) NOT NULL,
-        year         INTEGER     NOT NULL,
-        color        VARCHAR(30) NOT NULL,
-        owner_id     UUID,
-        is_active    BOOLEAN NOT NULL DEFAULT true,
-        registered_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by   VARCHAR(100),
-        updated_by   VARCHAR(100),
-        CONSTRAINT pk_vehicles PRIMARY KEY (id),
-        CONSTRAINT uq_vehicles_license_plate UNIQUE (license_plate)
-      )
-    `);
-
-        // 7. registry.ownerships
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS registry.ownerships (
-        id             UUID DEFAULT gen_random_uuid(),
-        person_id      UUID        NOT NULL,
-        vehicle_id     UUID        NOT NULL,
-        ownership_type VARCHAR(30) NOT NULL,
-        start_date     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        end_date       TIMESTAMP WITH TIME ZONE,
-        status         VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-        created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by     VARCHAR(100),
-        updated_by     VARCHAR(100),
-        CONSTRAINT pk_ownerships PRIMARY KEY (id)
-      )
-    `);
-
-        // 8. authorization.authorizations
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "authorization".authorizations (
-        id                 UUID DEFAULT gen_random_uuid(),
-        person_id          UUID        NOT NULL,
-        vehicle_id         UUID        NOT NULL,
-        authorization_type "authorization".authorization_type_enum NOT NULL,
-        status             "authorization".authorization_status_enum NOT NULL DEFAULT 'ACTIVE',
-        valid_from         TIMESTAMP WITH TIME ZONE NOT NULL,
-        valid_until        TIMESTAMP WITH TIME ZONE,
-        allowed_days       JSONB,
-        allowed_time_start TIME,
-        allowed_time_end   TIME,
-        access_point_id    UUID        NOT NULL,
-        created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by         VARCHAR(100),
-        updated_by         VARCHAR(100),
-        CONSTRAINT pk_authorizations PRIMARY KEY (id)
-      )
-    `);
-
-        // 9. authorization.quick_passes
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "authorization".quick_passes (
-        id           UUID DEFAULT gen_random_uuid(),
-        code         VARCHAR(50) NOT NULL,
-        vehicle_id   UUID        NOT NULL,
-        authorized_by UUID       NOT NULL,
-        valid_from   TIMESTAMP WITH TIME ZONE NOT NULL,
-        valid_until  TIMESTAMP WITH TIME ZONE NOT NULL,
-        max_uses     INTEGER     DEFAULT 1,
-        used_count   INTEGER     DEFAULT 0,
-        status       "authorization".quick_pass_status_enum NOT NULL DEFAULT 'ACTIVE',
-        created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by   VARCHAR(100),
-        updated_by   VARCHAR(100),
-        CONSTRAINT pk_quick_passes PRIMARY KEY (id),
-        CONSTRAINT uq_quick_passes_code UNIQUE (code)
-      )
-    `);
-
-        // 10. access_control.access_events
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS access_control.access_events (
-        id                   UUID DEFAULT gen_random_uuid(),
-        license_plate        VARCHAR(20) NOT NULL,
-        access_point_id      UUID NOT NULL,
-        access_type          access_control.access_method_enum NOT NULL,
-        decision             access_control.decision_enum NOT NULL,
-        reason               VARCHAR(255),
-        authorized_person_id UUID,
-        biometric_evidence_id UUID,
-        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by           VARCHAR(100),
-        updated_by           VARCHAR(100),
-        CONSTRAINT pk_access_events PRIMARY KEY (id)
-      )
-    `);
-
-        // 11. access_control.guest_invitations
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS access_control.guest_invitations (
-        id            UUID DEFAULT gen_random_uuid(),
-        vehicle_plate VARCHAR(20) NOT NULL,
-        guest_name    VARCHAR(100) NOT NULL,
-        invited_by    UUID         NOT NULL,
-        valid_until   TIMESTAMP WITH TIME ZONE NOT NULL,
-        status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-        access_code   VARCHAR(50)  NOT NULL,
-        created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by    VARCHAR(100),
-        updated_by    VARCHAR(100),
-        CONSTRAINT pk_guest_invitations PRIMARY KEY (id),
-        CONSTRAINT uq_guest_invitations_access_code UNIQUE (access_code)
-      )
-    `);
-
-        // 12. biometric.facial_embeddings
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS biometric.facial_embeddings (
-        id         UUID DEFAULT gen_random_uuid(),
-        person_id  UUID          NOT NULL,
-        embedding  vector(512)   NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by VARCHAR(100),
-        updated_by VARCHAR(100),
-        CONSTRAINT pk_facial_embeddings PRIMARY KEY (id)
-      )
-    `);
-
-        // 13. biometric.biometric_evidences
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS biometric.biometric_evidences (
-        id                   UUID DEFAULT gen_random_uuid(),
-        access_event_id      UUID         NOT NULL,
-        vehicle_plate        VARCHAR(20)  NOT NULL,
-        captured_embedding   JSONB        NOT NULL,
-        matched_person_id    UUID,
-        match_result         VARCHAR(20)  NOT NULL,
-        similarity_score     DECIMAL(5,4),
-        confidence_threshold DECIMAL(5,4) NOT NULL,
-        status               biometric.embedding_status_enum NOT NULL,
-        reason               TEXT,
-        timestamp            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        metadata             JSONB,
-        created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by           VARCHAR(100),
-        updated_by           VARCHAR(100),
-        CONSTRAINT pk_biometric_evidences PRIMARY KEY (id)
-      )
-    `);
-
-        // 14. alerting.alerts
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS alerting.alerts (
-        id          UUID DEFAULT gen_random_uuid(),
-        type        VARCHAR(50)  NOT NULL,
-        severity    alerting.alert_severity_enum NOT NULL,
-        title       VARCHAR(255) NOT NULL,
-        description TEXT         NOT NULL,
-        source      VARCHAR(100) NOT NULL,
-        status      VARCHAR(20)  NOT NULL DEFAULT 'OPEN',
-        metadata    JSONB,
-        created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by  VARCHAR(100),
-        updated_by  VARCHAR(100),
-        CONSTRAINT pk_alerts PRIMARY KEY (id)
-      )
-    `);
-
-        // 15. alerting.notifications
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS alerting.notifications (
-        id         UUID DEFAULT gen_random_uuid(),
-        user_id    UUID         NOT NULL,
-        title      VARCHAR(255) NOT NULL,
-        message    TEXT         NOT NULL,
-        type       VARCHAR(30)  NOT NULL,
-        status     alerting.notification_status_enum NOT NULL DEFAULT 'UNREAD',
-        read_at    TIMESTAMP WITH TIME ZONE,
-        metadata   JSONB,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by VARCHAR(100),
-        updated_by VARCHAR(100),
-        CONSTRAINT pk_notifications PRIMARY KEY (id)
-      )
-    `);
-
-        // 16. alerting.notification_preferences
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS alerting.notification_preferences (
-        id         UUID DEFAULT gen_random_uuid(),
-        user_id    UUID      NOT NULL,
-        channels   JSONB     NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        created_by VARCHAR(100),
-        updated_by VARCHAR(100),
-        CONSTRAINT pk_notification_preferences PRIMARY KEY (id),
-        CONSTRAINT uq_notification_preferences_user_id UNIQUE (user_id)
-      )
-    `);
-
-        // 17. auth.users
-        await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS auth.users (
-        user_id UUID DEFAULT uuid_generate_v4(),
-        email VARCHAR(255) NOT NULL,
+    // ═══════════════════════════════════════════════════════════════
+    // 4. TABLAS
+    // ═══════════════════════════════════════════════════════════════
+    // --- auth.users ---
+    await queryRunner.query(`
+      CREATE TABLE auth.users (
+        user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        persona_id UUID,
+        email VARCHAR(160) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role auth.auth_role_enum NOT NULL,
         status auth.user_status_enum NOT NULL DEFAULT 'PENDING_PASSWORD_CHANGE',
-        persona_id UUID,
-        must_change_password BOOLEAN NOT NULL DEFAULT true,
-        last_login TIMESTAMP WITH TIME ZONE,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
+        last_login_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         created_by UUID,
-        deactivated_at TIMESTAMP WITH TIME ZONE,
-        CONSTRAINT pk_auth_users PRIMARY KEY (user_id),
+        updated_by UUID,
         CONSTRAINT uq_auth_users_email UNIQUE (email),
-        CONSTRAINT ck_auth_users_email_institucional CHECK (email LIKE '%@uce.edu.ec')
+        CONSTRAINT ck_auth_users_email_institucional CHECK (lower(email) LIKE '%@uce.edu.ec'),
+        CONSTRAINT ck_auth_users_persona_required CHECK (role = 'ADMIN' OR persona_id IS NOT NULL)
       )
     `);
 
-
-        // 18. Foreign Key constraints
-        // registry.vehicles
-        await queryRunner.query(`
-      ALTER TABLE registry.vehicles
-        ADD CONSTRAINT fk_vehicles_owner FOREIGN KEY (owner_id) REFERENCES registry.persons(id)
+    // --- registry.personas ---
+    await queryRunner.query(`
+      CREATE TABLE registry.personas (
+        persona_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        identificacion_tipo registry.identificacion_tipo_enum NOT NULL,
+        identificacion_numero VARCHAR(20) NOT NULL,
+        nombres VARCHAR(120) NOT NULL,
+        apellidos VARCHAR(120) NOT NULL,
+        correo_institucional VARCHAR(160),
+        telefono_contacto VARCHAR(30),
+        estado_registro registry.estado_registro_enum NOT NULL DEFAULT 'ACTIVO',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT uq_personas_identificacion UNIQUE (identificacion_tipo, identificacion_numero)
+      )
     `);
 
-        // registry.ownerships
-        await queryRunner.query(`
-      ALTER TABLE registry.ownerships
-        ADD CONSTRAINT fk_ownerships_person FOREIGN KEY (person_id) REFERENCES registry.persons(id),
-        ADD CONSTRAINT fk_ownerships_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id)
+    // --- registry.asignaciones_rol ---
+    await queryRunner.query(`
+      CREATE TABLE registry.asignaciones_rol (
+        asignacion_rol_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        persona_id UUID NOT NULL,
+        rol_institucional registry.rol_institucional_enum NOT NULL,
+        estado_asignacion registry.estado_asignacion_enum NOT NULL DEFAULT 'ACTIVA',
+        vigente_desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        vigente_hasta TIMESTAMPTZ,
+        CONSTRAINT fk_asignaciones_rol_persona FOREIGN KEY (persona_id) REFERENCES registry.personas(persona_id) ON DELETE CASCADE,
+        CONSTRAINT ck_asignacion_rol_vigencia CHECK (vigente_hasta IS NULL OR vigente_hasta > vigente_desde)
+      )
     `);
 
-        // authorization.authorizations
-        await queryRunner.query(`
-      ALTER TABLE "authorization".authorizations
-        ADD CONSTRAINT fk_authorizations_person FOREIGN KEY (person_id) REFERENCES registry.persons(id),
-        ADD CONSTRAINT fk_authorizations_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id)
+    // --- registry.vehiculos ---
+    await queryRunner.query(`
+      CREATE TABLE registry.vehiculos (
+        vehiculo_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        propietario_persona_id UUID NOT NULL,
+        placa VARCHAR(10) NOT NULL,
+        marca VARCHAR(60),
+        modelo VARCHAR(60),
+        color VARCHAR(40),
+        anio SMALLINT,
+        estado_registro registry.estado_registro_enum NOT NULL DEFAULT 'ACTIVO',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT uq_vehiculos_placa UNIQUE (placa),
+        CONSTRAINT fk_vehiculos_propietario FOREIGN KEY (propietario_persona_id) REFERENCES registry.personas(persona_id)
+      )
     `);
 
-        // authorization.quick_passes
-        await queryRunner.query(`
-      ALTER TABLE "authorization".quick_passes
-        ADD CONSTRAINT fk_quick_passes_vehicle FOREIGN KEY (vehicle_id) REFERENCES registry.vehicles(id),
-        ADD CONSTRAINT fk_quick_passes_authorized_by FOREIGN KEY (authorized_by) REFERENCES registry.persons(id)
+    // --- authorization.autorizaciones_permanentes ---
+    await queryRunner.query(`
+      CREATE TABLE "authorization".autorizaciones_permanentes (
+        autorizacion_permanente_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        vehiculo_id UUID NOT NULL,
+        persona_id UUID NOT NULL,
+        otorgado_por_persona_id UUID NOT NULL,
+        estado_autorizacion "authorization".estado_autorizacion_permanente_enum NOT NULL DEFAULT 'ACTIVA',
+        tipo_autorizacion "authorization".tipo_autorizacion_enum NOT NULL DEFAULT 'PERMANENTE',
+        motivo_estado TEXT,
+        creada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        desactivada_en TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT ck_aut_perm_tipo CHECK (tipo_autorizacion = 'PERMANENTE'),
+        CONSTRAINT ck_aut_perm_desactivada CHECK (desactivada_en IS NULL OR desactivada_en >= creada_en)
+      )
     `);
 
-        // biometric.facial_embeddings
-        await queryRunner.query(`
-      ALTER TABLE biometric.facial_embeddings
-        ADD CONSTRAINT fk_facial_embeddings_person FOREIGN KEY (person_id) REFERENCES registry.persons(id)
+    // --- authorization.permisos_temporales ---
+    await queryRunner.query(`
+      CREATE TABLE "authorization".permisos_temporales (
+        permiso_temporal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        vehiculo_id UUID NOT NULL,
+        persona_id UUID NOT NULL,
+        otorgado_por_persona_id UUID NOT NULL,
+        vigencia_inicio TIMESTAMPTZ NOT NULL,
+        vigencia_fin TIMESTAMPTZ NOT NULL,
+        estado_autorizacion "authorization".estado_permiso_temporal_enum NOT NULL DEFAULT 'PROGRAMADO',
+        tipo_autorizacion "authorization".tipo_autorizacion_enum NOT NULL DEFAULT 'TEMPORAL',
+        motivo_otorgamiento TEXT,
+        revocado_en TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT ck_perm_temp_tipo CHECK (tipo_autorizacion = 'TEMPORAL'),
+        CONSTRAINT ck_perm_temp_vigencia CHECK (vigencia_fin > vigencia_inicio),
+        CONSTRAINT ck_perm_temp_revocado CHECK (revocado_en IS NULL OR revocado_en >= created_at)
+      )
     `);
 
-        // biometric.biometric_evidences
-        await queryRunner.query(`
-      ALTER TABLE biometric.biometric_evidences
-        ADD CONSTRAINT fk_biometric_evidences_access_event FOREIGN KEY (access_event_id) REFERENCES access_control.access_events(id)
+    // --- authorization.pases_acceso_rapido ---
+    await queryRunner.query(`
+      CREATE TABLE "authorization".pases_acceso_rapido (
+        pase_acceso_rapido_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        vehiculo_id UUID NOT NULL,
+        creado_por_persona_id UUID NOT NULL,
+        nombre_conductor_externo VARCHAR(120) NOT NULL,
+        cedula_conductor_externo VARCHAR(20) NOT NULL,
+        motivo TEXT,
+        codigo_acceso_hash VARCHAR(255) NOT NULL,
+        vigencia_inicio TIMESTAMPTZ NOT NULL,
+        vigencia_fin TIMESTAMPTZ NOT NULL,
+        estado_pase "authorization".estado_pase_enum NOT NULL DEFAULT 'ACTIVO',
+        consumido_en TIMESTAMPTZ,
+        revocado_en TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT ck_pase_vigencia CHECK (vigencia_fin > vigencia_inicio),
+        CONSTRAINT ck_pase_consumido CHECK (consumido_en IS NULL OR consumido_en >= vigencia_inicio),
+        CONSTRAINT ck_pase_revocado CHECK (revocado_en IS NULL OR revocado_en >= created_at)
+      )
     `);
 
-        // access_control.guest_invitations
-        await queryRunner.query(`
-      ALTER TABLE access_control.guest_invitations
-        ADD CONSTRAINT fk_guest_invitations_invited_by FOREIGN KEY (invited_by) REFERENCES registry.persons(id)
+    // --- biometric.perfiles_biometricos ---
+    await queryRunner.query(`
+      CREATE TABLE biometric.perfiles_biometricos (
+        perfil_biometrico_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        persona_id UUID NOT NULL,
+        estado_disponibilidad biometric.estado_disponibilidad_biometrica_enum NOT NULL DEFAULT 'DISPONIBLE',
+        ultima_actualizacion_biometrica TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID
+      )
     `);
 
-        // 18. Check constraints
-        // registry.persons — email institucional
-        await queryRunner.query(`
-      ALTER TABLE registry.persons
-        ADD CONSTRAINT ck_persons_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+    // --- biometric.representaciones_biometricas ---
+    await queryRunner.query(`
+      CREATE TABLE biometric.representaciones_biometricas (
+        representacion_biometrica_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        perfil_biometrico_id UUID NOT NULL,
+        tipo_captura biometric.tipo_captura_enum NOT NULL,
+        embedding_vector vector(512) NOT NULL,
+        calidad_captura NUMERIC(5,4),
+        capturada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        activa BOOLEAN NOT NULL DEFAULT TRUE,
+        CONSTRAINT fk_repr_perfil FOREIGN KEY (perfil_biometrico_id) REFERENCES biometric.perfiles_biometricos(perfil_biometrico_id) ON DELETE CASCADE,
+        CONSTRAINT ck_repr_calidad CHECK (calidad_captura IS NULL OR (calidad_captura >= 0 AND calidad_captura <= 1))
+      )
     `);
 
-        // authorization.authorizations — valid_until debe ser posterior a valid_from
-        await queryRunner.query(`
-      ALTER TABLE "authorization".authorizations
-        ADD CONSTRAINT ck_authorizations_valid_range CHECK (valid_until IS NULL OR valid_until > valid_from)
+    // --- biometric.validaciones_biometricas ---
+    await queryRunner.query(`
+      CREATE TABLE biometric.validaciones_biometricas (
+        validacion_biometrica_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        evento_acceso_id UUID NOT NULL,
+        persona_detectada_id UUID,
+        resultado_biometrico biometric.resultado_biometrico_enum NOT NULL,
+        umbral_aplicado NUMERIC(5,4) NOT NULL,
+        puntaje_mejor_coincidencia NUMERIC(5,4),
+        cantidad_vectores_evaluados INTEGER NOT NULL,
+        evaluada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        detalle_resultado TEXT,
+        CONSTRAINT ck_validacion_umbral CHECK (umbral_aplicado >= 0 AND umbral_aplicado <= 1),
+        CONSTRAINT ck_validacion_puntaje CHECK (puntaje_mejor_coincidencia IS NULL OR (puntaje_mejor_coincidencia >= 0 AND puntaje_mejor_coincidencia <= 1)),
+        CONSTRAINT ck_validacion_vectores CHECK (cantidad_vectores_evaluados > 0)
+      )
     `);
 
-        // authorization.quick_passes — valid_until posterior a valid_from y used_count >= 0
-        await queryRunner.query(`
-      ALTER TABLE "authorization".quick_passes
-        ADD CONSTRAINT ck_quick_passes_valid_range CHECK (valid_until > valid_from),
-        ADD CONSTRAINT ck_quick_passes_used_count CHECK (used_count >= 0),
-        ADD CONSTRAINT ck_quick_passes_max_uses CHECK (max_uses >= 1)
+    // --- access_control.eventos_acceso ---
+    await queryRunner.query(`
+      CREATE TABLE access_control.eventos_acceso (
+        evento_acceso_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        vehiculo_id UUID,
+        persona_detectada_id UUID,
+        placa_observada VARCHAR(10) NOT NULL,
+        tipo_movimiento access_control.tipo_movimiento_enum NOT NULL,
+        decision_operativa access_control.decision_operativa_enum NOT NULL,
+        motivo_codigo VARCHAR(60) NOT NULL,
+        motivo_detalle TEXT,
+        origen_resolucion access_control.origen_resolucion_enum NOT NULL,
+        validacion_biometrica_id UUID,
+        evidencia_resumen TEXT,
+        capturado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        resuelto_en TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        CONSTRAINT ck_evento_resolucion_fecha CHECK (resuelto_en IS NULL OR resuelto_en >= capturado_en),
+        CONSTRAINT ck_evento_successful_biometria CHECK (decision_operativa <> 'SUCCESSFUL' OR validacion_biometrica_id IS NULL OR persona_detectada_id IS NOT NULL),
+        CONSTRAINT ck_evento_invitado_sin_biometria CHECK (origen_resolucion <> 'INVITADO' OR validacion_biometrica_id IS NULL)
+      )
     `);
 
-        // biometric.biometric_evidences — similarity_score entre 0 y 1
-        await queryRunner.query(`
-      ALTER TABLE biometric.biometric_evidences
-        ADD CONSTRAINT ck_biometric_evidences_similarity CHECK (similarity_score IS NULL OR (similarity_score >= 0 AND similarity_score <= 1)),
-        ADD CONSTRAINT ck_biometric_evidences_threshold CHECK (confidence_threshold >= 0 AND confidence_threshold <= 1)
+    // --- access_control.revisiones_humanas ---
+    await queryRunner.query(`
+      CREATE TABLE access_control.revisiones_humanas (
+        revision_humana_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        evento_acceso_id UUID NOT NULL,
+        actor_decisor_id UUID NOT NULL,
+        decision_emitida access_control.decision_operativa_enum NOT NULL,
+        motivo_revision TEXT NOT NULL,
+        observaciones TEXT,
+        revisado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT fk_revision_evento FOREIGN KEY (evento_acceso_id) REFERENCES access_control.eventos_acceso(evento_acceso_id) ON DELETE CASCADE,
+        CONSTRAINT uq_revision_evento UNIQUE (evento_acceso_id)
+      )
     `);
 
-        // registry.vehicles — year válido
-        await queryRunner.query(`
-      ALTER TABLE registry.vehicles
-        ADD CONSTRAINT ck_vehicles_year CHECK (year >= 1900 AND year <= 2100)
+    // --- access_control.registros_contingencia ---
+    await queryRunner.query(`
+      CREATE TABLE access_control.registros_contingencia (
+        registro_contingencia_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        evento_acceso_id UUID NOT NULL,
+        actor_responsable_id UUID NOT NULL,
+        causa_contingencia access_control.causa_contingencia_enum NOT NULL,
+        detalle_contingencia TEXT,
+        registrado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT fk_contingencia_evento FOREIGN KEY (evento_acceso_id) REFERENCES access_control.eventos_acceso(evento_acceso_id) ON DELETE CASCADE,
+        CONSTRAINT uq_contingencia_evento UNIQUE (evento_acceso_id)
+      )
     `);
 
-        // 19. Indexes
-        // registry
-        await queryRunner.query(`CREATE INDEX idx_persons_is_active ON registry.persons (is_active)`);
-        await queryRunner.query(`CREATE INDEX idx_persons_role ON registry.persons (role)`);
-        await queryRunner.query(`CREATE INDEX idx_vehicles_is_active ON registry.vehicles (is_active)`);
-        await queryRunner.query(`CREATE INDEX idx_ownerships_person ON registry.ownerships (person_id)`);
-        await queryRunner.query(`CREATE INDEX idx_ownerships_vehicle ON registry.ownerships (vehicle_id)`);
+    // --- access_control.registros_invitado ---
+    await queryRunner.query(`
+      CREATE TABLE access_control.registros_invitado (
+        registro_invitado_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        evento_acceso_id UUID NOT NULL,
+        placa_detectada VARCHAR(10) NOT NULL,
+        nombre_invitado VARCHAR(120) NOT NULL,
+        cedula_invitado VARCHAR(20) NOT NULL,
+        facultad_destino VARCHAR(120) NOT NULL,
+        carrera_destino VARCHAR(120),
+        motivo_ingreso access_control.motivo_ingreso_enum NOT NULL,
+        motivo_detalle TEXT,
+        tiempo_permanencia_horas SMALLINT NOT NULL,
+        estado_invitado access_control.estado_invitado_enum NOT NULL DEFAULT 'REGISTRADO',
+        guardia_id UUID NOT NULL,
+        registrado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expira_en TIMESTAMPTZ NOT NULL,
+        cerrado_en TIMESTAMPTZ,
+        CONSTRAINT fk_invitado_evento FOREIGN KEY (evento_acceso_id) REFERENCES access_control.eventos_acceso(evento_acceso_id) ON DELETE CASCADE,
+        CONSTRAINT uq_invitado_evento UNIQUE (evento_acceso_id),
+        CONSTRAINT ck_invitado_tiempo CHECK (tiempo_permanencia_horas IN (1, 2, 4, 6)),
+        CONSTRAINT ck_invitado_expira CHECK (expira_en > registrado_en),
+        CONSTRAINT ck_invitado_cerrado CHECK (cerrado_en IS NULL OR cerrado_en >= registrado_en)
+      )
+    `);
 
-        // authorization
-        await queryRunner.query(`CREATE INDEX idx_authorizations_person_vehicle ON "authorization".authorizations (person_id, vehicle_id)`);
-        await queryRunner.query(`CREATE INDEX idx_authorizations_status ON "authorization".authorizations (status)`);
-        await queryRunner.query(`CREATE INDEX idx_quick_passes_vehicle ON "authorization".quick_passes (vehicle_id)`);
-        await queryRunner.query(`CREATE INDEX idx_quick_passes_status ON "authorization".quick_passes (status)`);
+    // --- alerting.alertas ---
+    await queryRunner.query(`
+      CREATE TABLE alerting.alertas (
+        alerta_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        causa_origen VARCHAR(80) NOT NULL,
+        referencia_origen_id UUID NOT NULL,
+        vehiculo_id UUID,
+        severidad alerting.severidad_alerta_enum NOT NULL,
+        estado_atencion alerting.estado_atencion_alerta_enum NOT NULL DEFAULT 'GENERADA',
+        mensaje_resumen TEXT NOT NULL,
+        generada_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        atendida_en TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT ck_alerta_atencion_fecha CHECK (atendida_en IS NULL OR atendida_en >= generada_en)
+      )
+    `);
 
-        // access_control
-        await queryRunner.query(`CREATE INDEX idx_access_events_license_plate ON access_control.access_events (license_plate)`);
-        await queryRunner.query(`CREATE INDEX idx_access_events_decision ON access_control.access_events (decision)`);
-        await queryRunner.query(`CREATE INDEX idx_access_events_created_at ON access_control.access_events (created_at)`);
-        await queryRunner.query(`CREATE INDEX idx_guest_invitations_vehicle_plate ON access_control.guest_invitations (vehicle_plate)`);
+    // --- alerting.notificaciones ---
+    await queryRunner.query(`
+      CREATE TABLE alerting.notificaciones (
+        notificacion_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        alerta_id UUID NOT NULL,
+        destinatario_persona_id UUID NOT NULL,
+        canal alerting.canal_notificacion_enum NOT NULL,
+        titulo VARCHAR(160) NOT NULL,
+        estado_entrega alerting.estado_entrega_notificacion_enum NOT NULL DEFAULT 'PENDIENTE',
+        contenido_resumen TEXT NOT NULL,
+        leida BOOLEAN NOT NULL DEFAULT FALSE,
+        leida_en TIMESTAMPTZ,
+        enviada_en TIMESTAMPTZ,
+        CONSTRAINT fk_notificacion_alerta FOREIGN KEY (alerta_id) REFERENCES alerting.alertas(alerta_id) ON DELETE CASCADE,
+        CONSTRAINT ck_notificacion_lectura CHECK (leida_en IS NULL OR leida = TRUE)
+      )
+    `);
 
-        // biometric
-        await queryRunner.query(`CREATE INDEX idx_facial_embeddings_person ON biometric.facial_embeddings (person_id)`);
-        await queryRunner.query(`CREATE INDEX idx_biometric_evidences_access_event ON biometric.biometric_evidences (access_event_id)`);
+    // ═══════════════════════════════════════════════════════════════
+    // 5. ÍNDICES
+    // ═══════════════════════════════════════════════════════════════
+    // Auth
+    await queryRunner.query(`CREATE INDEX idx_auth_users_email ON auth.users (lower(email))`);
+    await queryRunner.query(`CREATE INDEX idx_auth_users_persona ON auth.users (persona_id)`);
+    await queryRunner.query(`CREATE INDEX idx_auth_users_role_status ON auth.users (role, status)`);
 
-        // alerting
-        await queryRunner.query(`CREATE INDEX idx_alerts_severity ON alerting.alerts (severity)`);
-        await queryRunner.query(`CREATE INDEX idx_alerts_status ON alerting.alerts (status)`);
-        await queryRunner.query(`CREATE INDEX idx_notifications_user ON alerting.notifications (user_id)`);
-        await queryRunner.query(`CREATE INDEX idx_notifications_status ON alerting.notifications (status)`);
+    // Registry
+    await queryRunner.query(`CREATE INDEX idx_personas_identificacion ON registry.personas (identificacion_tipo, identificacion_numero)`);
+    await queryRunner.query(`CREATE INDEX idx_personas_estado ON registry.personas (estado_registro)`);
+    await queryRunner.query(`CREATE INDEX idx_asignaciones_rol_persona ON registry.asignaciones_rol (persona_id)`);
+    await queryRunner.query(`CREATE INDEX idx_asignaciones_rol_rol_estado ON registry.asignaciones_rol (rol_institucional, estado_asignacion)`);
+    await queryRunner.query(`CREATE INDEX idx_vehiculos_propietario ON registry.vehiculos (propietario_persona_id)`);
+    await queryRunner.query(`CREATE INDEX idx_vehiculos_placa ON registry.vehiculos (placa)`);
 
-        // auth
-        await queryRunner.query(`CREATE INDEX idx_auth_users_role_status ON auth.users (role, status)`);
-        await queryRunner.query(`CREATE INDEX idx_auth_users_persona ON auth.users (persona_id)`);
+    // Authorization
+    await queryRunner.query(`CREATE UNIQUE INDEX uq_aut_perm_activa_vehiculo_persona ON "authorization".autorizaciones_permanentes (vehiculo_id, persona_id) WHERE estado_autorizacion = 'ACTIVA'`);
+    await queryRunner.query(`CREATE INDEX idx_aut_perm_vehiculo_estado ON "authorization".autorizaciones_permanentes (vehiculo_id, estado_autorizacion)`);
+    await queryRunner.query(`CREATE INDEX idx_aut_perm_persona_estado ON "authorization".autorizaciones_permanentes (persona_id, estado_autorizacion)`);
+    await queryRunner.query(`CREATE INDEX idx_perm_temp_vehiculo_vigencia ON "authorization".permisos_temporales (vehiculo_id, vigencia_inicio, vigencia_fin)`);
+    await queryRunner.query(`CREATE INDEX idx_perm_temp_persona_estado ON "authorization".permisos_temporales (persona_id, estado_autorizacion)`);
+    await queryRunner.query(`CREATE INDEX idx_perm_temp_vigencia_fin ON "authorization".permisos_temporales (vigencia_fin)`);
+    await queryRunner.query(`CREATE INDEX idx_pases_vehiculo_estado ON "authorization".pases_acceso_rapido (vehiculo_id, estado_pase)`);
+    await queryRunner.query(`CREATE INDEX idx_pases_creador ON "authorization".pases_acceso_rapido (creado_por_persona_id)`);
+    await queryRunner.query(`CREATE INDEX idx_pases_vigencia ON "authorization".pases_acceso_rapido (vigencia_inicio, vigencia_fin)`);
+    await queryRunner.query(`CREATE INDEX idx_pases_codigo_hash ON "authorization".pases_acceso_rapido (codigo_acceso_hash)`);
 
-        // 20. Triggers de auditoría
-        const tables = [
-            'access_control.access_events',
-            'access_control.guest_invitations',
-            '"authorization".authorizations',
-            '"authorization".quick_passes',
-            'registry.persons',
-            'registry.vehicles',
-            'registry.ownerships',
-            'biometric.facial_embeddings',
-            'biometric.biometric_evidences',
-            'alerting.alerts',
-            'alerting.notifications',
-            'alerting.notification_preferences',
-            'auth.users',
-        ];
+    // Biometric
+    await queryRunner.query(`CREATE UNIQUE INDEX uq_perfil_biometrico_persona_disponible ON biometric.perfiles_biometricos (persona_id) WHERE estado_disponibilidad = 'DISPONIBLE'`);
+    await queryRunner.query(`CREATE INDEX idx_perfiles_persona_estado ON biometric.perfiles_biometricos (persona_id, estado_disponibilidad)`);
+    await queryRunner.query(`CREATE INDEX idx_repr_perfil_activa ON biometric.representaciones_biometricas (perfil_biometrico_id, activa)`);
+    await queryRunner.query(`CREATE UNIQUE INDEX uq_validacion_biometrica_evento ON biometric.validaciones_biometricas (evento_acceso_id)`);
+    await queryRunner.query(`CREATE INDEX idx_validaciones_evento ON biometric.validaciones_biometricas (evento_acceso_id)`);
+    await queryRunner.query(`CREATE INDEX idx_validaciones_persona_detectada ON biometric.validaciones_biometricas (persona_detectada_id)`);
 
-        for (const table of tables) {
-            const triggerName = table.replace(/\./g, '_').replace(/"/g, '');
-            await queryRunner.query(`
-        DROP TRIGGER IF EXISTS update_${triggerName}_updated_at ON ${table}
-      `);
-            await queryRunner.query(`
-        CREATE TRIGGER update_${triggerName}_updated_at
-        BEFORE UPDATE ON ${table}
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column()
-      `);
-        }
-    }
+    // Access Control
+    await queryRunner.query(`CREATE INDEX idx_eventos_placa_capturado ON access_control.eventos_acceso (placa_observada, capturado_en DESC)`);
+    await queryRunner.query(`CREATE INDEX idx_eventos_vehiculo_capturado ON access_control.eventos_acceso (vehiculo_id, capturado_en DESC)`);
+    await queryRunner.query(`CREATE INDEX idx_eventos_persona_detectada ON access_control.eventos_acceso (persona_detectada_id)`);
+    await queryRunner.query(`CREATE INDEX idx_eventos_decision ON access_control.eventos_acceso (decision_operativa)`);
+    await queryRunner.query(`CREATE INDEX idx_eventos_pendientes ON access_control.eventos_acceso (capturado_en DESC) WHERE decision_operativa = 'PENDING_VERIFY'`);
+    await queryRunner.query(`CREATE INDEX idx_revisiones_evento ON access_control.revisiones_humanas (evento_acceso_id)`);
+    await queryRunner.query(`CREATE INDEX idx_contingencias_evento ON access_control.registros_contingencia (evento_acceso_id)`);
+    await queryRunner.query(`CREATE INDEX idx_invitados_evento ON access_control.registros_invitado (evento_acceso_id)`);
+    await queryRunner.query(`CREATE INDEX idx_invitados_estado ON access_control.registros_invitado (estado_invitado)`);
+    await queryRunner.query(`CREATE INDEX idx_invitados_placa ON access_control.registros_invitado (placa_detectada)`);
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        // Triggers
-        const tables = [
-            'access_control.access_events',
-            'access_control.guest_invitations',
-            '"authorization".authorizations',
-            '"authorization".quick_passes',
-            'registry.persons',
-            'registry.vehicles',
-            'registry.ownerships',
-            'biometric.facial_embeddings',
-            'biometric.biometric_evidences',
-            'alerting.alerts',
-            'alerting.notifications',
-            'alerting.notification_preferences',
-            'auth.users',
-        ];
+    // Alerting
+    await queryRunner.query(`CREATE INDEX idx_alertas_origen ON alerting.alertas (causa_origen, referencia_origen_id)`);
+    await queryRunner.query(`CREATE INDEX idx_alertas_vehiculo ON alerting.alertas (vehiculo_id)`);
+    await queryRunner.query(`CREATE INDEX idx_alertas_estado_severidad ON alerting.alertas (estado_atencion, severidad)`);
+    await queryRunner.query(`CREATE INDEX idx_notificaciones_alerta ON alerting.notificaciones (alerta_id)`);
+    await queryRunner.query(`CREATE INDEX idx_notificaciones_destinatario_estado ON alerting.notificaciones (destinatario_persona_id, estado_entrega)`);
+    await queryRunner.query(`CREATE INDEX idx_notificaciones_destinatario_no_leidas ON alerting.notificaciones (destinatario_persona_id) WHERE leida = FALSE`);
+  }
 
-        for (const table of tables) {
-            const triggerName = table.replace(/\./g, '_').replace(/"/g, '');
-            await queryRunner.query(
-                `DROP TRIGGER IF EXISTS update_${triggerName}_updated_at ON ${table}`,
-            );
-        }
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Tablas (orden inverso por dependencias)
+    await queryRunner.query(`DROP TABLE IF EXISTS alerting.notificaciones`);
+    await queryRunner.query(`DROP TABLE IF EXISTS alerting.alertas`);
+    await queryRunner.query(`DROP TABLE IF EXISTS access_control.registros_invitado`);
+    await queryRunner.query(`DROP TABLE IF EXISTS access_control.registros_contingencia`);
+    await queryRunner.query(`DROP TABLE IF EXISTS access_control.revisiones_humanas`);
+    await queryRunner.query(`DROP TABLE IF EXISTS access_control.eventos_acceso`);
+    await queryRunner.query(`DROP TABLE IF EXISTS biometric.validaciones_biometricas`);
+    await queryRunner.query(`DROP TABLE IF EXISTS biometric.representaciones_biometricas`);
+    await queryRunner.query(`DROP TABLE IF EXISTS biometric.perfiles_biometricos`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "authorization".pases_acceso_rapido`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "authorization".permisos_temporales`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "authorization".autorizaciones_permanentes`);
+    await queryRunner.query(`DROP TABLE IF EXISTS registry.vehiculos`);
+    await queryRunner.query(`DROP TABLE IF EXISTS registry.asignaciones_rol`);
+    await queryRunner.query(`DROP TABLE IF EXISTS registry.personas`);
+    await queryRunner.query(`DROP TABLE IF EXISTS auth.users`);
 
-        await queryRunner.query(`DROP FUNCTION IF EXISTS update_updated_at_column`);
+    // Enums
+    await queryRunner.query(`DROP TYPE IF EXISTS alerting.estado_entrega_notificacion_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS alerting.canal_notificacion_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS alerting.estado_atencion_alerta_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS alerting.severidad_alerta_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.motivo_ingreso_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.estado_invitado_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.causa_contingencia_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.origen_resolucion_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.decision_operativa_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS access_control.tipo_movimiento_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS biometric.resultado_biometrico_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS biometric.tipo_captura_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS biometric.estado_disponibilidad_biometrica_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "authorization".tipo_autorizacion_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "authorization".estado_pase_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "authorization".estado_permiso_temporal_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "authorization".estado_autorizacion_permanente_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS registry.estado_asignacion_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS registry.rol_institucional_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS registry.identificacion_tipo_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS registry.estado_registro_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS auth.user_status_enum`);
+    await queryRunner.query(`DROP TYPE IF EXISTS auth.auth_role_enum`);
 
-        // Tablas
-        await queryRunner.query(`DROP TABLE IF EXISTS auth.users`);
-        await queryRunner.query(`DROP TABLE IF EXISTS biometric.facial_embeddings`);
-        await queryRunner.query(`DROP TABLE IF EXISTS biometric.biometric_evidences`);
-        await queryRunner.query(`DROP TABLE IF EXISTS registry.ownerships`);
-        await queryRunner.query(`DROP TABLE IF EXISTS registry.vehicles`);
-        await queryRunner.query(`DROP TABLE IF EXISTS registry.persons`);
-        await queryRunner.query(`DROP TABLE IF EXISTS "authorization".quick_passes`);
-        await queryRunner.query(`DROP TABLE IF EXISTS "authorization".authorizations`);
-        await queryRunner.query(`DROP TABLE IF EXISTS access_control.guest_invitations`);
-        await queryRunner.query(`DROP TABLE IF EXISTS access_control.access_events`);
-        await queryRunner.query(`DROP TABLE IF EXISTS alerting.notification_preferences`);
-        await queryRunner.query(`DROP TABLE IF EXISTS alerting.notifications`);
-        await queryRunner.query(`DROP TABLE IF EXISTS alerting.alerts`);
+    // Esquemas
+    await queryRunner.query(`DROP SCHEMA IF EXISTS alerting CASCADE`);
+    await queryRunner.query(`DROP SCHEMA IF EXISTS access_control CASCADE`);
+    await queryRunner.query(`DROP SCHEMA IF EXISTS biometric CASCADE`);
+    await queryRunner.query(`DROP SCHEMA IF EXISTS "authorization" CASCADE`);
+    await queryRunner.query(`DROP SCHEMA IF EXISTS registry CASCADE`);
+    await queryRunner.query(`DROP SCHEMA IF EXISTS auth CASCADE`);
 
-        // Enum types
-        // Auth
-        await queryRunner.query(`DROP TYPE IF EXISTS auth.user_status_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS auth.auth_role_enum`);
-        // Alerting
-        await queryRunner.query(`DROP TYPE IF EXISTS alerting.notification_status_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS alerting.alert_severity_enum`);
-        // Biometric
-        await queryRunner.query(`DROP TYPE IF EXISTS biometric.embedding_status_enum`);
-        // Access Control
-        await queryRunner.query(`DROP TYPE IF EXISTS access_control.access_method_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS access_control.decision_enum`);
-        // Authorization
-        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".quick_pass_status_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_status_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS "authorization".authorization_type_enum`);
-        // Registry
-        await queryRunner.query(`DROP TYPE IF EXISTS registry.institutional_role_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_status_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_type_enum`);
-        await queryRunner.query(`DROP TYPE IF EXISTS registry.person_type_enum`);
-
-        // Esquemas
-        await queryRunner.query(`DROP SCHEMA IF EXISTS access_control CASCADE`);
-        await queryRunner.query(`DROP SCHEMA IF EXISTS "authorization" CASCADE`);
-        await queryRunner.query(`DROP SCHEMA IF EXISTS registry CASCADE`);
-        await queryRunner.query(`DROP SCHEMA IF EXISTS biometric CASCADE`);
-        await queryRunner.query(`DROP SCHEMA IF EXISTS alerting CASCADE`);
-        await queryRunner.query(`DROP SCHEMA IF EXISTS auth CASCADE`);
-
-        // Extensión
-        await queryRunner.query(`DROP EXTENSION IF EXISTS vector CASCADE`);
-        await queryRunner.query(`DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE`);
-    }
+    // Extensiones
+    await queryRunner.query(`DROP EXTENSION IF EXISTS "vector" CASCADE`);
+    await queryRunner.query(`DROP EXTENSION IF EXISTS "pgcrypto" CASCADE`);
+  }
 }

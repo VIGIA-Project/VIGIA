@@ -30,3 +30,5 @@ Thumbs.db
 
 # TypeORM migrations temp
 src/core/database/migrations/*.js
+
+.env

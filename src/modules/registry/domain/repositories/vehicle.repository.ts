@@ -1,10 +1,8 @@
-import { Vehicle } from '../entities/vehicle.entity';
-
 export interface IVehicleRepository {
-  save(vehicle: Vehicle): Promise<Vehicle>;
-  findById(id: string): Promise<Vehicle | null>;
-  findByLicensePlate(licensePlate: string): Promise<Vehicle | null>;
-  findByOwnerId(ownerId: string): Promise<Vehicle[]>;
-  findAll(): Promise<Vehicle[]>;
+  save(vehicle: any): Promise<any>;
+  findById(id: string): Promise<any | null>;
+  findByLicensePlate(licensePlate: string): Promise<any | null>;
+  findByOwnerId(ownerId: string): Promise<any[]>;
+  findAll(): Promise<any[]>;
   delete(id: string): Promise<void>;
 }

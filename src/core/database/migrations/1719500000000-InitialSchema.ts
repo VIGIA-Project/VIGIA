@@ -17,6 +17,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         // 3. Enum types de dominio
         // Registry
         await queryRunner.query(`CREATE TYPE registry.person_type_enum AS ENUM ('OWNER', 'FAMILY_MEMBER', 'TEMPORARY_GUEST')`);
+        await queryRunner.query(`CREATE TYPE registry.vehicle_type_enum AS ENUM ('CAR', 'MOTORCYCLE', 'TRUCK', 'VAN', 'BUS', 'BICYCLE', 'OTHER')`);
         await queryRunner.query(`CREATE TYPE registry.vehicle_status_enum AS ENUM ('ACTIVE', 'INACTIVE')`);
         await queryRunner.query(`CREATE TYPE registry.institutional_role_enum AS ENUM ('DOCENTE', 'ADMINISTRATIVO', 'ESTUDIANTE', 'TRABAJADOR')`);
         // Authorization
@@ -72,18 +73,21 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS registry.vehicles (
         id           UUID DEFAULT gen_random_uuid(),
-        plate_number VARCHAR(20) NOT NULL,
-        make         VARCHAR(50) NOT NULL,
+        license_plate VARCHAR(20) NOT NULL,
+        type         registry.vehicle_type_enum NOT NULL,
+        brand        VARCHAR(50) NOT NULL,
         model        VARCHAR(50) NOT NULL,
         year         INTEGER     NOT NULL,
         color        VARCHAR(30) NOT NULL,
-        status       registry.vehicle_status_enum NOT NULL DEFAULT 'ACTIVE',
+        owner_id     UUID,
+        is_active    BOOLEAN NOT NULL DEFAULT true,
+        registered_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         created_by   VARCHAR(100),
         updated_by   VARCHAR(100),
         CONSTRAINT pk_vehicles PRIMARY KEY (id),
-        CONSTRAINT uq_vehicles_plate_number UNIQUE (plate_number)
+        CONSTRAINT uq_vehicles_license_plate UNIQUE (license_plate)
       )
     `);
 
@@ -273,6 +277,12 @@ export class InitialSchema1720800000000 implements MigrationInterface {
 
 
         // 17. Foreign Key constraints
+        // registry.vehicles
+        await queryRunner.query(`
+      ALTER TABLE registry.vehicles
+        ADD CONSTRAINT fk_vehicles_owner FOREIGN KEY (owner_id) REFERENCES registry.persons(id)
+    `);
+
         // registry.ownerships
         await queryRunner.query(`
       ALTER TABLE registry.ownerships
@@ -350,7 +360,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         // registry
         await queryRunner.query(`CREATE INDEX idx_persons_is_active ON registry.persons (is_active)`);
         await queryRunner.query(`CREATE INDEX idx_persons_role ON registry.persons (role)`);
-        await queryRunner.query(`CREATE INDEX idx_vehicles_status ON registry.vehicles (status)`);
+        await queryRunner.query(`CREATE INDEX idx_vehicles_is_active ON registry.vehicles (is_active)`);
         await queryRunner.query(`CREATE INDEX idx_ownerships_person ON registry.ownerships (person_id)`);
         await queryRunner.query(`CREATE INDEX idx_ownerships_vehicle ON registry.ownerships (vehicle_id)`);
 
@@ -465,6 +475,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         // Registry
         await queryRunner.query(`DROP TYPE IF EXISTS registry.institutional_role_enum`);
         await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_status_enum`);
+        await queryRunner.query(`DROP TYPE IF EXISTS registry.vehicle_type_enum`);
         await queryRunner.query(`DROP TYPE IF EXISTS registry.person_type_enum`);
 
         // Esquemas

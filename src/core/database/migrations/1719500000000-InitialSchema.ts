@@ -280,8 +280,29 @@ export class InitialSchema1720800000000 implements MigrationInterface {
       )
     `);
 
+        // 17. auth.users
+        await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS auth.users (
+        user_id UUID DEFAULT uuid_generate_v4(),
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role auth.auth_role_enum NOT NULL,
+        status auth.user_status_enum NOT NULL DEFAULT 'PENDING_PASSWORD_CHANGE',
+        persona_id UUID,
+        must_change_password BOOLEAN NOT NULL DEFAULT true,
+        last_login TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        deactivated_at TIMESTAMP WITH TIME ZONE,
+        CONSTRAINT pk_auth_users PRIMARY KEY (user_id),
+        CONSTRAINT uq_auth_users_email UNIQUE (email),
+        CONSTRAINT ck_auth_users_email_institucional CHECK (email LIKE '%@uce.edu.ec')
+      )
+    `);
 
-        // 17. Foreign Key constraints
+
+        // 18. Foreign Key constraints
         // registry.vehicles
         await queryRunner.query(`
       ALTER TABLE registry.vehicles
@@ -391,6 +412,10 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX idx_notifications_user ON alerting.notifications (user_id)`);
         await queryRunner.query(`CREATE INDEX idx_notifications_status ON alerting.notifications (status)`);
 
+        // auth
+        await queryRunner.query(`CREATE INDEX idx_auth_users_role_status ON auth.users (role, status)`);
+        await queryRunner.query(`CREATE INDEX idx_auth_users_persona ON auth.users (persona_id)`);
+
         // 20. Triggers de auditoría
         const tables = [
             'access_control.access_events',
@@ -405,6 +430,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
             'alerting.alerts',
             'alerting.notifications',
             'alerting.notification_preferences',
+            'auth.users',
         ];
 
         for (const table of tables) {
@@ -436,6 +462,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
             'alerting.alerts',
             'alerting.notifications',
             'alerting.notification_preferences',
+            'auth.users',
         ];
 
         for (const table of tables) {
@@ -448,6 +475,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`DROP FUNCTION IF EXISTS update_updated_at_column`);
 
         // Tablas
+        await queryRunner.query(`DROP TABLE IF EXISTS auth.users`);
         await queryRunner.query(`DROP TABLE IF EXISTS biometric.facial_embeddings`);
         await queryRunner.query(`DROP TABLE IF EXISTS biometric.biometric_evidences`);
         await queryRunner.query(`DROP TABLE IF EXISTS registry.ownerships`);

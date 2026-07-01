@@ -156,7 +156,8 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS access_control.access_events (
         id                   UUID DEFAULT gen_random_uuid(),
-        vehicle_plate        VARCHAR(20) NOT NULL,
+        license_plate        VARCHAR(20) NOT NULL,
+        access_point_id      UUID NOT NULL,
         access_type          access_control.access_method_enum NOT NULL,
         decision             access_control.decision_enum NOT NULL,
         reason               VARCHAR(255),
@@ -375,7 +376,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX idx_quick_passes_status ON "authorization".quick_passes (status)`);
 
         // access_control
-        await queryRunner.query(`CREATE INDEX idx_access_events_vehicle_plate ON access_control.access_events (vehicle_plate)`);
+        await queryRunner.query(`CREATE INDEX idx_access_events_license_plate ON access_control.access_events (license_plate)`);
         await queryRunner.query(`CREATE INDEX idx_access_events_decision ON access_control.access_events (decision)`);
         await queryRunner.query(`CREATE INDEX idx_access_events_created_at ON access_control.access_events (created_at)`);
         await queryRunner.query(`CREATE INDEX idx_guest_invitations_vehicle_plate ON access_control.guest_invitations (vehicle_plate)`);

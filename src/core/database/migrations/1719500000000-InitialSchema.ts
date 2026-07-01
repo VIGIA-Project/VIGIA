@@ -346,7 +346,37 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         ADD CONSTRAINT ck_vehicles_year CHECK (year >= 1900 AND year <= 2100)
     `);
 
-        // 19. Triggers de auditoría
+        // 19. Indexes
+        // registry
+        await queryRunner.query(`CREATE INDEX idx_persons_status ON registry.persons (status)`);
+        await queryRunner.query(`CREATE INDEX idx_persons_role ON registry.persons (role)`);
+        await queryRunner.query(`CREATE INDEX idx_vehicles_status ON registry.vehicles (status)`);
+        await queryRunner.query(`CREATE INDEX idx_ownerships_person ON registry.ownerships (person_id)`);
+        await queryRunner.query(`CREATE INDEX idx_ownerships_vehicle ON registry.ownerships (vehicle_id)`);
+
+        // authorization
+        await queryRunner.query(`CREATE INDEX idx_authorizations_person_vehicle ON "authorization".authorizations (person_id, vehicle_id)`);
+        await queryRunner.query(`CREATE INDEX idx_authorizations_status ON "authorization".authorizations (status)`);
+        await queryRunner.query(`CREATE INDEX idx_quick_passes_vehicle ON "authorization".quick_passes (vehicle_id)`);
+        await queryRunner.query(`CREATE INDEX idx_quick_passes_status ON "authorization".quick_passes (status)`);
+
+        // access_control
+        await queryRunner.query(`CREATE INDEX idx_access_events_vehicle_plate ON access_control.access_events (vehicle_plate)`);
+        await queryRunner.query(`CREATE INDEX idx_access_events_decision ON access_control.access_events (decision)`);
+        await queryRunner.query(`CREATE INDEX idx_access_events_created_at ON access_control.access_events (created_at)`);
+        await queryRunner.query(`CREATE INDEX idx_guest_invitations_vehicle_plate ON access_control.guest_invitations (vehicle_plate)`);
+
+        // biometric
+        await queryRunner.query(`CREATE INDEX idx_facial_embeddings_person ON biometric.facial_embeddings (person_id)`);
+        await queryRunner.query(`CREATE INDEX idx_biometric_evidences_access_event ON biometric.biometric_evidences (access_event_id)`);
+
+        // alerting
+        await queryRunner.query(`CREATE INDEX idx_alerts_severity ON alerting.alerts (severity)`);
+        await queryRunner.query(`CREATE INDEX idx_alerts_status ON alerting.alerts (status)`);
+        await queryRunner.query(`CREATE INDEX idx_notifications_user ON alerting.notifications (user_id)`);
+        await queryRunner.query(`CREATE INDEX idx_notifications_status ON alerting.notifications (status)`);
+
+        // 20. Triggers de auditoría
         const tables = [
             'access_control.access_events',
             'access_control.guest_invitations',

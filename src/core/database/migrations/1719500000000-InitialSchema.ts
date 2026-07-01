@@ -12,6 +12,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS registry`);
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS biometric`);
         await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS alerting`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS auth`);
 
         // 3. Función de auditoría
         await queryRunner.query(`
@@ -307,6 +308,7 @@ export class InitialSchema1720800000000 implements MigrationInterface {
         await queryRunner.query(`DROP SCHEMA IF EXISTS registry CASCADE`);
         await queryRunner.query(`DROP SCHEMA IF EXISTS biometric CASCADE`);
         await queryRunner.query(`DROP SCHEMA IF EXISTS alerting CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS auth CASCADE`);
 
         // Extensión
         await queryRunner.query(`DROP EXTENSION IF EXISTS vector CASCADE`);

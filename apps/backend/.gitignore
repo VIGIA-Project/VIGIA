@@ -1,14 +1,12 @@
 # Dependencies
 node_modules/
-.pnpm-store/
-pnpm-lock.yaml
 
-# Build outputs
+# Build output
 dist/
 build/
 
 # Environment files
-.env
+.env.example
 .env.local
 .env.*.local
 
@@ -33,10 +31,4 @@ Thumbs.db
 # TypeORM migrations temp
 src/core/database/migrations/*.js
 
-# TypeORM
-*.js.map
-
-# Lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml  # O este si usas pnpm
+.env.example

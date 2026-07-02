@@ -1,32 +1,26 @@
 {
-  "name": "vigia",
-  "private": true,
+  "name": "@vigia/backend",
   "version": "0.1.0",
   "description": "VIGIA - Sistema de Control de Acceso Vehicular",
   "author": "VIGIA Team",
+  "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "pnpm --parallel -r run dev",
-    "dev:backend": "pnpm --filter @vigia/backend run start:dev",
-    "dev:frontend": "pnpm --filter @vigia/frontend run dev",
-    "build": "pnpm -r run build",
-    "build:backend": "pnpm --filter @vigia/backend run build",
-    "build:frontend": "pnpm --filter @vigia/frontend run build",
-    "lint": "pnpm -r run lint",
-    "test": "pnpm -r run test",
-    "migration:run": "pnpm --filter @vigia/backend run migration:run",
-    "seed": "pnpm --filter @vigia/backend run seed",
-    "clean": "pnpm -r exec rm -rf node_modules dist",
+    "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:generate": "typeorm migration:generate -d dist/core/database/data-source.js",
-    "migration:revert": "typeorm migration:revert -d dist/core/database/data-source.js"
+    "migration:run": "typeorm migration:run -d dist/core/database/data-source.js",
+    "migration:revert": "typeorm migration:revert -d dist/core/database/data-source.js",
+    "seed": "ts-node -r tsconfig-paths/register src/core/database/seeds/run-seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -35,7 +29,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.3.0",
-    "@nestjs/swagger": "^7.4.2",
+    "@nestjs/swagger": "^7.4.0",
     "@nestjs/terminus": "^10.2.0",
     "@nestjs/typeorm": "^10.0.1",
     "class-transformer": "^0.5.1",
@@ -99,10 +93,5 @@
       "^@shared/(.*)$": "<rootDir>/shared/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1"
     }
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=9.0.0"
-  },
-  "packageManager": "pnpm@11.9.0"
+  }
 }

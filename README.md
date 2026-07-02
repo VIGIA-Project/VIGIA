@@ -1,243 +1,469 @@
-# 🚨 VIGIA - Sistema de Control de Acceso Vehicular
+# 🚨 VIGIA - Monorepo
 
-Sistema modular de control de acceso vehicular construido con **NestJS**, **TypeScript** y **Clean Architecture** con principios de **Domain-Driven Design (DDD)**.
+**Sistema modular de control de acceso vehicular** construido con **NestJS**, **React**, **TypeScript** y arquitectura **Clean Architecture** + **Domain-Driven Design (DDD)**.
 
----
-
-## 📐 Arquitectura
-
-### Patrón General
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Presentation Layer                    │
-│              (Controllers, NestJS Modules)               │
-├─────────────────────────────────────────────────────────┤
-│                   Application Layer                      │
-│           (Use Cases, Commands, Queries, DTOs)           │
-├─────────────────────────────────────────────────────────┤
-│                     Domain Layer                         │
-│      (Entities, Value Objects, Domain Services,         │
-│       Repository Contracts — SIN dependencias externas)  │
-├─────────────────────────────────────────────────────────┤
-│                 Infrastructure Layer                     │
-│     (TypeORM Repositories, Mappers, Services externos)   │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Estructura de Directorios
-
-```
-src/
-├── main.ts                        # Bootstrap con ValidationPipe, filtros, interceptores
-├── app.module.ts                  # Módulo raíz
-│
-├── core/                          # Infraestructura central compartida
-│   ├── config/                    # Configuración tipada (app, database)
-│   ├── database/                  # TypeORM: módulo, servicio, data-source, migrations/
-│   ├── exceptions/                # Filtro global + excepciones de dominio base
-│   ├── guards/                    # JwtAuthGuard (esqueleto)
-│   └── interceptors/              # ResponseInterceptor, LoggingInterceptor
-│
-├── shared/                        # Código compartido entre BCs (sin lógica de negocio)
-│   ├── constants/                 # Tokens de inyección, límites de negocio
-│   ├── dto/                       # PaginationDto, respuestas genéricas
-│   ├── enums/                     # Enums de dominio compartidos
-│   ├── interfaces/
-│   │   └── contracts/             # Contratos entre Bounded Contexts (anti-corruption layer)
-│   ├── logger/                    # LoggerModule + VigiaLogger (Winston)
-│   └── utils/                     # Utilidades puras (fecha, string)
-│
-├── modules/                       # Los 5 Bounded Contexts
-│   ├── access-control/            # BC: Control de Acceso
-│   ├── authorization/             # BC: Autorización
-│   ├── registry/                  # BC: Registro de Vehículos y Personas
-│   ├── biometric/                 # BC: Biometría (pgvector)
-│   └── alerting/                  # BC: Alertas y Notificaciones
-│
-└── presentation/
-    └── health/                    # Health Check endpoints
-```
-
-### Bounded Contexts
-
-| BC | Responsabilidad | Entidades clave |
-|----|-----------------|-----------------|
-| **access-control** | Registro de eventos de entrada/salida en puntos de control | `AccessEvent`, `AccessPoint` |
-| **authorization** | Gestión de permisos y reglas de acceso | `Authorization` |
-| **registry** | Catálogo de vehículos y personas | `Vehicle`, `Person` |
-| **biometric** | Perfiles biométricos y verificación (pgvector) | `BiometricProfile` |
-| **alerting** | Emisión y gestión de alertas/notificaciones | `Alert` |
-
-### Comunicación entre BCs
-
-Los BCs **nunca se importan directamente**. Se comunican exclusivamente a través de contratos definidos en `src/shared/interfaces/contracts/`:
-
-```typescript
-// ✅ Correcto: usar contrato
-import { ALERTING_CONTRACT, IAlertingContract } from '@shared/interfaces/contracts';
-
-// ❌ Incorrecto: importar directamente
-import { AlertingModule } from '@modules/alerting/presentation/alerting.module';
-```
-
-### Regla de Dependencias (Clean Architecture)
-
-```
-Domain ← Application ← Infrastructure
-   ↑           ↑              ↑
-   └───────────┴──────────────┘
-         Presentation (NestJS)
-```
-
-El **dominio no depende de nada** externo (ni TypeORM, ni NestJS).
+> 📦 Este es un **monorepo con pnpm workspaces**. Asegúrate de usar **`pnpm`** en lugar de `npm` o `yarn`.
 
 ---
 
-## 🛠️ Instalación y Configuración
+## 📚 Estructura del Proyecto
 
-### Prerequisitos
+```
+vigia/
+├── apps/
+│   ├── backend/                 # 🚀 API REST (NestJS)
+│   │   ├── src/
+│   │   ├── test/
+│   │   ├── README.md           # ← Backend documentation
+│   │   └── package.json
+│   │
+│   └── frontend/                # 🎨 UI (React + Vite)
+│       ├── src/
+│       ├── README.md           # ← Frontend documentation
+│       └── package.json
+│
+├── packages/
+│   └── shared-types/            # 🔗 Tipos compartidos
+│       ├── src/
+│       ├── README.md           # ← Shared types documentation
+│       └── package.json
+│
+├── services/                    # 🤖 Servicios IA (externos)
+│   ├── ocr/                     # Reconocimiento de placas
+│   └── bio/                     # Biometría y validación
+│
+├── docs/                        # 📖 Documentación general
+├── docker-compose.yml           # 🐳 Servicios en contenedores
+├── pnpm-workspace.yaml          # 📦 Configuración del monorepo
+└── README.md                    # ← Estás aquí
+```
 
-- Node.js >= 18.x
-- PostgreSQL >= 14 con extensión `pgvector`
-- npm >= 9.x
+---
 
-### Pasos
+## 🚀 Inicio Rápido
+
+### 1️⃣ Prerequisitos
+
+- **Node.js** >= 18.x
+- **pnpm** >= 9.x (gestor de paquetes del monorepo)
+- **PostgreSQL** >= 14 con extensión `pgvector` (u opcional Docker)
+
+### 2️⃣ Instalación
 
 ```bash
-# 1. Clonar e instalar
-git clone <repo-url>
+# Clonar repositorio
+git clone https://github.com/VIGIA-Project/VIGIA.git
 cd vigia
-npm install
 
-# 2. Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus valores
+# Instalar dependencias de todos los apps
+pnpm install
 
-# 3. Inicializar base de datos (PostgreSQL debe estar corriendo)
-# Crear la BD manualmente:
-psql -U postgres -c "CREATE DATABASE vigia_db;"
-psql -U vigia_user -d vigia_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
-
-# 4. Ejecutar migraciones
-npm run build
-npm run migration:run
-
-# 5. Iniciar en desarrollo
-npm run start:dev
+# Verificar estructura
+pnpm list --depth=0
 ```
 
-### 🧹 Verificación desde cero (Clean DB)
-
-Para verificar que el esquema y los datos iniciales se cargan correctamente en un entorno limpio, ejecuta:
+### 3️⃣ Configurar Ambiente
 
 ```bash
-# 1. Recrear la base de datos vacía
-psql -U postgres -c "DROP DATABASE IF EXISTS vigia_db;"
+# Copiar archivo de ejemplo
+cp .env.example apps/backend/.env.local
+
+# Editar con tus valores
+nano apps/backend/.env.local
+```
+
+### 4️⃣ Base de Datos
+
+**Opción A: Docker (Recomendado)**
+```bash
+docker-compose up -d postgres
+```
+
+**Opción B: PostgreSQL Local**
+```bash
 psql -U postgres -c "CREATE DATABASE vigia_db;"
-psql -U vigia_user -d vigia_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+psql -U postgres -d vigia_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
 
-# 2. Compilar el proyecto
-npm run build
+### 5️⃣ Inicializar Base de Datos
 
-# 3. Ejecutar migraciones iniciales
-npm run migration:run
+```bash
+# Compilar backend
+pnpm build:backend
 
-# 4. Poblar datos iniciales (seeds)
-npm run seed
+# Ejecutar migraciones
+pnpm migration:run
 
-# Si todo es exitoso, no habrán errores en consola y la BD estará lista.
+# Poblar datos iniciales
+pnpm seed
+```
+
+### 6️⃣ Iniciar en Desarrollo
+
+**Opción A: Frontend + Backend en paralelo**
+```bash
+pnpm dev
+```
+
+**Opción B: Solo backend**
+```bash
+pnpm dev:backend
+# Accesible en: http://localhost:3000/api/v1
+# Health check: http://localhost:3000/health
+```
+
+**Opción C: Solo frontend**
+```bash
+pnpm dev:frontend
+# Accesible en: http://localhost:5173
 ```
 
 ---
 
-## 📜 Scripts Disponibles
+## 📦 Scripts Disponibles
 
-| Script | Descripción |
-|--------|-------------|
-| `npm run start:dev` | Servidor en modo watch (desarrollo) |
-| `npm run build` | Compilar TypeScript a `dist/` |
-| `npm run start:prod` | Iniciar desde `dist/` (producción) |
-| `npm run test` | Tests unitarios |
-| `npm run test:e2e` | Tests end-to-end |
-| `npm run test:cov` | Cobertura de tests |
-| `npm run migration:generate -- src/core/database/migrations/NombreMigracion` | Generar migración |
-| `npm run migration:run` | Ejecutar migraciones pendientes |
-| `npm run migration:revert` | Revertir última migración |
-| `npm run seed` | Poblar datos iniciales |
-| `npm run format` | Formatear código (Prettier) |
-| `npm run lint` | Lint con ESLint |
+### Nivel de Monorepo
+
+| Comando | Descripción |
+|---------|------------|
+| `pnpm dev` | Inicia backend + frontend en paralelo |
+| `pnpm dev:backend` | Solo servidor backend (watch mode) |
+| `pnpm dev:frontend` | Solo servidor frontend (Vite dev server) |
+| `pnpm build` | Build de todos los apps |
+| `pnpm build:backend` | Build solo del backend |
+| `pnpm build:frontend` | Build solo del frontend |
+| `pnpm lint` | ESLint en todos los apps |
+| `pnpm test` | Jest tests en todos los apps |
+| `pnpm migration:run` | Ejecutar migraciones pendientes |
+| `pnpm seed` | Poblar datos iniciales de desarrollo |
+| `pnpm clean` | Limpiar node_modules y dist globalmente |
+
+### Backend Específico
+
+```bash
+pnpm --filter @vigia/backend run start:dev
+pnpm --filter @vigia/backend run build
+pnpm --filter @vigia/backend run test
+pnpm --filter @vigia/backend run test:e2e
+```
+
+### Frontend Específico
+
+```bash
+pnpm --filter @vigia/frontend run dev
+pnpm --filter @vigia/frontend run build
+pnpm --filter @vigia/frontend run lint
+```
 
 ---
 
-## 🏥 Health Check Endpoints
+## 📋 Documentación por App
 
-Los endpoints de health **no llevan el prefijo** `api/v1`:
+### 🚀 Backend
 
-| Endpoint | Propósito | Uso típico |
-|----------|-----------|------------|
-| `GET /health` | Estado completo con todos los checks | Monitoreo general |
-| `GET /health/liveness` | ¿Está vivo el proceso? | Kubernetes liveness probe |
-| `GET /health/readiness` | ¿Listo para recibir tráfico? | Kubernetes readiness probe |
+Consulta [`apps/backend/README.md`](./apps/backend/README.md) para:
+- Arquitectura (Clean Architecture + DDD)
+- 5 Bounded Contexts
+- Migraciones y seeds
+- Health checks
+- API endpoints
 
-### Ejemplo de respuesta `/health`
+### 🎨 Frontend
 
-```json
-{
-  "status": "healthy",
-  "uptime": 3600,
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "version": "0.1.0",
-  "checks": {
-    "database": { "status": "up", "responseTime": 5 },
-    "memory": { "status": "up", "details": { "heapUsedMB": 45, "heapTotalMB": 120 } },
-    "uptime": { "status": "up", "details": { "uptimeSeconds": 3600 } }
-  }
-}
-```
+Consulta [`apps/frontend/README.md`](./apps/frontend/README.md) para:
+- Setup del proyecto React
+- Variables de entorno
+- Build y deployment
+- Componentes compartidos
+
+### 🔗 Tipos Compartidos
+
+Consulta [`packages/shared-types/README.md`](./packages/shared-types/README.md) para:
+- Cómo usar tipos compartidos
+- DTOs disponibles
+- Enums comunes
 
 ---
 
 ## 🗄️ Base de Datos
 
-### Ejecutar migración desde cero
-```bash
-# Levantar PostgreSQL
-docker compose up -d postgres
-# Ejecutar migración
-npm run migration:run
-# Ejecutar seeds de desarrollo
-npm run seed
+### Credenciales de Desarrollo
+
+| Campo | Valor |
+|-------|-------|
+| Host | localhost |
+| Puerto | 5432 |
+| Usuario | vigia_user |
+| Contraseña | vigia_secret |
+| BD | vigia_db |
+
+### Admin por Defecto (Seeds)
+
+| Email | Contraseña | Rol | Nota |
+|-------|-----------|-----|------|
+| admin@uce.edu.ec | password | ADMIN | ⚠️ Cambio obligatorio en primer login |
+
+### Esquema de BD
+
+```
+6 esquemas
+├── auth (1 tabla)
+├── registry (4 tablas)
+├── authorization (3 tablas)
+├── biometric (3 tablas)
+├── access_control (4 tablas)
+└── alerting (2 tablas)
+
+Total: 17 tablas, 26 enums, 0 FKs cross-schema
 ```
 
-### Credenciales de desarrollo (seeds)
-| Email | Contraseña | Rol | Nota |
-|---|---|---|---|
-| admin@uce.edu.ec | password | ADMIN | Cambio obligatorio en primer login |
-
-### Esquemas creados
-| Esquema | Tablas | Tipo |
-|---|---|---|
-| auth | 1 | Infraestructura transversal |
-| registry | 3 | Bounded Context |
-| authorization | 3 | Bounded Context |
-| biometric | 3 | Bounded Context |
-| access_control | 4 | Bounded Context |
-| alerting | 2 | Bounded Context |
-
-**Total:** 6 esquemas, 16 tablas, 26 enums, 0 FKs cross-schema.
 ---
 
-## 📡 Alerting
+## 🐳 Docker Compose
 
-- **MVP**: Notificaciones in-app (`AlertChannel.IN_APP`)
-- **Opcional**: Telegram (`TELEGRAM_ENABLED=true` en `.env`)
+El archivo `docker-compose.yml` incluye:
+
+- **PostgreSQL 16 + pgvector** - Base de datos principal
+- **OCR Service** - Reconocimiento óptico de caracteres (placas)
+- **Bio Service** - Validación biométrica
+
+```bash
+# Iniciar todos los servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Detener
+docker-compose down
+
+# Resetear datos
+docker-compose down -v
+```
+
+---
+
+## 🏥 Health Check
+
+```bash
+# Estado completo del sistema
+curl http://localhost:3000/health
+
+# Liveness probe (¿vivo?)
+curl http://localhost:3000/health/liveness
+
+# Readiness probe (¿listo para tráfico?)
+curl http://localhost:3000/health/readiness
+```
+
+---
+
+## 📝 Convenciones de Desarrollo
+
+### Nombres de Ramas
+```
+feature/VIG-123-descripcion
+bugfix/VIG-456-descripcion
+hotfix/VIG-789-descripcion
+```
+
+### Commits
+```
+feat: agregar login de usuarios
+fix: corregir error en validación
+docs: actualizar README
+refactor: limpiar código
+test: agregar tests unitarios
+```
+
+### Pull Requests
+- Base: `develop` (o `main`)
+- Descripción clara
+- Linked al issue correspondiente
+- Tests pasando
 
 ---
 
 ## 🤝 Contribución
 
-1. Cada BC es independiente — no romper contratos de `@shared/interfaces/contracts`
-2. El dominio (`domain/`) no debe importar nada de NestJS ni TypeORM
-3. Los casos de uso (`application/use-cases/`) solo dependen de interfaces de dominio
-4. Toda lógica de base de datos va en `infrastructure/repositories/`
+### 1. Setup Local
+
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/VIG-XXX-descripcion
+pnpm install
+```
+
+### 2. Desarrollo
+
+```bash
+# Iniciar en watch mode
+pnpm dev:backend
+
+# En otra terminal
+pnpm dev:frontend
+```
+
+### 3. Testing
+
+```bash
+# Tests unitarios
+pnpm test
+
+# E2E
+pnpm test:e2e
+
+# Cobertura
+pnpm test:cov
+```
+
+### 4. Verificación Pre-Commit
+
+```bash
+# Lint
+pnpm lint
+
+# Format
+pnpm format
+```
+
+### 5. Push y PR
+
+```bash
+git add .
+git commit -m "feat: descripción clara"
+git push origin feature/VIG-XXX-descripcion
+# Crear PR en GitHub
+```
+
+---
+
+## 🔐 Seguridad
+
+### Variables Sensibles
+
+Nunca committear:
+- `.env` o `.env.local`
+- `pnpm-lock.yaml` (en algunas circunstancias)
+- Credenciales de BD
+- Claves JWT
+
+Usa `.env.example` como referencia.
+
+### Contraseñas de Desarrollo
+
+⚠️ Las contraseñas en seeds son **SOLO para desarrollo local**. En producción:
+- Generar contraseñas seguras
+- Usar variables de entorno
+- Implementar rotación de credenciales
+
+---
+
+## 🚀 Deployment
+
+### Build para Producción
+
+```bash
+# Build de ambos apps
+pnpm build
+
+# Backend
+pnpm build:backend
+# Output: apps/backend/dist
+
+# Frontend
+pnpm build:frontend
+# Output: apps/frontend/dist
+```
+
+### Variables de Producción
+
+```bash
+# Backend (.env)
+NODE_ENV=production
+DB_HOST=prod-db.example.com
+DB_SSL=true
+JWT_SECRET=cambiar-a-valor-seguro
+APP_PORT=3000
+
+# Frontend (.env)
+VITE_API_URL=https://api.vigia.example.com/api/v1
+```
+
+---
+
+## 📚 Recursos
+
+- [NestJS Docs](https://docs.nestjs.com/)
+- [React Docs](https://react.dev/)
+- [TypeORM Docs](https://typeorm.io/)
+- [pnpm Docs](https://pnpm.io/)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [DDD](https://www.domainlanguage.com/ddd/)
+
+---
+
+## 🐛 Troubleshooting
+
+### "pnpm: command not found"
+
+```bash
+npm install -g pnpm@11.9.0
+pnpm --version
+```
+
+### "Cannot find module @vigia/shared-types"
+
+```bash
+pnpm install
+pnpm clean
+pnpm install
+```
+
+### "PostgreSQL connection refused"
+
+```bash
+docker-compose ps          # Ver estado
+docker-compose logs postgres  # Ver logs
+docker-compose restart postgres
+```
+
+### "Port 3000 already in use"
+
+```bash
+# Cambiar en .env
+APP_PORT=3001
+
+# O liberar puerto
+lsof -i :3000
+kill -9 <PID>
+```
+
+### "Migraciones no se ejecutaron"
+
+```bash
+pnpm build:backend
+pnpm migration:run
+pnpm seed
+```
+
+---
+
+## 📧 Soporte
+
+- 📖 Documentación: Consulta los READMEs de cada app
+- 🐛 Issues: Abre un issue en GitHub
+- 💬 Discussiones: Usa GitHub Discussions
+
+---
+
+## 📄 Licencia
+
+MIT
+
+---
+
+**Última actualización:** 2024-01-15  
+**Versión:** 0.1.0  
+**Mantenedor:** VIGIA Team

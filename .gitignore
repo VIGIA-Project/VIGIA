@@ -34,3 +34,8 @@ src/core/database/migrations/*.js
 
 # TypeORM
 *.js.map
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml  # O este si usas pnpm

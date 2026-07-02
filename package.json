@@ -1,0 +1,22 @@
+{
+  "name": "vigia",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:backend": "pnpm --filter @vigia/backend run start:dev",
+    "dev:frontend": "pnpm --filter @vigia/frontend run dev",
+    "build": "pnpm -r run build",
+    "build:backend": "pnpm --filter @vigia/backend run build",
+    "build:frontend": "pnpm --filter @vigia/frontend run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "migration:run": "pnpm --filter @vigia/backend run migration:run",
+    "seed": "pnpm --filter @vigia/backend run seed",
+    "clean": "pnpm -r exec rm -rf node_modules dist"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

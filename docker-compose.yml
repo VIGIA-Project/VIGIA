@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vigia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-vigia_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vigia_secret}
+      POSTGRES_DB: ${DB_NAME:-vigia_db}
+    ports:
+      - '5432:5432'
+    volumes:
+      - vigia_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-vigia_user} -d ${DB_NAME:-vigia_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vigia-network
+
+  ocr:
+    build:
+      context: ./services/ocr
+      dockerfile: Dockerfile
+    container_name: vigia-ocr
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    networks:
+      - vigia-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  bio:
+    build:
+      context: ./services/bio
+      dockerfile: Dockerfile
+    container_name: vigia-bio
+    restart: unless-stopped
+    ports:
+      - '8002:8002'
+    networks:
+      - vigia-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8002/health']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  vigia-network:
+    driver: bridge
+
+volumes:
+  vigia_postgres_data:

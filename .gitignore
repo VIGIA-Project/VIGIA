@@ -14,6 +14,7 @@ build/
 # Logs
 logs/
 *.log
+npm-debug.log*
 
 # Coverage
 coverage/
@@ -22,10 +23,14 @@ coverage/
 .vscode/
 .idea/
 *.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
+
+# TypeORM migrations temp
+src/core/database/migrations/*.js
 
 # TypeORM
 *.js.map

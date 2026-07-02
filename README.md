@@ -241,3 +241,5 @@ npm run seed
 2. El dominio (`domain/`) no debe importar nada de NestJS ni TypeORM
 3. Los casos de uso (`application/use-cases/`) solo dependen de interfaces de dominio
 4. Toda lógica de base de datos va en `infrastructure/repositories/`
+
+asadsdasd

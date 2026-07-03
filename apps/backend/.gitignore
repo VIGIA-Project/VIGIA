@@ -1,9 +1,7 @@
 # Dependencies
 node_modules/
-.pnpm-store/
 
-
-# Build outputs
+# Build output
 dist/
 build/
 
@@ -16,8 +14,6 @@ build/
 logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
 
 # Coverage
 coverage/
@@ -27,8 +23,6 @@ coverage/
 .idea/
 *.swp
 *.swo
-*.sublime-workspace
-*.sublime-project
 
 # OS
 .DS_Store
@@ -37,14 +31,4 @@ Thumbs.db
 # TypeORM migrations temp
 src/core/database/migrations/*.js
 
-# TypeORM
-*.js.map
-
-# Lock files
-package-lock.json
-yarn.lock
-  # O este si usas pnpm
-
-.claude/
-.claudeignore
-CLAUDE.md
+.env

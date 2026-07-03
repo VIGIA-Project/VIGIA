@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vigia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-vigia_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vigia_secret}
+      POSTGRES_DB: ${DB_NAME:-vigia_db}
+    ports:
+      - '5432:5432'
+    volumes:
+      - vigia_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-vigia_user} -d ${DB_NAME:-vigia_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vigia-network
+
+  ocr:
+    image: python:3.11-slim
+    container_name: vigia-ocr
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    networks:
+      - vigia-network
+    command: >-
+      sh -c "pip install --no-cache-dir fastapi uvicorn &&
+      mkdir -p /app &&
+      printf 'from fastapi import FastAPI\nimport random\napp = FastAPI()\n@app.get(\"/health\")\nasync def health():\n    return {\"status\":\"ok\",\"service\":\"ocr\"}\n@app.post(\"/detect-plate\")\nasync def detect_plate():\n    plates=[\"ABC-123\",\"XYZ-789\"]\n    return {\"plate_number\":random.choice(plates),\"confidence\":0.95}\n' > /app/main.py &&
+      cd /app && uvicorn main:app --host 0.0.0.0 --port 8001"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8001/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  bio:
+    image: python:3.11-slim
+    container_name: vigia-bio
+    restart: unless-stopped
+    ports:
+      - '8002:8002'
+    networks:
+      - vigia-network
+    command: >-
+      sh -c "pip install --no-cache-dir fastapi uvicorn &&
+      mkdir -p /app &&
+      printf 'from fastapi import FastAPI\nimport random\napp = FastAPI()\n@app.get(\"/health\")\nasync def health():\n    return {\"status\":\"ok\",\"service\":\"bio\"}\n@app.post(\"/compare-face\")\nasync def compare_face():\n    results=[\"MATCH\",\"NO_MATCH\",\"INCONCLUSIVE\"]\n    return {\"result\":random.choice(results),\"confidence\":0.92}\n' > /app/main.py &&
+      cd /app && uvicorn main:app --host 0.0.0.0 --port 8002"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8002/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+networks:
+  vigia-network:
+    driver: bridge
+
+volumes:
+  vigia_postgres_data:

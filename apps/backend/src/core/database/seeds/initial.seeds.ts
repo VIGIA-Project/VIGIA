@@ -1,13 +1,7 @@
 import { DataSource } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 
 export async function runInitialSeed(dataSource: DataSource): Promise<void> {
   console.log('🌱 Ejecutando seeds iniciales...');
-
-  // Hash de contraseña seguro para desarrollo (password: "password")
-  // ⚠️ IMPORTANTE: Este hash es SOLO para desarrollo local
-  // En producción, generar contraseñas seguras y cambiarlas en el primer login
-  const adminPasswordHash = await bcrypt.hash('password', 10);
 
   // 1. Persona de prueba (propietario)
   await dataSource.query(`
@@ -48,29 +42,16 @@ export async function runInitialSeed(dataSource: DataSource): Promise<void> {
     ON CONFLICT (autorizacion_permanente_id) DO NOTHING
   `);
 
-  // 5. Usuario administrador
-  // ⚠️ CRÍTICO: Cambiar contraseña en primer login (must_change_password = true)
-  await dataSource.query(
-    `
+  // 5. Usuario administrador (contraseña: "password" — solo para desarrollo)
+  await dataSource.query(`
     INSERT INTO auth.users
       (user_id, persona_id, email, password_hash, role, status, must_change_password)
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7)
+      ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000003', 'admin@uce.edu.ec', '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'ADMIN', 'PENDING_PASSWORD_CHANGE', true)
     ON CONFLICT (email) DO NOTHING
-  `,
-    [
-      '55555555-5555-5555-5555-555555555555',
-      '00000000-0000-0000-0000-000000000003',
-      'admin@uce.edu.ec',
-      adminPasswordHash,
-      'ADMIN',
-      'PENDING_PASSWORD_CHANGE',
-      true,
-    ]
-  );
+  `);
 
   console.log('✅ Seeds completados.');
   console.log('   Placa de prueba: PCH0001');
-  console.log('   Admin: admin@uce.edu.ec / password');
-  console.log('   ⚠️  OBLIGATORIO cambiar contraseña en primer login');
+  console.log('   Admin: admin@uce.edu.ec / password (cambio obligatorio)');
 }

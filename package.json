@@ -15,14 +15,8 @@
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
     "migration:run": "pnpm --filter @vigia/backend run migration:run",
-    "migration:revert": "pnpm --filter @vigia/backend run migration:revert",
     "seed": "pnpm --filter @vigia/backend run seed",
-    "clean": "pnpm -r exec rm -rf node_modules dist",
-    "format": "prettier --write \"apps/**/*.ts\" \"packages/**/*.ts\""
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "prettier": "^3.2.2"
+    "clean": "pnpm -r exec rm -rf node_modules dist"
   },
   "engines": {
     "node": ">=18.0.0",

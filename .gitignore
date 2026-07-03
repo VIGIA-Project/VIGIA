@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
+
 
 # Build outputs
 dist/
@@ -39,4 +39,8 @@ src/core/database/migrations/*.js
 # Lock files
 package-lock.json
 yarn.lock
-pnpm-lock.yaml  # O este si usas pnpm
+  # O este si usas pnpm
+
+.claudeignore
+CLAUDE.md
+/.claude

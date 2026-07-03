@@ -6,7 +6,7 @@ dist/
 build/
 
 # Environment files
-.env.example
+.env
 .env.local
 .env.*.local
 
@@ -31,4 +31,4 @@ Thumbs.db
 # TypeORM migrations temp
 src/core/database/migrations/*.js
 
-.env.example
+.env

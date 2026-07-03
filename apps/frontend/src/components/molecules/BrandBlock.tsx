@@ -9,7 +9,7 @@ export interface BrandBlockProps {
 export const BrandBlock: React.FC<BrandBlockProps> = ({ rol }) => {
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <VigiaLogo size={36} />
+            <VigiaLogo size={44} />
             <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <VigiaWordmark size="md" />
                 <RolBadge rol={rol} />

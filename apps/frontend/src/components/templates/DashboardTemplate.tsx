@@ -1,3 +1,4 @@
+// src/components/templates/DashboardTemplate.tsx
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material';
@@ -6,6 +7,10 @@ import { Header } from '../organisms/Header';
 import {
   PROPIETARIO_NAV_ROUTES,
   PROPIETARIO_CONFIG,
+  GUARDIA_NAV_ROUTES,
+  GUARDIA_CONFIG,
+  ADMIN_NAV_ROUTES,
+  ADMIN_CONFIG,
   NavRoute,
 } from '../../config/navigation.config';
 
@@ -14,8 +19,8 @@ const SIDEBAR_WIDTH = 260;
 // Mapeo de rol → configuración de navegación
 const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: typeof PROPIETARIO_CONFIG }> = {
   PROPIETARIO: { routes: PROPIETARIO_NAV_ROUTES, config: PROPIETARIO_CONFIG },
-  // GUARDIA: { routes: GUARDIA_NAV_ROUTES, config: GUARDIA_CONFIG },  ← Futuro
-  // ADMIN: { routes: ADMIN_NAV_ROUTES, config: ADMIN_CONFIG },        ← Futuro
+  GUARDIA: { routes: GUARDIA_NAV_ROUTES, config: GUARDIA_CONFIG },
+  ADMIN: { routes: ADMIN_NAV_ROUTES, config: ADMIN_CONFIG },
 };
 
 export interface DashboardTemplateProps {

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8d070"/>
+      <stop offset="50%" stop-color="#c29b38"/>
+      <stop offset="100%" stop-color="#8a6b1c"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#gold)">
+    <path d="M 17 8.5 A 11.5 11.5 0 0 0 17 31.5 L 17 35 A 15 15 0 0 1 17 5 Z"/>
+    <path d="M 16 7 L 12 1 L 13 8 Z"/>
+    <path d="M 11 11 L 3 6 L 8 13 Z"/>
+    <path d="M 8 18 L 1 20 L 8 22 Z"/>
+    <path d="M 9 26 L 3 34 L 11 29 Z"/>
+    <path d="M 14 32 L 12 39 L 16 34 Z"/>
+  </g>
+
+  <circle cx="18" cy="20" r="7.5" stroke="#1d409e" stroke-width="1.5"/>
+  <circle cx="18" cy="20" r="5.5" fill="#183687"/>
+  <circle cx="18" cy="20" r="2.5" fill="#0b1a45"/>
+  <path d="M 18 15.5 A 4.5 4.5 0 0 1 22.5 20" stroke="#4bb6b1" stroke-width="1" stroke-linecap="round"/>
+  <circle cx="19.5" cy="18" r="1.2" fill="#ffffff"/>
+  <circle cx="16.5" cy="21.5" r="0.6" fill="#ffffff" opacity="0.6"/>
+
+ <g stroke-linecap="round" stroke-linejoin="round">
+  <!-- Arcos internos -->
+  <path d="M18 10 A10 10 0 0 1 26 14" stroke="#4bb6b1" stroke-width="1.2"/>
+  <path d="M18 30 A10 10 0 0 0 26 26" stroke="#4bb6b1" stroke-width="1.2"/>
+
+  <path d="M18 7 A13 13 0 0 1 30 15" stroke="#4bb6b1" stroke-width="1.2"/>
+  <path d="M18 33 A13 13 0 0 0 30 25" stroke="#4bb6b1" stroke-width="1.2"/>
+
+  <path d="M18 5 A15 15 0 0 1 31 11" stroke="#1d409e" stroke-width="1.2"/>
+  <path d="M18 35 A15 15 0 0 0 31 29" stroke="#1d409e" stroke-width="1.2"/>
+
+  <path d="M18 3 A17 17 0 0 1 32 8" stroke="#1d409e" stroke-width="1.2"/>
+  <path d="M18 37 A17 17 0 0 0 32 32" stroke="#1d409e" stroke-width="1.2"/>
+
+  <!-- Ramificaciones -->
+  <path d="M26 14 H30" stroke="#4bb6b1" stroke-width="1.2"/>
+  <path d="M30 15 H35" stroke="#4bb6b1" stroke-width="1.2"/>
+
+  <path d="M31 11 H36" stroke="#1d409e" stroke-width="1.2"/>
+  <path d="M32 8 H37" stroke="#1d409e" stroke-width="1.2"/>
+
+  <path d="M26.5 20 H36" stroke="#1d409e" stroke-width="1.2"/>
+
+  <path d="M30 25 H35" stroke="#4bb6b1" stroke-width="1.2"/>
+  <path d="M31 29 H36" stroke="#1d409e" stroke-width="1.2"/>
+  <path d="M32 32 H37" stroke="#1d409e" stroke-width="1.2"/>
+
+  <!-- Detalle dorado -->
+  <path d="M18 11.5 A8.5 8.5 0 0 1 26 17" stroke="#c29b38" stroke-width="1"/>
+  <path d="M26 17 H29" stroke="#c29b38" stroke-width="1"/>
+</g>
+
+<circle cx="30" cy="14" r="1.1" fill="#4bb6b1"/>
+<circle cx="35" cy="15" r="1.1" fill="#4bb6b1"/>
+
+<circle cx="36" cy="11" r="1.1" fill="#1d409e"/>
+<circle cx="37" cy="8" r="1.1" fill="#1d409e"/>
+
+<circle cx="36" cy="20" r="1.1" fill="#1d409e"/>
+
+<circle cx="35" cy="25" r="1.1" fill="#4bb6b1"/>
+<circle cx="36" cy="29" r="1.1" fill="#1d409e"/>
+<circle cx="37" cy="32" r="1.1" fill="#1d409e"/>
+
+<circle cx="29" cy="17" r="1" fill="#c29b38"/>
+</svg>

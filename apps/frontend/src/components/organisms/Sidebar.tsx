@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, List, Divider } from '@mui/material';
+import { Box, List, Divider, Typography } from '@mui/material';
 import { GradientBar } from '../atoms';
 import { BrandBlock, NavItem } from '../molecules';
 

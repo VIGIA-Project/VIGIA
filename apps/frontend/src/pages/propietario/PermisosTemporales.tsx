@@ -14,20 +14,9 @@ import {
     Grid,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import { DashboardTemplate } from '../../components/templates';
 import { PermisosTable, PermisoTemporalViewDto } from '../../components/organisms';
 import { EstadoAutorizacion } from '@vigia/shared-types';
-
-const NAV_ROUTES = [
-    { label: 'Mis Vehículos', path: '/propietario/vehiculos', icon: <DirectionsCarIcon /> },
-    { label: 'Permisos Temporales', path: '/propietario/permisos-temporales', icon: <AccessTimeIcon /> },
-    { label: 'Pase Rápido', path: '/propietario/pases-rapidos', icon: <QrCode2Icon /> },
-    { label: 'Notificaciones', path: '/propietario/notificaciones', icon: <NotificationsOutlinedIcon /> },
-];
 
 const MOCK_PERMISOS: PermisoTemporalViewDto[] = [
     {
@@ -123,9 +112,8 @@ export const PermisosTemporalesPage: React.FC = () => {
         <DashboardTemplate
             rol="PROPIETARIO"
             pageTitle="Permisos Temporales"
-            routes={NAV_ROUTES}
             notificationCount={2}
-            userInitials="US"
+            userInitials="AC"
         >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography

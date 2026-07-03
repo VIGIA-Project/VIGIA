@@ -4,4 +4,5 @@ export * from './enums/autorizacion.enum';
 export * from './enums/severidad.enum';
 export * from './enums/movimiento.enum';
 export * from './enums/rol.enum';
+export * from './enums/pase.enum';
 export * from './interfaces/api-response.interface';

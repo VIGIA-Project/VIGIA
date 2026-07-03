@@ -124,6 +124,8 @@ export const estadoColors = {
     CONTINGENCIA: { bg: '#FFF3E0', text: '#EF6C00' },
     EXPIRADO: { bg: '#F5F5F5', text: '#6B7280' },
     INACTIVA: { bg: '#F5F5F5', text: '#6B7280' },
+    ACTIVO: { bg: '#E8F5E9', text: '#2E7D32' },
+    CONSUMIDO: { bg: '#E3F2FD', text: '#1565C0' },
 } as const;
 
 // Gradiente oficial de IA (reutilizable en CSS)

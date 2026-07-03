@@ -1,22 +1,11 @@
 import React, { useState } from 'react';
 import { Typography } from '@mui/material';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import { DashboardTemplate } from '../../components/templates';
 import { NotificationList } from '../../components/organisms';
 import { NotificacionViewDto } from '../../components/molecules/NotificationItem';
 import { Severidad } from '@vigia/shared-types';
 
-const NAV_ROUTES = [
-    { label: 'Mis Vehículos', path: '/propietario/vehiculos', icon: <DirectionsCarIcon /> },
-    { label: 'Permisos Temporales', path: '/propietario/permisos-temporales', icon: <AccessTimeIcon /> },
-    { label: 'Pase Rápido', path: '/propietario/pases-rapidos', icon: <QrCode2Icon /> },
-    { label: 'Notificaciones', path: '/propietario/notificaciones', icon: <NotificationsOutlinedIcon /> },
-];
-
-const MOCK_NOTIFICACIONES: NotificacionViewDto[] = [
+const MOCK_ALERTAS: NotificacionViewDto[] = [
     {
         alerta_id: 'al-101',
         severidad: Severidad.ALTA,
@@ -67,17 +56,17 @@ const MOCK_NOTIFICACIONES: NotificacionViewDto[] = [
     },
 ];
 
-export const NotificacionesPage: React.FC = () => {
-    const [notificaciones, setNotificaciones] = useState<NotificacionViewDto[]>(MOCK_NOTIFICACIONES);
+export const AlertasPage: React.FC = () => {
+    const [alertas, setAlertas] = useState<NotificacionViewDto[]>(MOCK_ALERTAS);
 
     const handleMarcarLeida = (alertaId: string) => {
-        setNotificaciones((prev) =>
+        setAlertas((prev) =>
             prev.map((n) => (n.alerta_id === alertaId ? { ...n, estado_atencion: 'LEIDA' } : n))
         );
     };
 
     const handleArchivar = (alertaId: string) => {
-        setNotificaciones((prev) =>
+        setAlertas((prev) =>
             prev.map((n) => (n.alerta_id === alertaId ? { ...n, estado_atencion: 'ARCHIVADA' } : n))
         );
     };
@@ -85,20 +74,19 @@ export const NotificacionesPage: React.FC = () => {
     return (
         <DashboardTemplate
             rol="PROPIETARIO"
-            pageTitle="Notificaciones"
-            routes={NAV_ROUTES}
+            pageTitle="Mis Alertas"
             notificationCount={2}
-            userInitials="US"
+            userInitials="AC"
         >
             <Typography
                 variant="h5"
                 sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86', mb: 3 }}
             >
-                Centro de Notificaciones
+                Centro de Alertas
             </Typography>
 
             <NotificationList
-                notificaciones={notificaciones}
+                notificaciones={alertas}
                 onMarcarLeida={handleMarcarLeida}
                 onArchivar={handleArchivar}
             />
@@ -106,4 +94,4 @@ export const NotificacionesPage: React.FC = () => {
     );
 };
 
-export default NotificacionesPage;
+export default AlertasPage;

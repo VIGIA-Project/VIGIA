@@ -2,18 +2,9 @@ import React from 'react';
 import { Grid, Typography, Card, CardContent, Box, Button } from '@mui/material';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { DashboardTemplate } from '../../components/templates';
 import { useNavigate } from 'react-router-dom';
-
-const NAV_ROUTES = [
-    { label: 'Inicio', path: '/propietario/inicio', icon: <NotificationsOutlinedIcon /> }, // Just a placeholder icon for now, usually Home
-    { label: 'Mis Vehículos', path: '/propietario/vehiculos', icon: <DirectionsCarIcon /> },
-    { label: 'Permisos Temporales', path: '/propietario/permisos-temporales', icon: <AccessTimeIcon /> },
-    { label: 'Pase Rápido', path: '/propietario/pases-rapidos', icon: <QrCode2Icon /> },
-    { label: 'Notificaciones', path: '/propietario/notificaciones', icon: <NotificationsOutlinedIcon /> },
-];
 
 export const InicioPage: React.FC = () => {
     const navigate = useNavigate();
@@ -21,16 +12,15 @@ export const InicioPage: React.FC = () => {
     const stats = [
         { label: 'Vehículos Registrados', value: 3, icon: <DirectionsCarIcon sx={{ fontSize: 40, color: '#0D5CCF' }} /> },
         { label: 'Permisos Activos', value: 1, icon: <AccessTimeIcon sx={{ fontSize: 40, color: '#19D6C4' }} /> },
-        { label: 'Pases Disponibles', value: 5, icon: <QrCode2Icon sx={{ fontSize: 40, color: '#F2B51F' }} /> },
+        { label: 'Pases Disponibles', value: 5, icon: <VpnKeyIcon sx={{ fontSize: 40, color: '#F2B51F' }} /> },
     ];
 
     return (
         <DashboardTemplate
             rol="PROPIETARIO"
             pageTitle="Inicio"
-            routes={NAV_ROUTES}
             notificationCount={2}
-            userInitials="US"
+            userInitials="AC"
         >
             <Typography
                 variant="h5"
@@ -84,7 +74,7 @@ export const InicioPage: React.FC = () => {
                     <Button
                         fullWidth
                         variant="outlined"
-                        startIcon={<QrCode2Icon />}
+                        startIcon={<VpnKeyIcon />}
                         onClick={() => navigate('/propietario/pases-rapidos')}
                         sx={{ height: 60, borderRadius: '8px', fontWeight: 600 }}
                     >
@@ -100,3 +90,4 @@ export const InicioPage: React.FC = () => {
 import AddIcon from '@mui/icons-material/Add';
 
 export default InicioPage;
+

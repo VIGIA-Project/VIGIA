@@ -9,35 +9,25 @@ import {
     DialogActions,
     TextField,
     MenuItem,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableContainer,
-    Paper,
-    Card,
-    CardContent,
-    Divider,
     useMediaQuery,
     useTheme,
     Grid,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { DashboardLayout } from '../../layouts/DashboardLayout';
-import { StatusChip } from '../../components/StatusChip';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import { DashboardTemplate } from '../../components/templates';
+import { PermisosTable, PermisoTemporalViewDto } from '../../components/organisms';
 import { EstadoAutorizacion } from '@vigia/shared-types';
 
-interface PermisoTemporalViewDto {
-    permiso_temporal_id: string;
-    persona_autorizada_nombre: string;
-    persona_autorizada_cedula: string;
-    vehiculo_placa: string;
-    vigencia_inicio: string;
-    vigencia_fin: string;
-    motivo_otorgamiento: string;
-    estado_autorizacion: EstadoAutorizacion;
-}
+const NAV_ROUTES = [
+    { label: 'Mis Vehículos', path: '/propietario/vehiculos', icon: <DirectionsCarIcon /> },
+    { label: 'Permisos Temporales', path: '/propietario/permisos-temporales', icon: <AccessTimeIcon /> },
+    { label: 'Pase Rápido', path: '/propietario/pases-rapidos', icon: <QrCode2Icon /> },
+    { label: 'Notificaciones', path: '/propietario/notificaciones', icon: <NotificationsOutlinedIcon /> },
+];
 
 const MOCK_PERMISOS: PermisoTemporalViewDto[] = [
     {
@@ -84,20 +74,6 @@ const MOCK_PERMISOS: PermisoTemporalViewDto[] = [
 
 const MOCK_PLACAS_PROPIETARIO: string[] = ['PBW-1234', 'PBA-5678', 'PBB-3456'];
 
-const formatFechaHora = (iso: string): string => {
-    const d = new Date(iso);
-    return d.toLocaleString('es-EC', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-};
-
-const puedeRevocar = (estado: EstadoAutorizacion): boolean =>
-    estado === EstadoAutorizacion.PROGRAMADO || estado === EstadoAutorizacion.ACTIVA;
-
 interface NuevoPermisoFormState {
     persona_autorizada_nombre: string;
     persona_autorizada_cedula: string;
@@ -140,11 +116,17 @@ export const PermisosTemporalesPage: React.FC = () => {
     };
 
     const handleRevocar = (permisoId: string) => {
-        // Acción de revocación — hook asumido existente
+        // Acción de revocación
     };
 
     return (
-        <DashboardLayout pageTitle="Permisos Temporales">
+        <DashboardTemplate
+            rol="PROPIETARIO"
+            pageTitle="Permisos Temporales"
+            routes={NAV_ROUTES}
+            notificationCount={2}
+            userInitials="US"
+        >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography
                     variant="h5"
@@ -157,101 +139,7 @@ export const PermisosTemporalesPage: React.FC = () => {
                 </Button>
             </Box>
 
-            {isMobile ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {permisos.map((permiso) => (
-                        <Card key={permiso.permiso_temporal_id} sx={{ borderRadius: '8px' }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                                    <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600 }}>
-                                        {permiso.persona_autorizada_nombre}
-                                    </Typography>
-                                    <StatusChip estado={permiso.estado_autorizacion} />
-                                </Box>
-                                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: '#6B7280' }}>
-                                    Cédula: {permiso.persona_autorizada_cedula}
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: '#6B7280' }}>
-                                    Vehículo: {permiso.vehiculo_placa}
-                                </Typography>
-                                <Divider sx={{ my: 1.5 }} />
-                                <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: '#6B7280' }}>
-                                    Inicio: {formatFechaHora(permiso.vigencia_inicio)}
-                                </Typography>
-                                <br />
-                                <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: '#6B7280' }}>
-                                    Fin: {formatFechaHora(permiso.vigencia_fin)}
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', mt: 1 }}>
-                                    {permiso.motivo_otorgamiento}
-                                </Typography>
-                                {puedeRevocar(permiso.estado_autorizacion) && (
-                                    <Button
-                                        fullWidth
-                                        variant="outlined"
-                                        color="error"
-                                        size="small"
-                                        sx={{ mt: 2 }}
-                                        onClick={() => handleRevocar(permiso.permiso_temporal_id)}
-                                    >
-                                        Revocar
-                                    </Button>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Box>
-            ) : (
-                <TableContainer component={Paper} sx={{ borderRadius: '8px' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#FAFBFC' }}>
-                                {['Persona Autorizada', 'Cédula', 'Vehículo', 'Inicio', 'Fin', 'Estado', 'Acciones'].map((h) => (
-                                    <TableCell key={h} sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
-                                        {h}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {permisos.map((permiso) => (
-                                <TableRow key={permiso.permiso_temporal_id} hover>
-                                    <TableCell sx={{ fontFamily: '"Inter", sans-serif' }}>
-                                        {permiso.persona_autorizada_nombre}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: '"Inter", sans-serif' }}>
-                                        {permiso.persona_autorizada_cedula}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600 }}>
-                                        {permiso.vehiculo_placa}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: '"Inter", sans-serif' }}>
-                                        {formatFechaHora(permiso.vigencia_inicio)}
-                                    </TableCell>
-                                    <TableCell sx={{ fontFamily: '"Inter", sans-serif' }}>
-                                        {formatFechaHora(permiso.vigencia_fin)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusChip estado={permiso.estado_autorizacion} />
-                                    </TableCell>
-                                    <TableCell>
-                                        {puedeRevocar(permiso.estado_autorizacion) && (
-                                            <Button
-                                                variant="outlined"
-                                                color="error"
-                                                size="small"
-                                                onClick={() => handleRevocar(permiso.permiso_temporal_id)}
-                                            >
-                                                Revocar
-                                            </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
+            <PermisosTable permisos={permisos} isMobile={isMobile} onRevocar={handleRevocar} />
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
                 <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
@@ -337,7 +225,7 @@ export const PermisosTemporalesPage: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </DashboardLayout>
+        </DashboardTemplate>
     );
 };
 

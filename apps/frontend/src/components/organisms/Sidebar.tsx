@@ -47,7 +47,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ rol, currentPath, routes, onNa
                 ))}
             </List>
             
-            {/* Footer could go here */}
+            <Box sx={{ p: 3, mt: 'auto', textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontFamily: '"Inter", sans-serif' }}>
+                    Universidad Central del Ecuador · 2026
+                </Typography>
+            </Box>
         </Box>
     );
 };

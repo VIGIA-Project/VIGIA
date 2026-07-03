@@ -23,13 +23,13 @@ export const Header: React.FC<HeaderProps> = ({
             position="sticky"
             elevation={0}
             sx={{
-                height: 64,
+                height: 72,
                 backgroundColor: '#FFFFFF',
                 color: '#0A2F86',
-                boxShadow: '0 1px 4px rgba(10, 47, 134, 0.08)',
+                borderBottom: '1px solid rgba(10,47,134,0.06)',
             }}
         >
-            <Toolbar sx={{ height: 64, minHeight: '64px !important' }}>
+            <Toolbar sx={{ height: 72, minHeight: '72px !important' }}>
                 {isMobile && (
                     <IconButton
                         edge="start"

@@ -41,6 +41,6 @@ package-lock.json
 yarn.lock
   # O este si usas pnpm
 
+.claude/
 .claudeignore
 CLAUDE.md
-/.claude

@@ -32,8 +32,10 @@ export const NavItem: React.FC<NavItemProps> = ({ label, icon, isActive, onClick
                     fontFamily: '"Inter", sans-serif',
                     fontSize: '0.85rem',
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
-                    transition: 'all 0.2s ease',
+                    sx: {
+                        color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
+                        transition: 'all 0.2s ease',
+                    }
                 }}
             />
         </ListItemButton>

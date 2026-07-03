@@ -104,8 +104,8 @@ export const PermisosTemporalesPage: React.FC = () => {
         handleCloseDialog();
     };
 
-    const handleRevocar = (permisoId: string) => {
-        // Acción de revocación
+    const handleRevocar = (_permisoId: string) => {
+        // Accion de revocacion
     };
 
     return (

@@ -17,7 +17,7 @@ import {
 const SIDEBAR_WIDTH = 260;
 
 // Mapeo de rol → configuración de navegación
-const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: typeof PROPIETARIO_CONFIG }> = {
+const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: { rol: string; userInitials: string; notificationCount: number } }> = {
   PROPIETARIO: { routes: PROPIETARIO_NAV_ROUTES, config: PROPIETARIO_CONFIG },
   GUARDIA: { routes: GUARDIA_NAV_ROUTES, config: GUARDIA_CONFIG },
   ADMIN: { routes: ADMIN_NAV_ROUTES, config: ADMIN_CONFIG },

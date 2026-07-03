@@ -13,7 +13,7 @@ export const NavItem: React.FC<NavItemProps> = ({ label, icon, isActive, onClick
         <ListItemButton
             onClick={onClick}
             sx={{
-                borderRadius: '4px',
+                borderRadius: '6px',
                 mb: 0.5,
                 borderLeft: isActive ? '3px solid #19D6C4' : '3px solid transparent',
                 backgroundColor: isActive ? 'rgba(25,214,196,0.12)' : 'transparent',
@@ -30,7 +30,7 @@ export const NavItem: React.FC<NavItemProps> = ({ label, icon, isActive, onClick
                 primary={label}
                 primaryTypographyProps={{
                     fontFamily: '"Inter", sans-serif',
-                    fontSize: '0.9rem',
+                    fontSize: '0.85rem',
                     fontWeight: isActive ? 600 : 400,
                     color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
                     transition: 'all 0.2s ease',

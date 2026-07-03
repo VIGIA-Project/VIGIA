@@ -1,6 +1,6 @@
 import React from 'react';
 import { Chip, ChipProps } from '@mui/material';
-import { estadoColors } from '../theme/vigia-theme';
+import { estadoColors } from '../../theme/vigia-theme';
 
 export type EstadoDominio =
     | 'SUCCESSFUL'

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Grid, Typography, Card, CardContent, Box, Button } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import { DashboardTemplate } from '../../components/templates';
 import { useNavigate } from 'react-router-dom';
+import { DashboardTemplate } from '../../components/templates';
 
 export const InicioPage: React.FC = () => {
     const navigate = useNavigate();
@@ -86,8 +87,4 @@ export const InicioPage: React.FC = () => {
     );
 };
 
-// Required for the missing AddIcon above
-import AddIcon from '@mui/icons-material/Add';
-
 export default InicioPage;
-

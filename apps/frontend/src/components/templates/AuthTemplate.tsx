@@ -130,10 +130,10 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
                 inset: 0,
                 backgroundImage: 'url(/assets/vigia-logo.png)',
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-                backgroundSize: '55%',
-                opacity: 0.07,
-                filter: 'blur(1.5px)',
+                backgroundPosition: 'center right',
+                backgroundSize: '120%',
+                opacity: 0.06,
+                filter: 'blur(3px)',
                 pointerEvents: 'none',
               }}
             />

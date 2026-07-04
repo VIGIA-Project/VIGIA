@@ -300,7 +300,7 @@ const CambiarPasswordPage: React.FC = () => {
           component="img"
           src="/assets/vigia-logo.png"
           alt="VIGIA"
-          sx={{ width: 44, height: 44, objectFit: 'contain' }}
+          sx={{ width: 80, height: 80, objectFit: 'contain' }}
         />
       </Box>
 

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" fill="none">
+  <!-- V -->
+  <path d="M4 8L16 32L28 8H23L16 24L9 8H4Z" fill="#FFFFFF"/>
+  <!-- I -->
+  <rect x="32" y="8" width="5" height="24" fill="#FFFFFF"/>
+  <!-- G -->
+  <path d="M44 20C44 13.4 49.4 8 56 8C60.4 8 64.2 10.4 66 14L61.6 16.4C60.4 14 58.4 12.4 56 12.4C52 12.4 48.8 15.8 48.8 20C48.8 24.2 52 27.6 56 27.6C58.8 27.6 61 26 62 23.6V22H56V18H67V24C65.4 29 61.2 32 56 32C49.4 32 44 26.6 44 20Z" fill="#FFFFFF"/>
+  <!-- I -->
+  <rect x="74" y="8" width="5" height="24" fill="#FFFFFF"/>
+  <!-- A con triángulo dorado -->
+  <path d="M86 32L98 8L110 32H104.5L101.5 26H94.5L91.5 32H86Z" fill="#FFFFFF"/>
+  <path d="M96 22H100L98 17L96 22Z" fill="#F2B51F"/>
+  <!-- Triángulo dorado isotipo en la A -->
+  <path d="M95 24L98 14L101 24H95Z" fill="url(#a-gold)"/>
+  
+  <defs>
+    <linearGradient id="a-gold" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFD85A"/>
+      <stop offset="100%" stop-color="#F2B51F"/>
+    </linearGradient>
+  </defs>
+</svg>

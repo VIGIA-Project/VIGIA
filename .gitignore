@@ -1,50 +1,71 @@
-# Dependencies
+# ═══════════════════════════════════════════════════════════════
+# VIGIA Monorepo — .gitignore
+# ═══════════════════════════════════════════════════════════════
+
+# ─── Dependencies ─────────────────────────────────────────────
 node_modules/
 .pnpm-store/
 
-
-# Build outputs
+# ─── Build outputs ───────────────────────────────────────────
 dist/
 build/
+*.tsbuildinfo
 
-# Environment files
+# ─── Environment files ───────────────────────────────────────
+# NUNCA ignorar .env.example (es documentación)
 .env
 .env.local
 .env.*.local
+!.env.example
 
-# Logs
+# ─── Lock files ──────────────────────────────────────────────
+# pnpm-lock.yaml → SE COMMITEA (NO está aquí)
+package-lock.json
+yarn.lock
+
+# ─── Logs ────────────────────────────────────────────────────
 logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
 pnpm-debug.log*
 
-# Coverage
+# ─── Test & Coverage ─────────────────────────────────────────
 coverage/
+.nyc_output/
 
-# IDE
-.vscode/
+# ─── IDE ─────────────────────────────────────────────────────
+# Se ignora todo excepto settings y extensions compartidas
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
-*.sublime-workspace
-*.sublime-project
+*~
 
-# OS
+# ─── OS ──────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# TypeORM migrations temp
-src/core/database/migrations/*.js
+# ─── Python (services/ocr, services/bio) ────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
 
-# TypeORM
-*.js.map
+# ─── Docker ──────────────────────────────────────────────────
+# No ignorar docker-compose.yml ni Dockerfiles
+*.pid
 
-# Lock files
-package-lock.json
-yarn.lock
-  # O este si usas pnpm
+# ─── TypeORM migrations (solo .js compilados) ────────────────
+apps/backend/src/core/database/migrations/*.js
+apps/backend/src/core/database/migrations/*.js.map
 
+# ─── Claude Code (configuración local del desarrollador) ─────
 .claude/
 .claudeignore
 CLAUDE.md

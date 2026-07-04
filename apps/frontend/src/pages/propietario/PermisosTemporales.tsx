@@ -142,6 +142,7 @@ export const PermisosTemporalesPage: React.FC = () => {
     // Estados generales
     const [tabActual, setTabActual] = useState(0);
     const [exitoSnackbar, setExitoSnackbar] = useState(false);
+    const [exitoMensaje, setExitoMensaje] = useState('');
 
     // Estados de Permisos Temporales
     const [permisos] = useState<PermisoTemporalViewDto[]>(MOCK_PERMISOS);
@@ -172,6 +173,7 @@ export const PermisosTemporalesPage: React.FC = () => {
 
     const handleCrearPermiso = () => {
         handleCloseDialog();
+        setExitoMensaje('Permiso Temporal creado exitosamente');
         setExitoSnackbar(true);
     };
 
@@ -192,6 +194,7 @@ export const PermisosTemporalesPage: React.FC = () => {
         setAutorizaciones((prev) => [nueva, ...prev]);
         setDialogAutorizacionOpen(false);
         setNuevaAutorizacion({ persona_autorizada_nombre: '', persona_autorizada_cedula: '', vehiculo_placa: '', parentesco_o_relacion: '' });
+        setExitoMensaje('Autorización Permanente creada exitosamente');
         setExitoSnackbar(true);
     };
 
@@ -498,7 +501,7 @@ export const PermisosTemporalesPage: React.FC = () => {
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
-                    Permiso Temporal creado exitosamente
+                    {exitoMensaje}
                 </Alert>
             </Snackbar>
         </DashboardTemplate>

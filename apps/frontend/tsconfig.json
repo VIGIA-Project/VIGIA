@@ -19,10 +19,11 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
-        "baseUrl": ".",
+        "ignoreDeprecations": "5.0",
+        "baseUrl": "./",
         "paths": {
             "@/*": [
-                "src/*"
+                "./src/*"
             ]
         }
     },

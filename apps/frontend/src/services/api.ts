@@ -14,7 +14,7 @@ import axios, {
 // ══════════════════════════════════════════════════════════════
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 /**
  * Instancia Axios configurada para el backend VIGIA.
@@ -63,9 +63,11 @@ apiClient.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Token expirado o inválido — limpiar sesión y redirigir a login
           localStorage.removeItem('vigia_access_token');
-          // TODO: Redirigir a /login cuando el auth flow esté completo
+          localStorage.removeItem('vigia_auth_user');
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.assign('/login');
+          }
           console.warn('[VIGIA API] 401 — Sesión expirada');
           break;
         case 403:

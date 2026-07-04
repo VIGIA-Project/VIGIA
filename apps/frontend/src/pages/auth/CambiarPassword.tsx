@@ -19,6 +19,7 @@ import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
 import { PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
+import { apiPost } from '../../services';
 
 // ═══════════════════════════════════════════════════════════════
 // FEATURES DEL PANEL IZQUIERDO (tono seguridad)
@@ -29,13 +30,8 @@ const SECURITY_FEATURES = [
   { icon: 'lock', text: 'Protección para ti y tu grupo familiar' },
 ];
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK: Cambio de contraseña
-// ═══════════════════════════════════════════════════════════════
-const mockChangePassword = async (_currentPassword: string, _newPassword: string): Promise<{ success: boolean; error?: string }> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  // Aceptamos cualquier contraseña actual para el mock (sin quemar credenciales)
-  return { success: true };
+const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await apiPost('/auth/change-password', { currentPassword, newPassword });
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -194,21 +190,16 @@ const CambiarPasswordPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await mockChangePassword(currentPassword, newPassword);
-
-      if (response.success) {
-        setSuccess(true);
-        completePasswordChange();
-        // Redirect después de 1.5s
-        setTimeout(() => {
-          navigate(getDashboardByRole(user?.rol || 'PROPIETARIO'));
-        }, 1500);
-      } else {
-        setError(response.error || 'Error al cambiar la contraseña.');
-        setShakeField('current');
-      }
-    } catch {
-      setError('Error de conexión. Intente nuevamente.');
+      await changePassword(currentPassword, newPassword);
+      setSuccess(true);
+      completePasswordChange();
+      setTimeout(() => {
+        navigate(getDashboardByRole((user?.rol || user?.role || 'PROPIETARIO').toUpperCase()));
+      }, 1500);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al cambiar la contraseña.';
+      setError(message);
+      setShakeField('current');
     } finally {
       setIsLoading(false);
     }

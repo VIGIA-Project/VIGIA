@@ -85,24 +85,24 @@ const AnimatedRoutes: React.FC = () => {
             />
 
             {/* ═══ Propietario ═══ */}
-            <Route path="/propietario/inicio" element={<ProtectedRoute><PageTransition><InicioPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/propietario/vehiculos" element={<ProtectedRoute><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/inicio" element={<ProtectedRoute allowedRoles={['PROPIETARIO']}><PageTransition><InicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/vehiculos" element={<ProtectedRoute allowedRoles={['PROPIETARIO']}><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/permisos-temporales" element={<ProtectedRoute allowedRoles={['PROPIETARIO']}><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/pases-rapidos" element={<ProtectedRoute allowedRoles={['PROPIETARIO']}><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/alertas" element={<ProtectedRoute allowedRoles={['PROPIETARIO']}><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />
 
             {/* ═══ Guardia ═══ */}
-            <Route path="/guardia/inicio" element={<ProtectedRoute><PageTransition><GuardiaInicioPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/guardia/cola-eventos" element={<ProtectedRoute><PageTransition><ColaEventosPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/guardia/revision-manual" element={<ProtectedRoute><PageTransition><RevisionManualPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/guardia/contingencia" element={<ProtectedRoute><PageTransition><ContingenciaPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/guardia/alertas" element={<ProtectedRoute><PageTransition><AlertasGuardiaPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/inicio" element={<ProtectedRoute allowedRoles={['GUARDIA']}><PageTransition><GuardiaInicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/cola-eventos" element={<ProtectedRoute allowedRoles={['GUARDIA']}><PageTransition><ColaEventosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/revision-manual" element={<ProtectedRoute allowedRoles={['GUARDIA']}><PageTransition><RevisionManualPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/contingencia" element={<ProtectedRoute allowedRoles={['GUARDIA']}><PageTransition><ContingenciaPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/alertas" element={<ProtectedRoute allowedRoles={['GUARDIA']}><PageTransition><AlertasGuardiaPage /></PageTransition></ProtectedRoute>} />
 
             {/* ═══ Admin ═══ */}
-            <Route path="/admin/inicio" element={<ProtectedRoute><PageTransition><AdminInicioPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/admin/usuarios" element={<ProtectedRoute><PageTransition><UsuariosPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/admin/reportes" element={<ProtectedRoute><PageTransition><ReportesPage /></PageTransition></ProtectedRoute>} />
-            <Route path="/admin/configuracion" element={<ProtectedRoute><PageTransition><ConfiguracionPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/inicio" element={<ProtectedRoute allowedRoles={['ADMIN']}><PageTransition><AdminInicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/usuarios" element={<ProtectedRoute allowedRoles={['ADMIN']}><PageTransition><UsuariosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/reportes" element={<ProtectedRoute allowedRoles={['ADMIN']}><PageTransition><ReportesPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/configuracion" element={<ProtectedRoute allowedRoles={['ADMIN']}><PageTransition><ConfiguracionPage /></PageTransition></ProtectedRoute>} />
 
             {/* ═══ Fallback ═══ */}
             <Route path="*" element={<Navigate to="/login" replace />} />

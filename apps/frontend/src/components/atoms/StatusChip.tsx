@@ -15,7 +15,8 @@ export type EstadoDominio =
     | 'INACTIVA'
     | 'AUTOMATICA'
     | 'ACTIVO'
-    | 'CONSUMIDO';
+    | 'CONSUMIDO'
+    | 'REVOCADA';
 
 const ESTADO_LABELS: Record<string, string> = {
     SUCCESSFUL: 'Aprobado',
@@ -31,6 +32,7 @@ const ESTADO_LABELS: Record<string, string> = {
     AUTOMATICA: 'Automática',
     ACTIVO: 'Activo',
     CONSUMIDO: 'Consumido',
+    REVOCADA: 'Revocada',
 };
 
 interface StatusChipProps {

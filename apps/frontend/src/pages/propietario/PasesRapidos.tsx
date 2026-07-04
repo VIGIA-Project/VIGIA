@@ -246,6 +246,26 @@ const CodigoGeneradoView: React.FC<CodigoGeneradoViewProps> = ({ pase, onVolver 
                         </Box>
                     </Box>
 
+                    {/* Warning: código de un solo uso */}
+                    <Alert
+                        severity="warning"
+                        variant="outlined"
+                        sx={{
+                            mt: 2,
+                            mb: 2,
+                            borderColor: '#EDB200',
+                            backgroundColor: 'rgba(237, 178, 0, 0.04)',
+                            '& .MuiAlert-icon': { color: '#EDB200' },
+                        }}
+                    >
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"Inter", sans-serif' }}>
+                            Este código se muestra una sola vez.
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                            Cópielo o compártalo ahora. No podrá recuperarlo después de salir de esta pantalla.
+                        </Typography>
+                    </Alert>
+
                     {/* Acciones */}
                     <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
                         <Button
@@ -302,6 +322,13 @@ export const PasesRapidosPage: React.FC = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formState, setFormState] = useState<NuevoPaseFormState>(INITIAL_FORM);
     const [paseGenerado, setPaseGenerado] = useState<PaseRapidoViewDto | null>(null);
+    const [solapamientoError, setSolapamientoError] = useState<string | null>(null);
+
+    const handleCloseDialog = () => {
+        setDialogOpen(false);
+        setSolapamientoError(null);
+        setFormState(INITIAL_FORM);
+    };
 
     const handleFieldChange = (field: keyof NuevoPaseFormState) => (
         event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -310,6 +337,39 @@ export const PasesRapidosPage: React.FC = () => {
     };
 
     const handleCrearPase = () => {
+        // Limpiar error previo
+        setSolapamientoError(null);
+
+        // Validar campos requeridos
+        if (!formState.conductor_nombre || !formState.conductor_cedula || !formState.vehiculo_placa || !formState.vigencia_inicio || !formState.vigencia_fin || !formState.motivo) {
+            return;
+        }
+
+        // Validar que fin > inicio
+        const inicio = new Date(formState.vigencia_inicio).getTime();
+        const fin = new Date(formState.vigencia_fin).getTime();
+        if (fin <= inicio) {
+            setSolapamientoError('La fecha/hora de fin debe ser posterior a la de inicio.');
+            return;
+        }
+
+        // Validar solapamiento: un vehículo NO puede tener dos pases con ventanas solapadas
+        const paseConflicto = pases.find(
+            (p) =>
+                p.vehiculo_placa === formState.vehiculo_placa &&
+                (p.estado === EstadoPase.ACTIVO) &&
+                new Date(p.vigencia_inicio).getTime() < fin &&
+                new Date(p.vigencia_fin).getTime() > inicio
+        );
+
+        if (paseConflicto) {
+            setSolapamientoError(
+                `El vehículo ${formState.vehiculo_placa} ya tiene un pase activo (${paseConflicto.codigo}) en ese rango horario. Revoque el pase existente o elija otro horario.`
+            );
+            return;
+        }
+
+        // Crear el pase
         const nuevoPase: PaseRapidoViewDto = {
             pase_id: `pase-${Date.now()}`,
             codigo: generarCodigo(),
@@ -321,6 +381,7 @@ export const PasesRapidosPage: React.FC = () => {
             motivo: formState.motivo,
             estado: EstadoPase.ACTIVO,
         };
+
         setPases((prev) => [nuevoPase, ...prev]);
         setPaseGenerado(nuevoPase);
         setDialogOpen(false);
@@ -471,10 +532,19 @@ export const PasesRapidosPage: React.FC = () => {
             )}
 
             {/* Dialog: Nuevo Pase */}
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+            <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
                 <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
                     Nuevo Pase de Acceso Rápido
                 </DialogTitle>
+                {solapamientoError && (
+                    <Alert
+                        severity="error"
+                        sx={{ mx: 3, mt: 1 }}
+                        onClose={() => setSolapamientoError(null)}
+                    >
+                        {solapamientoError}
+                    </Alert>
+                )}
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: '#6B7280', mb: 2 }}>
                         Complete los datos del conductor que utilizará el pase. El código se generará automáticamente.
@@ -553,7 +623,7 @@ export const PasesRapidosPage: React.FC = () => {
                     </Grid>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleCloseDialog}>Cancelar</Button>
                     <Button variant="contained" color="primary" onClick={handleCrearPase}>
                         Generar Pase
                     </Button>

@@ -44,7 +44,7 @@ vigia/
 
 ### 1️⃣ Prerequisitos
 
-- **Node.js** >= 18.x
+- **Node.js** >= 20.x
 - **pnpm** >= 9.x (gestor de paquetes del monorepo)
 - **PostgreSQL** >= 14 con extensión `pgvector` (u opcional Docker)
 
@@ -108,7 +108,7 @@ pnpm dev
 **Opción B: Solo backend**
 ```bash
 pnpm dev:backend
-# Accesible en: http://localhost:3000/api/v1
+# Accesible en: http://localhost:3000/api/v1 (o el puerto definido en APP_PORT)
 # Health check: http://localhost:3000/health
 ```
 
@@ -208,13 +208,13 @@ Consulta [`packages/shared-types/README.md`](./packages/shared-types/README.md) 
 ```
 6 esquemas
 ├── auth (1 tabla)
-├── registry (4 tablas)
+├── registry (3 tablas)
 ├── authorization (3 tablas)
 ├── biometric (3 tablas)
 ├── access_control (4 tablas)
 └── alerting (2 tablas)
 
-Total: 17 tablas, 26 enums, 0 FKs cross-schema
+Total: 16 tablas, 26 enums, 0 FKs cross-schema
 ```
 
 ---
@@ -464,6 +464,6 @@ MIT
 
 ---
 
-**Última actualización:** 2024-01-15  
+**Última actualización:** 2026-07-04  
 **Versión:** 0.1.0  
 **Mantenedor:** VIGIA Team

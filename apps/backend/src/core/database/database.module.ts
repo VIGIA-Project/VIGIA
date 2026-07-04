@@ -16,7 +16,7 @@ import { DatabaseService } from './database.service';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.name'),
         schema: configService.get<string>('database.schema'),
-        entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+        entities: [__dirname + '/../../**/*.{entity,orm-entity}{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: configService.get<boolean>('database.synchronize', false),
         logging: configService.get<boolean>('database.logging', false),

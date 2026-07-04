@@ -126,6 +126,7 @@ export const estadoColors = {
     INACTIVA: { bg: '#F5F5F5', text: '#6B7280' },
     ACTIVO: { bg: '#E8F5E9', text: '#2E7D32' },
     CONSUMIDO: { bg: '#E3F2FD', text: '#1565C0' },
+    REVOCADA: { bg: '#FFEBEE', text: '#C62828' },
 } as const;
 
 // Gradiente oficial de IA (reutilizable en CSS)
@@ -133,5 +134,59 @@ export const vigiaGradient = {
     ia: 'linear-gradient(90deg, #19D6C4 0%, #11A9D6 40%, #0D5CCF 100%)',
     ia45: 'linear-gradient(45deg, #19D6C4 0%, #11A9D6 40%, #0D5CCF 100%)',
 } as const;
+
+// === DESIGN TOKENS V2 (Refactorización UI/UX) ===
+export const vigiaShadows = {
+  none: 'none',
+  sm: '0 1px 3px rgba(10,47,134,0.06), 0 1px 2px rgba(10,47,134,0.04)',
+  md: '0 4px 12px rgba(10,47,134,0.08), 0 2px 4px rgba(10,47,134,0.04)',
+  lg: '0 8px 24px rgba(10,47,134,0.12), 0 4px 8px rgba(10,47,134,0.06)',
+  xl: '0 16px 48px rgba(10,47,134,0.16), 0 8px 16px rgba(10,47,134,0.08)',
+  glow: {
+    ia: '0 0 20px rgba(25, 214, 196, 0.15)',
+    gold: '0 0 16px rgba(242, 181, 31, 0.12)',
+    blue: '0 0 20px rgba(13, 92, 207, 0.12)',
+  },
+};
+
+export const vigiaSpacing = {
+  page: 24,
+  section: 20,
+  card: 16,
+  cardGap: 12,
+  element: 8,
+};
+
+export const vigiaRadius = {
+  sm: '6px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+  full: '9999px',
+};
+
+export const vigiaColors = {
+  primary: '#0D5CCF',
+  deep: '#0A2F86',
+  mid: '#11A9D6',
+  greenIA: '#19D6C4',
+  gold: '#F2B51F',
+  goldLight: '#FFD85A',
+  white: '#FFFFFF',
+  bgPage: '#F8FAFC',
+  bgCard: '#FFFFFF',
+  bgCardHover: '#F0F7FF',
+  bgSkeleton: 'rgba(13, 92, 207, 0.06)',
+  bgSkeletonPulse: 'rgba(13, 92, 207, 0.12)',
+  borderSubtle: 'rgba(10, 47, 134, 0.06)',
+  textHeading: '#0A2F86',
+  textBody: '#1F2A44',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  success: '#2E7D32',
+  warning: '#EDB200',
+  error: '#C62828',
+  gradientIA: 'linear-gradient(90deg, #19D6C4 0%, #11A9D6 40%, #0D5CCF 100%)',
+};
 
 export default vigiaTheme;

@@ -38,7 +38,7 @@ Variables disponibles:
 
 | Variable | Descripción | Default |
 |----------|-------------|---------|
-| `VITE_API_BASE_URL` | URL base del API Backend | `http://localhost:8080/api/v1` |
+| `VITE_API_BASE_URL` | URL base del API Backend | `http://localhost:3000/api/v1` |
 | `VITE_APP_ENV` | Entorno de ejecución | `development` |
 | `VITE_APP_NAME` | Nombre de la aplicación | `VIGIA` |
 | `VITE_APP_VERSION` | Versión de la aplicación | `0.1.0` |

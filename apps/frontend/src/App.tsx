@@ -2,28 +2,35 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
 import { vigiaTheme } from './theme/vigia-theme';
 
-// ─── Páginas: Login ─────────────────────────────────────────
-import { LoginPage } from './pages/Login';
+// ─── Auth, Guards y Átomos ─────────────────────────────────────────────────
+import { AuthProvider, useAuth } from './context';
+import { ProtectedRoute, PublicRoute } from './components/guards';
+import { SkipToContent, SessionExpiredAlert, PageTransition } from './components/atoms';
 
-// ─── Páginas: Propietario ───────────────────────────────────
+// ─── Páginas: Home & Login ────────────────────────────────────────────────
+import HomePage from './pages/Home';
+import { LoginPage, CambiarPasswordPage } from './pages/auth';
+
+// ─── Páginas: Propietario ─────────────────────────────────────────────────
 import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
 import { PasesRapidosPage } from './pages/propietario/PasesRapidos';
 import { AlertasPage } from './pages/propietario/Alertas';
 
-// ─── Páginas: Guardia ───────────────────────────────────────
+// ─── Páginas: Guardia ─────────────────────────────────────────────────────
 import { GuardiaInicioPage } from './pages/guardia/Inicio';
 import { ColaEventosPage } from './pages/guardia/ColaEventos';
 import { RevisionManualPage } from './pages/guardia/RevisionManual';
 import { ContingenciaPage } from './pages/guardia/Contingencia';
 import { AlertasGuardiaPage } from './pages/guardia/AlertasGuardia';
 
-// ─── Páginas: Admin ─────────────────────────────────────────
+// ─── Páginas: Admin ───────────────────────────────────────────────────────
 import { AdminInicioPage } from './pages/admin/Inicio';
 import { UsuariosPage } from './pages/admin/Usuarios';
 import { ReportesPage } from './pages/admin/Reportes';
@@ -31,39 +38,92 @@ import { ConfiguracionPage } from './pages/admin/Configuracion';
 
 const queryClient = new QueryClient();
 
+// ─────────────────────────────────────────────────────────────────────────
+// Componente interno: accede a useAuth (dentro del AuthProvider) y useLocation
+// ─────────────────────────────────────────────────────────────────────────
+const AnimatedRoutes: React.FC = () => {
+  const location = useLocation();
+  const { sessionExpired, clearSessionExpired } = useAuth();
+
+  return (
+    <>
+      <SkipToContent />
+      <SessionExpiredAlert open={sessionExpired} onClose={clearSessionExpired} />
+      <div id="main-content" role="main">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            {/* ═══ Rutas Públicas ═══ */}
+            <Route
+              path="/"
+              element={
+                <PageTransition>
+                  <HomePage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <PageTransition>
+                    <LoginPage />
+                  </PageTransition>
+                </PublicRoute>
+              }
+            />
+
+            {/* ═══ Cambio de Contraseña Obligatorio ═══ */}
+            <Route
+              path="/cambiar-password"
+              element={
+                <ProtectedRoute requirePasswordChange={true}>
+                  <PageTransition>
+                    <CambiarPasswordPage />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ═══ Propietario ═══ */}
+            <Route path="/propietario/inicio" element={<ProtectedRoute><PageTransition><InicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/vehiculos" element={<ProtectedRoute><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />
+
+            {/* ═══ Guardia ═══ */}
+            <Route path="/guardia/inicio" element={<ProtectedRoute><PageTransition><GuardiaInicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/cola-eventos" element={<ProtectedRoute><PageTransition><ColaEventosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/revision-manual" element={<ProtectedRoute><PageTransition><RevisionManualPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/contingencia" element={<ProtectedRoute><PageTransition><ContingenciaPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/guardia/alertas" element={<ProtectedRoute><PageTransition><AlertasGuardiaPage /></PageTransition></ProtectedRoute>} />
+
+            {/* ═══ Admin ═══ */}
+            <Route path="/admin/inicio" element={<ProtectedRoute><PageTransition><AdminInicioPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/usuarios" element={<ProtectedRoute><PageTransition><UsuariosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/reportes" element={<ProtectedRoute><PageTransition><ReportesPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/admin/configuracion" element={<ProtectedRoute><PageTransition><ConfiguracionPage /></PageTransition></ProtectedRoute>} />
+
+            {/* ═══ Fallback ═══ */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </AnimatePresence>
+      </div>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+// Raíz de la aplicación
+// ─────────────────────────────────────────────────────────────────────────
 export const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={vigiaTheme}>
       <CssBaseline />
       <BrowserRouter>
-        <Routes>
-          {/* ═══ Login ═══ */}
-          <Route path="/login" element={<LoginPage />} />
-
-          {/* ═══ Propietario ═══ */}
-          <Route path="/propietario/inicio" element={<InicioPage />} />
-          <Route path="/propietario/vehiculos" element={<MisVehiculosPage />} />
-          <Route path="/propietario/permisos-temporales" element={<PermisosTemporalesPage />} />
-          <Route path="/propietario/pases-rapidos" element={<PasesRapidosPage />} />
-          <Route path="/propietario/alertas" element={<AlertasPage />} />
-
-          {/* ═══ Guardia ═══ */}
-          <Route path="/guardia/inicio" element={<GuardiaInicioPage />} />
-          <Route path="/guardia/cola-eventos" element={<ColaEventosPage />} />
-          <Route path="/guardia/revision-manual" element={<RevisionManualPage />} />
-          <Route path="/guardia/contingencia" element={<ContingenciaPage />} />
-          <Route path="/guardia/alertas" element={<AlertasGuardiaPage />} />
-
-          {/* ═══ Admin ═══ */}
-          <Route path="/admin/inicio" element={<AdminInicioPage />} />
-          <Route path="/admin/usuarios" element={<UsuariosPage />} />
-          <Route path="/admin/reportes" element={<ReportesPage />} />
-          <Route path="/admin/configuracion" element={<ConfiguracionPage />} />
-
-          {/* ═══ Redirecciones ═══ */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AuthProvider>
+          <AnimatedRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </QueryClientProvider>

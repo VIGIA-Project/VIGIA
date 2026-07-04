@@ -32,12 +32,9 @@ const SECURITY_FEATURES = [
 // ═══════════════════════════════════════════════════════════════
 // MOCK: Cambio de contraseña
 // ═══════════════════════════════════════════════════════════════
-const mockChangePassword = async (currentPassword: string, _newPassword: string): Promise<{ success: boolean; error?: string }> => {
+const mockChangePassword = async (_currentPassword: string, _newPassword: string): Promise<{ success: boolean; error?: string }> => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  // Simular validación de contraseña actual
-  if (currentPassword !== 'temporal123' && currentPassword !== 'Vigia2026!') {
-    return { success: false, error: 'La contraseña actual es incorrecta.' };
-  }
+  // Aceptamos cualquier contraseña actual para el mock (sin quemar credenciales)
   return { success: true };
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROUTES, getDashboardByRole } from '../../config/auth.config';
+import { FullPageLoader } from '../atoms';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +13,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requirePasswordChange = false,
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Mostrar loader mientras se verifica la sesión
+  if (isLoading) {
+    return <FullPageLoader />;
+  }
 
   // No autenticado → login
   if (!isAuthenticated || !user) {

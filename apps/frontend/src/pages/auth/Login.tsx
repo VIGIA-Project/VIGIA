@@ -204,9 +204,11 @@ const LoginPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <Alert
+        <Alert
             severity="error"
             variant="outlined"
+            role="alert"
+            aria-live="assertive"
             sx={{
               mb: 2.5,
               borderRadius: vigiaRadius.sm,
@@ -227,7 +229,7 @@ const LoginPage: React.FC = () => {
       )}
 
       {/* Formulario */}
-      <Box component="form" onSubmit={handleSubmit} noValidate>
+      <Box component="form" onSubmit={handleSubmit} noValidate aria-label="Formulario de inicio de sesión">
         <ShakeWrapper shake={shake}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Campo: Email/Identificador */}
@@ -295,7 +297,8 @@ const LoginPage: React.FC = () => {
           type="submit"
           variant="contained"
           fullWidth
-          disabled={isLoading}
+          aria-busy={isLoading}
+          aria-label={isLoading ? 'Verificando credenciales' : 'Acceder al sistema'}
           sx={{
             mt: 3,
             background: isLoading ? 'rgba(13, 92, 207, 0.5)' : vigiaColors.gradientIA,

@@ -89,6 +89,7 @@ const SuccessCheckmark: React.FC = () => {
       transition={{ type: 'spring', stiffness: 200, damping: 12 }}
       style={{ textAlign: 'center' }}
     >
+      <Box role="status" aria-live="polite">
       <Box
         sx={{
           width: 64,
@@ -125,6 +126,7 @@ const SuccessCheckmark: React.FC = () => {
       >
         Redirigiendo al sistema...
       </Typography>
+      </Box>
     </motion.div>
   );
 };
@@ -360,6 +362,8 @@ const CambiarPasswordPage: React.FC = () => {
           <Alert
             severity="error"
             variant="outlined"
+            role="alert"
+            aria-live="assertive"
             sx={{
               mb: 2,
               borderRadius: vigiaRadius.sm,
@@ -378,7 +382,7 @@ const CambiarPasswordPage: React.FC = () => {
       )}
 
       {/* Formulario */}
-      <Box component="form" onSubmit={handleSubmit} noValidate>
+      <Box component="form" onSubmit={handleSubmit} noValidate aria-label="Formulario de cambio de contraseña">
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Contraseña actual */}
           <motion.div
@@ -445,7 +449,7 @@ const CambiarPasswordPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Box sx={{ mt: 2, mb: 2.5 }}>
+            <Box sx={{ mt: 2, mb: 2.5 }} role="list" aria-label="Requisitos de contraseña">
               <Typography
                 sx={{
                   fontFamily: '"Inter", sans-serif',
@@ -460,7 +464,9 @@ const CambiarPasswordPage: React.FC = () => {
                 Requisitos
               </Typography>
               {requirements.map((req) => (
-                <PasswordRequirement key={req.key} label={req.label} met={req.met} />
+                <Box key={req.key} role="listitem">
+                  <PasswordRequirement label={req.label} met={req.met} />
+                </Box>
               ))}
             </Box>
           </motion.div>
@@ -472,6 +478,9 @@ const CambiarPasswordPage: React.FC = () => {
           variant="contained"
           fullWidth
           disabled={!allRequirementsMet || isLoading}
+          aria-busy={isLoading}
+          aria-disabled={!allRequirementsMet}
+          aria-label={isLoading ? 'Guardando contraseña' : allRequirementsMet ? 'Guardar nueva contraseña' : 'Complete todos los requisitos para continuar'}
           sx={{
             mt: newPassword.length > 0 ? 0 : 3,
             background: allRequirementsMet && !isLoading ? vigiaColors.gradientIA : 'rgba(13, 92, 207, 0.3)',

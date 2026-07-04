@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface AuthUser {
   email: string;
@@ -9,22 +9,39 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  sessionExpired: boolean;
   login: (user: AuthUser) => void;
   logout: () => void;
   completePasswordChange: () => void;
+  clearSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    // Recuperar de sessionStorage para persistir durante la sesión
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Verificar sesión al montar
+  useEffect(() => {
     const stored = sessionStorage.getItem('vigia_auth_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        sessionStorage.removeItem('vigia_auth_user');
+      }
+    }
+    // Simular verificación de token (en producción sería una llamada al backend)
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const login = (userData: AuthUser) => {
     setUser(userData);
+    setSessionExpired(false);
     sessionStorage.setItem('vigia_auth_user', JSON.stringify(userData));
   };
 
@@ -41,14 +58,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const clearSessionExpired = () => {
+    setSessionExpired(false);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
+        sessionExpired,
         login,
         logout,
         completePasswordChange,
+        clearSessionExpired,
       }}
     >
       {children}

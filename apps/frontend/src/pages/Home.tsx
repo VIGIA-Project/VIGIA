@@ -114,6 +114,7 @@ const HomePage: React.FC = () => {
       {/* ═══ HERO ═══ */}
       <Box
         component="main"
+        aria-labelledby="hero-title"
         sx={{
           flex: 1,
           display: 'flex',
@@ -131,6 +132,7 @@ const HomePage: React.FC = () => {
           {/* Título principal */}
           <Typography
             component="h1"
+            id="hero-title"
             sx={{
               fontFamily: '"Exo 2", sans-serif',
               fontWeight: 700,
@@ -214,6 +216,8 @@ const HomePage: React.FC = () => {
       {/* ═══ PILARES ═══ */}
       <Box
         id="pilares"
+        component="section"
+        aria-labelledby="pilares-title"
         sx={{
           px: { xs: 3, md: 6 },
           py: { xs: 6, md: 8 },
@@ -221,6 +225,13 @@ const HomePage: React.FC = () => {
           zIndex: 1,
         }}
       >
+        {/* Título oculto para lectores de pantalla */}
+        <Typography
+          id="pilares-title"
+          sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
+        >
+          Características principales del sistema
+        </Typography>
         <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }}>
           <Box
             sx={{

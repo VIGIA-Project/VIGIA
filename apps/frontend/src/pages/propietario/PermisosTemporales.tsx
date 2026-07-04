@@ -12,6 +12,8 @@ import {
     useMediaQuery,
     useTheme,
     Grid,
+    Snackbar,
+    Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { DashboardTemplate } from '../../components/templates';
@@ -87,6 +89,7 @@ export const PermisosTemporalesPage: React.FC = () => {
     const [permisos] = useState<PermisoTemporalViewDto[]>(MOCK_PERMISOS);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formState, setFormState] = useState<NuevoPermisoFormState>(INITIAL_FORM);
+    const [exitoSnackbar, setExitoSnackbar] = useState(false);
 
     const handleOpenDialog = () => setDialogOpen(true);
     const handleCloseDialog = () => {
@@ -102,6 +105,7 @@ export const PermisosTemporalesPage: React.FC = () => {
 
     const handleCrearPermiso = () => {
         handleCloseDialog();
+        setExitoSnackbar(true);
     };
 
     const handleRevocar = (_permisoId: string) => {
@@ -213,6 +217,17 @@ export const PermisosTemporalesPage: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <Snackbar
+                open={exitoSnackbar}
+                autoHideDuration={3000}
+                onClose={() => setExitoSnackbar(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
+                    Permiso Temporal creado exitosamente
+                </Alert>
+            </Snackbar>
         </DashboardTemplate>
     );
 };

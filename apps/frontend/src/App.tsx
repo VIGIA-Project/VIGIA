@@ -6,9 +6,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vigiaTheme } from './theme/vigia-theme';
 
+// ─── Auth y Rutas ───────────────────────────────────────────────
+import { AuthProvider } from './context';
+import { ProtectedRoute } from './components/guards';
+
 // ─── Páginas: Home & Login ────────────────────────────────────
 import HomePage from './pages/Home';
-import { LoginPage } from './pages/auth';
+import { LoginPage, CambiarPasswordPage } from './pages/auth';
 
 // ─── Páginas: Propietario ───────────────────────────────────
 import { InicioPage } from './pages/propietario/Inicio';
@@ -37,34 +41,45 @@ export const App: React.FC = () => (
     <ThemeProvider theme={vigiaTheme}>
       <CssBaseline />
       <BrowserRouter>
-        <Routes>
-          {/* ═══ Login ═══ */}
-          <Route path="/login" element={<LoginPage />} />
+        <AuthProvider>
+          <Routes>
+            {/* ═══ Redirecciones y Públicas ═══ */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* ═══ Propietario ═══ */}
-          <Route path="/propietario/inicio" element={<InicioPage />} />
-          <Route path="/propietario/vehiculos" element={<MisVehiculosPage />} />
-          <Route path="/propietario/permisos-temporales" element={<PermisosTemporalesPage />} />
-          <Route path="/propietario/pases-rapidos" element={<PasesRapidosPage />} />
-          <Route path="/propietario/alertas" element={<AlertasPage />} />
+            {/* ═══ Cambio de Contraseña Obligatorio ═══ */}
+            <Route
+              path="/cambiar-password"
+              element={
+                <ProtectedRoute requirePasswordChange={true}>
+                  <CambiarPasswordPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* ═══ Guardia ═══ */}
-          <Route path="/guardia/inicio" element={<GuardiaInicioPage />} />
-          <Route path="/guardia/cola-eventos" element={<ColaEventosPage />} />
-          <Route path="/guardia/revision-manual" element={<RevisionManualPage />} />
-          <Route path="/guardia/contingencia" element={<ContingenciaPage />} />
-          <Route path="/guardia/alertas" element={<AlertasGuardiaPage />} />
+            {/* ═══ Propietario ═══ */}
+            <Route path="/propietario/inicio" element={<ProtectedRoute><InicioPage /></ProtectedRoute>} />
+            <Route path="/propietario/vehiculos" element={<ProtectedRoute><MisVehiculosPage /></ProtectedRoute>} />
+            <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PermisosTemporalesPage /></ProtectedRoute>} />
+            <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PasesRapidosPage /></ProtectedRoute>} />
+            <Route path="/propietario/alertas" element={<ProtectedRoute><AlertasPage /></ProtectedRoute>} />
 
-          {/* ═══ Admin ═══ */}
-          <Route path="/admin/inicio" element={<AdminInicioPage />} />
-          <Route path="/admin/usuarios" element={<UsuariosPage />} />
-          <Route path="/admin/reportes" element={<ReportesPage />} />
-          <Route path="/admin/configuracion" element={<ConfiguracionPage />} />
+            {/* ═══ Guardia ═══ */}
+            <Route path="/guardia/inicio" element={<ProtectedRoute><GuardiaInicioPage /></ProtectedRoute>} />
+            <Route path="/guardia/cola-eventos" element={<ProtectedRoute><ColaEventosPage /></ProtectedRoute>} />
+            <Route path="/guardia/revision-manual" element={<ProtectedRoute><RevisionManualPage /></ProtectedRoute>} />
+            <Route path="/guardia/contingencia" element={<ProtectedRoute><ContingenciaPage /></ProtectedRoute>} />
+            <Route path="/guardia/alertas" element={<ProtectedRoute><AlertasGuardiaPage /></ProtectedRoute>} />
 
-          {/* ═══ Redirecciones ═══ */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* ═══ Admin ═══ */}
+            <Route path="/admin/inicio" element={<ProtectedRoute><AdminInicioPage /></ProtectedRoute>} />
+            <Route path="/admin/usuarios" element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
+            <Route path="/admin/reportes" element={<ProtectedRoute><ReportesPage /></ProtectedRoute>} />
+            <Route path="/admin/configuracion" element={<ProtectedRoute><ConfiguracionPage /></ProtectedRoute>} />
+
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </QueryClientProvider>

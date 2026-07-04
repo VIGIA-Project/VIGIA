@@ -14,6 +14,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
+import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 
@@ -69,6 +70,7 @@ const ShakeWrapper: React.FC<{ shake: boolean; children: React.ReactNode }> = ({
 // ═══════════════════════════════════════════════════════════════
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const shouldReduceMotion = useReducedMotion();
 
   // Estado del formulario
@@ -100,7 +102,12 @@ const LoginPage: React.FC = () => {
       const response = await mockAuthenticate(email.trim(), password);
 
       if (response.success) {
-        // TODO: Guardar token JWT en localStorage/context
+        login({
+          email: email.trim(),
+          rol: response.rol || 'PROPIETARIO',
+          must_change_password: response.must_change_password || false,
+        });
+
         if (response.must_change_password) {
           navigate(AUTH_ROUTES.changePassword);
         } else {

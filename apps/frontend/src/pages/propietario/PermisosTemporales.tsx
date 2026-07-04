@@ -94,6 +94,50 @@ const MOCK_PERSONAS_AUTORIZADAS: PersonaAutorizadaViewDto[] = [
     },
 ];
 
+interface MiembroFamiliarViewDto {
+    miembro_id: string;
+    nombre_completo: string;
+    cedula: string;
+    parentesco: string;
+    vehiculos_acceso: string[];
+    enrollment_biometrico: 'COMPLETADO' | 'PENDIENTE' | 'NO_SOLICITADO';
+    puede_crear_permisos: boolean;
+    estado: 'ACTIVO' | 'INACTIVO';
+}
+
+const MOCK_GRUPO_FAMILIAR: MiembroFamiliarViewDto[] = [
+    {
+        miembro_id: 'fam-001',
+        nombre_completo: 'Stalin Joel Coello',
+        cedula: '1724567890',
+        parentesco: 'Hermano',
+        vehiculos_acceso: ['PBW-1234'],
+        enrollment_biometrico: 'PENDIENTE',
+        puede_crear_permisos: false,
+        estado: 'ACTIVO',
+    },
+    {
+        miembro_id: 'fam-002',
+        nombre_completo: 'María Elena Arévalo',
+        cedula: '1756789012',
+        parentesco: 'Madre',
+        vehiculos_acceso: ['PBW-1234', 'PBA-5678'],
+        enrollment_biometrico: 'COMPLETADO',
+        puede_crear_permisos: true,
+        estado: 'ACTIVO',
+    },
+    {
+        miembro_id: 'fam-003',
+        nombre_completo: 'Carlos Andrés Coello',
+        cedula: '1701234567',
+        parentesco: 'Padre',
+        vehiculos_acceso: ['PBA-5678'],
+        enrollment_biometrico: 'NO_SOLICITADO',
+        puede_crear_permisos: false,
+        estado: 'INACTIVO',
+    },
+];
+
 interface AutorizacionPermanenteViewDto {
     autorizacion_id: string;
     persona_autorizada_nombre: string;
@@ -325,6 +369,7 @@ export const PermisosTemporalesPage: React.FC = () => {
                 <Tab label="Permisos Temporales" />
                 <Tab label="Autorizaciones Permanentes" />
                 <Tab label="Personas Autorizadas" />
+                <Tab label="Grupo Familiar" />
             </Tabs>
 
             {/* Tab 0: Permisos Temporales */}
@@ -658,6 +703,86 @@ export const PermisosTemporalesPage: React.FC = () => {
                             </Table>
                         </TableContainer>
                     )}
+                </>
+            )}
+
+            {/* Tab 3: Grupo Familiar */}
+            {tabActual === 3 && (
+                <>
+                    {/* Card informativa con reglas */}
+                    <Card sx={{ mb: 3, backgroundColor: 'rgba(25,214,196,0.04)', border: '1px solid rgba(25,214,196,0.15)', borderRadius: '8px' }}>
+                        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                            <Typography variant="body2" sx={{ color: '#0A2F86', fontFamily: '"Inter", sans-serif' }}>
+                                <strong>Reglas del Grupo Familiar (doc 02.4):</strong>
+                            </Typography>
+                            <Box component="ul" sx={{ pl: 2, mt: 0.5, color: '#6B7280', fontSize: '0.85rem' }}>
+                                <li>Máximo 5 miembros por grupo familiar</li>
+                                <li>Solo familiares directos (padres, hermanos, hijos, cónyuge)</li>
+                                <li>El propietario puede delegar creación de permisos temporales a miembros específicos</li>
+                                <li>El enrollment biométrico es opcional pero recomendado para validación rápida</li>
+                            </Box>
+                        </CardContent>
+                    </Card>
+
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Typography variant="h6" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
+                            Mi Grupo Familiar ({MOCK_GRUPO_FAMILIAR.filter(m => m.estado === 'ACTIVO').length}/5)
+                        </Typography>
+                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => {/* TODO: Dialog agregar familiar */}}>
+                            Agregar Familiar
+                        </Button>
+                    </Box>
+
+                    {/* Cards de miembros */}
+                    <Grid container spacing={2}>
+                        {MOCK_GRUPO_FAMILIAR.map((miembro) => (
+                            <Grid item xs={12} sm={6} md={4} key={miembro.miembro_id}>
+                                <Card sx={{
+                                    borderRadius: '12px',
+                                    border: miembro.estado === 'ACTIVO' ? '1px solid rgba(25,214,196,0.2)' : '1px solid #E0E3E8',
+                                    opacity: miembro.estado === 'INACTIVO' ? 0.6 : 1,
+                                }}>
+                                    <CardContent>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, fontFamily: '"Inter", sans-serif' }}>
+                                                    {miembro.nombre_completo}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                                    {miembro.parentesco} · {miembro.cedula}
+                                                </Typography>
+                                            </Box>
+                                            <StatusChip estado={miembro.estado} />
+                                        </Box>
+
+                                        {/* Vehículos con acceso */}
+                                        <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>
+                                            Vehículos con acceso:
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
+                                            {miembro.vehiculos_acceso.map((placa) => (
+                                                <Chip key={placa} label={placa} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                                            ))}
+                                        </Box>
+
+                                        {/* Enrollment */}
+                                        <EnrollmentIndicator estado={miembro.enrollment_biometrico} />
+
+                                        {/* Permisos delegados */}
+                                        {miembro.puede_crear_permisos && (
+                                            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <CheckCircleIcon sx={{ fontSize: 14, color: '#19D6C4' }} />
+                                                <Typography variant="caption" sx={{ color: '#19D6C4', fontWeight: 500 }}>
+                                                    Puede crear permisos temporales
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
                 </>
             )}
 

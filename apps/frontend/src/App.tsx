@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vigiaTheme } from './theme/vigia-theme';
 
-// ─── Páginas: Login ─────────────────────────────────────────
+// ─── Páginas: Home & Login ────────────────────────────────────
+import HomePage from './pages/Home';
 import { LoginPage } from './pages/Login';
 
 // ─── Páginas: Propietario ───────────────────────────────────
@@ -61,7 +62,7 @@ export const App: React.FC = () => (
           <Route path="/admin/configuracion" element={<ConfiguracionPage />} />
 
           {/* ═══ Redirecciones ═══ */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

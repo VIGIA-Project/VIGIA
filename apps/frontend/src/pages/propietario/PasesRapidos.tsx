@@ -1,636 +1,768 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    Box,
-    Typography,
-    Button,
-    Card,
-    CardContent,
-    TextField,
-    MenuItem,
-    Grid,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableContainer,
-    Paper,
-    Snackbar,
-    Alert,
-    useMediaQuery,
-    useTheme,
-    Divider,
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Grid,
+  Snackbar,
+  Alert,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { DashboardTemplate } from '../../components/templates';
-import { StatusChip } from '../../components/atoms';
-import { EstadoPase } from '@vigia/shared-types';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import { motion, useReducedMotion } from 'framer-motion';
+import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { StatusChip, EmptyState } from '../../components/atoms';
+import { FilterChips } from '../../components/molecules';
+import { staggerContainer, staggerItem, fadeInUp, scaleIn, pulseGlow } from '../../config/animations.config';
+import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 
-// ─── TIPOS ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// TIPOS
+// ═══════════════════════════════════════════════════════════════
+type EstadoPase = 'ACTIVO' | 'CONSUMIDO' | 'EXPIRADO' | 'REVOCADO';
+
 interface PaseRapidoViewDto {
-    pase_id: string;
-    codigo: string;
-    conductor_nombre: string;
-    conductor_cedula: string;
-    vehiculo_placa: string;
-    vigencia_inicio: string;
-    vigencia_fin: string;
-    motivo: string;
-    estado: EstadoPase;
+  pase_id: string;
+  codigo: string;
+  conductor_nombre: string;
+  conductor_cedula: string;
+  vehiculo_placa: string;
+  vigencia_inicio: string;
+  vigencia_fin: string;
+  motivo: string;
+  estado: EstadoPase;
 }
 
-interface NuevoPaseFormState {
-    conductor_nombre: string;
-    conductor_cedula: string;
-    vehiculo_placa: string;
-    vigencia_inicio: string;
-    vigencia_fin: string;
-    motivo: string;
-}
-
-// ─── MOCK DATA ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════════════════════════════
+const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MOCK_PLACAS = ['PBW-1234', 'PBA-5678', 'PBB-3456'];
+const FILTER_OPTIONS = [
+  { key: 'TODOS', label: 'Todos' },
+  { key: 'ACTIVO', label: '🟢 Activos' },
+  { key: 'CONSUMIDO', label: '✓ Consumidos' },
+  { key: 'EXPIRADO', label: '⏰ Expirados' },
+];
+const INITIAL_FORM = {
+  conductor_nombre: '',
+  conductor_cedula: '',
+  vehiculo_placa: '',
+  vigencia_inicio: '',
+  vigencia_fin: '',
+  motivo: '',
+};
 
+// ═══════════════════════════════════════════════════════════════
+// MOCK DATA
+// ═══════════════════════════════════════════════════════════════
 const MOCK_PASES: PaseRapidoViewDto[] = [
-    {
-        pase_id: 'pase-001',
-        codigo: 'VIG-A7K3M2',
-        conductor_nombre: 'Jorge Luis Mendoza',
-        conductor_cedula: '1723456789',
-        vehiculo_placa: 'PBW-1234',
-        vigencia_inicio: '2026-07-03T07:00:00',
-        vigencia_fin: '2026-07-03T19:00:00',
-        motivo: 'Entrega de materiales',
-        estado: EstadoPase.ACTIVO,
-    },
-    {
-        pase_id: 'pase-002',
-        codigo: 'VIG-R9P4X1',
-        conductor_nombre: 'Andrea Salazar',
-        conductor_cedula: '1714567890',
-        vehiculo_placa: 'PBA-5678',
-        vigencia_inicio: '2026-07-02T08:00:00',
-        vigencia_fin: '2026-07-02T12:00:00',
-        motivo: 'Visita técnica',
-        estado: EstadoPase.CONSUMIDO,
-    },
-    {
-        pase_id: 'pase-003',
-        codigo: 'VIG-T2N8W5',
-        conductor_nombre: 'Roberto Espinoza',
-        conductor_cedula: '1709123456',
-        vehiculo_placa: 'PBW-1234',
-        vigencia_inicio: '2026-06-30T06:00:00',
-        vigencia_fin: '2026-06-30T18:00:00',
-        motivo: 'Mudanza de equipos',
-        estado: EstadoPase.EXPIRADO,
-    },
+  { pase_id: 'pase-001', codigo: 'VIG-A7K3M2', conductor_nombre: 'Jorge Luis Mendoza', conductor_cedula: '1723456789', vehiculo_placa: 'PBW-1234', vigencia_inicio: '2026-07-04T08:00', vigencia_fin: '2026-07-04T12:00', motivo: 'Entrega de materiales', estado: 'ACTIVO' },
+  { pase_id: 'pase-002', codigo: 'VIG-B9N4P7', conductor_nombre: 'Andrea Salazar', conductor_cedula: '1734567890', vehiculo_placa: 'PBA-5678', vigencia_inicio: '2026-07-03T14:00', vigencia_fin: '2026-07-03T16:00', motivo: 'Visita técnica', estado: 'CONSUMIDO' },
+  { pase_id: 'pase-003', codigo: 'VIG-C2R8T5', conductor_nombre: 'Roberto Espinoza', conductor_cedula: '1712345678', vehiculo_placa: 'PBW-1234', vigencia_inicio: '2026-07-02T07:00', vigencia_fin: '2026-07-02T09:00', motivo: 'Retiro de documentos', estado: 'EXPIRADO' },
 ];
 
-const INITIAL_FORM: NuevoPaseFormState = {
-    conductor_nombre: '',
-    conductor_cedula: '',
-    vehiculo_placa: '',
-    vigencia_inicio: '',
-    vigencia_fin: '',
-    motivo: '',
-};
-
-// ─── HELPERS ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
 const generarCodigo = (): string => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Sin 0,O,1,I,L para evitar confusión
-    let codigo = '';
-    for (let i = 0; i < 6; i++) {
-        codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+  let codigo = 'VIG-';
+  for (let i = 0; i < 6; i++) {
+    codigo += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+  }
+  return codigo;
+};
+
+const getBorderColor = (estado: EstadoPase): string => {
+  switch (estado) {
+    case 'ACTIVO': return vigiaColors.success;
+    case 'CONSUMIDO': return vigiaColors.primary;
+    case 'EXPIRADO': return vigiaColors.textTertiary;
+    case 'REVOCADO': return vigiaColors.error;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTE: Typewriter del código
+// ═══════════════════════════════════════════════════════════════
+const TypewriterCode: React.FC<{ code: string }> = ({ code }) => {
+  const [displayedChars, setDisplayedChars] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      setDisplayedChars(code.length);
+      return;
     }
-    return `VIG-${codigo}`;
+    setDisplayedChars(0);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedChars(i);
+      if (i >= code.length) clearInterval(interval);
+    }, 80);
+    return () => clearInterval(interval);
+  }, [code, shouldReduceMotion]);
+
+  return (
+    <Typography
+      sx={{
+        fontFamily: '"Fira Code", "JetBrains Mono", "Courier New", monospace',
+        fontWeight: 700,
+        fontSize: { xs: '2rem', sm: '2.8rem' },
+        letterSpacing: '4px',
+        color: vigiaColors.textHeading,
+        textAlign: 'center',
+        userSelect: 'all',
+      }}
+    >
+      {code.slice(0, displayedChars)}
+      {displayedChars < code.length && (
+        <Box
+          component="span"
+          sx={{
+            display: 'inline-block',
+            width: '2px',
+            height: '2.5rem',
+            backgroundColor: vigiaColors.primary,
+            ml: 0.5,
+            animation: 'blink 0.8s infinite',
+            '@keyframes blink': {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0 },
+            },
+          }}
+        />
+      )}
+    </Typography>
+  );
 };
 
-const formatFechaHora = (iso: string): string => {
-    const d = new Date(iso);
-    return d.toLocaleString('es-EC', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-};
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTE: Vista de código generado
+// ═══════════════════════════════════════════════════════════════
+const CodigoGeneradoView: React.FC<{
+  pase: PaseRapidoViewDto;
+  onClose: () => void;
+}> = ({ pase, onClose }) => {
+  const [copiado, setCopiado] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
-const puedeRevocar = (estado: EstadoPase): boolean => estado === EstadoPase.ACTIVO;
+  const handleCopiar = () => {
+    navigator.clipboard.writeText(pase.codigo);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
 
-// ─── VISTA: CÓDIGO GENERADO ─────────────────────────────────────────────────
-interface CodigoGeneradoViewProps {
-    pase: PaseRapidoViewDto;
-    onVolver: () => void;
-}
-
-const CodigoGeneradoView: React.FC<CodigoGeneradoViewProps> = ({ pase, onVolver }) => {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopiar = () => {
-        navigator.clipboard.writeText(pase.codigo);
-        setCopied(true);
-    };
-
-    const handleCompartir = async () => {
-        if (navigator.share) {
-            await navigator.share({
-                title: 'Pase de Acceso Rápido VIGIA',
-                text: `Código: ${pase.codigo}\nVehículo: ${pase.vehiculo_placa}\nVigencia: ${formatFechaHora(pase.vigencia_inicio)} - ${formatFechaHora(pase.vigencia_fin)}\n\nPresente este código al guardia junto con su cédula.`,
-            });
-        } else {
-            handleCopiar();
-        }
-    };
-
-    return (
-        <Box sx={{ maxWidth: 520, mx: 'auto' }}>
-            <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={onVolver}
-                sx={{ mb: 3, color: '#0A2F86' }}
-            >
-                Volver al listado
-            </Button>
-
-            <Card
-                sx={{
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 32px rgba(10, 47, 134, 0.12)',
-                }}
-            >
-                {/* Header con gradiente */}
-                <Box
-                    sx={{
-                        background: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 100%)',
-                        color: '#FFFFFF',
-                        p: 3,
-                        textAlign: 'center',
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '2px',
-                            opacity: 0.8,
-                            mb: 1,
-                        }}
-                    >
-                        Pase de Acceso Rápido
-                    </Typography>
-                    <Typography
-                        sx={{
-                            fontFamily: '"Exo 2", sans-serif',
-                            fontWeight: 700,
-                            fontSize: '2.5rem',
-                            letterSpacing: '0.2em',
-                            textShadow: '0 0 20px rgba(25, 214, 196, 0.4)',
-                        }}
-                    >
-                        {pase.codigo}
-                    </Typography>
-                    <Typography
-                        sx={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.75rem',
-                            opacity: 0.7,
-                            mt: 1,
-                        }}
-                    >
-                        Código de un solo uso · Dictar al guardia
-                    </Typography>
-                </Box>
-
-                {/* Datos del pase */}
-                <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Conductor</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{pase.conductor_nombre}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Cédula</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{pase.conductor_cedula}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Vehículo</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{pase.vehiculo_placa}</Typography>
-                        </Box>
-                        <Divider sx={{ my: 1 }} />
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Inicio</Typography>
-                            <Typography variant="body2">{formatFechaHora(pase.vigencia_inicio)}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Fin</Typography>
-                            <Typography variant="body2">{formatFechaHora(pase.vigencia_fin)}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Motivo</Typography>
-                            <Typography variant="body2">{pase.motivo}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption" sx={{ color: '#6B7280' }}>Estado</Typography>
-                            <StatusChip estado={pase.estado} />
-                        </Box>
-                    </Box>
-
-                    {/* Warning: código de un solo uso */}
-                    <Alert
-                        severity="warning"
-                        variant="outlined"
-                        sx={{
-                            mt: 2,
-                            mb: 2,
-                            borderColor: '#EDB200',
-                            backgroundColor: 'rgba(237, 178, 0, 0.04)',
-                            '& .MuiAlert-icon': { color: '#EDB200' },
-                        }}
-                    >
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"Inter", sans-serif' }}>
-                            Este código se muestra una sola vez.
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                            Cópielo o compártalo ahora. No podrá recuperarlo después de salir de esta pantalla.
-                        </Typography>
-                    </Alert>
-
-                    {/* Acciones */}
-                    <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-                        <Button
-                            variant="contained"
-                            startIcon={<ContentCopyIcon />}
-                            onClick={handleCopiar}
-                            fullWidth
-                            sx={{ backgroundColor: '#0D5CCF' }}
-                        >
-                            Copiar Código
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            startIcon={<ShareIcon />}
-                            onClick={handleCompartir}
-                            fullWidth
-                            sx={{ borderColor: '#0D5CCF', color: '#0D5CCF' }}
-                        >
-                            Compartir
-                        </Button>
-                    </Box>
-
-                    {/* Instrucción */}
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            textAlign: 'center',
-                            mt: 2,
-                            color: '#6B7280',
-                            fontStyle: 'italic',
-                        }}
-                    >
-                        El conductor debe presentar este código + su cédula al guardia en el punto de acceso.
-                    </Typography>
-                </CardContent>
-            </Card>
-
-            <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)}>
-                <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
-                    Código copiado al portapapeles
-                </Alert>
-            </Snackbar>
-        </Box>
-    );
-};
-
-// ─── PÁGINA PRINCIPAL ───────────────────────────────────────────────────────
-export const PasesRapidosPage: React.FC = () => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    const [pases, setPases] = useState<PaseRapidoViewDto[]>(MOCK_PASES);
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [formState, setFormState] = useState<NuevoPaseFormState>(INITIAL_FORM);
-    const [paseGenerado, setPaseGenerado] = useState<PaseRapidoViewDto | null>(null);
-    const [solapamientoError, setSolapamientoError] = useState<string | null>(null);
-
-    const handleCloseDialog = () => {
-        setDialogOpen(false);
-        setSolapamientoError(null);
-        setFormState(INITIAL_FORM);
-    };
-
-    const handleFieldChange = (field: keyof NuevoPaseFormState) => (
-        event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        setFormState((prev) => ({ ...prev, [field]: event.target.value }));
-    };
-
-    const handleCrearPase = () => {
-        // Limpiar error previo
-        setSolapamientoError(null);
-
-        // Validar campos requeridos
-        if (!formState.conductor_nombre || !formState.conductor_cedula || !formState.vehiculo_placa || !formState.vigencia_inicio || !formState.vigencia_fin || !formState.motivo) {
-            return;
-        }
-
-        // Validar que fin > inicio
-        const inicio = new Date(formState.vigencia_inicio).getTime();
-        const fin = new Date(formState.vigencia_fin).getTime();
-        if (fin <= inicio) {
-            setSolapamientoError('La fecha/hora de fin debe ser posterior a la de inicio.');
-            return;
-        }
-
-        // Validar solapamiento: un vehículo NO puede tener dos pases con ventanas solapadas
-        const paseConflicto = pases.find(
-            (p) =>
-                p.vehiculo_placa === formState.vehiculo_placa &&
-                (p.estado === EstadoPase.ACTIVO) &&
-                new Date(p.vigencia_inicio).getTime() < fin &&
-                new Date(p.vigencia_fin).getTime() > inicio
-        );
-
-        if (paseConflicto) {
-            setSolapamientoError(
-                `El vehículo ${formState.vehiculo_placa} ya tiene un pase activo (${paseConflicto.codigo}) en ese rango horario. Revoque el pase existente o elija otro horario.`
-            );
-            return;
-        }
-
-        // Crear el pase
-        const nuevoPase: PaseRapidoViewDto = {
-            pase_id: `pase-${Date.now()}`,
-            codigo: generarCodigo(),
-            conductor_nombre: formState.conductor_nombre,
-            conductor_cedula: formState.conductor_cedula,
-            vehiculo_placa: formState.vehiculo_placa,
-            vigencia_inicio: formState.vigencia_inicio,
-            vigencia_fin: formState.vigencia_fin,
-            motivo: formState.motivo,
-            estado: EstadoPase.ACTIVO,
-        };
-
-        setPases((prev) => [nuevoPase, ...prev]);
-        setPaseGenerado(nuevoPase);
-        setDialogOpen(false);
-        setFormState(INITIAL_FORM);
-    };
-
-    const handleRevocar = (paseId: string) => {
-        setPases((prev) =>
-            prev.map((p) => (p.pase_id === paseId ? { ...p, estado: EstadoPase.REVOCADO } : p))
-        );
-    };
-
-    // ─── VISTA: Código Generado (después de crear) ────────────────────────────
-    if (paseGenerado) {
-        return (
-            <DashboardTemplate
-                rol="PROPIETARIO"
-                pageTitle="Pase Generado"
-                notificationCount={2}
-                userInitials="AC"
-            >
-                <CodigoGeneradoView
-                    pase={paseGenerado}
-                    onVolver={() => setPaseGenerado(null)}
-                />
-            </DashboardTemplate>
-        );
+  const handleCompartir = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Pase de Acceso Rápido VIGIA',
+        text: `Código de acceso: ${pase.codigo}\nVehículo: ${pase.vehiculo_placa}\nVigencia: ${new Date(pase.vigencia_inicio).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })} - ${new Date(pase.vigencia_fin).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}`,
+      });
     }
+  };
 
-    // ─── VISTA: Listado principal ─────────────────────────────────────────────
-    return (
-        <DashboardTemplate
-            rol="PROPIETARIO"
-            pageTitle="Pases de Acceso Rápido"
-            notificationCount={2}
-            userInitials="AC"
+  return (
+    <motion.div variants={scaleIn} initial="hidden" animate="visible">
+      <Card
+        sx={{
+          maxWidth: 480,
+          mx: 'auto',
+          borderRadius: vigiaRadius.xl,
+          boxShadow: vigiaShadows.xl,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header con gradiente */}
+        <Box
+          sx={{
+            background: vigiaColors.gradientIA,
+            py: 3,
+            px: 3,
+            textAlign: 'center',
+          }}
         >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography
-                    variant="h5"
-                    sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}
-                >
-                    Pases de Acceso Rápido
-                </Typography>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={() => setDialogOpen(true)}
-                >
-                    Nuevo Pase
-                </Button>
+          <Typography
+            sx={{
+              fontFamily: '"Exo 2", sans-serif',
+              fontWeight: 600,
+              fontSize: '1rem',
+              color: 'rgba(255,255,255,0.9)',
+              mb: 0.5,
+            }}
+          >
+            Pase de Acceso Rápido
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '0.75rem',
+              color: 'rgba(255,255,255,0.7)',
+            }}
+          >
+            Código de un solo uso · Dictar al guardia
+          </Typography>
+        </Box>
+
+        <CardContent sx={{ p: 3 }}>
+          {/* Código con typewriter + glow */}
+          <motion.div variants={pulseGlow} animate={shouldReduceMotion ? undefined : 'animate'}>
+            <Box
+              sx={{
+                py: 3,
+                px: 2,
+                borderRadius: vigiaRadius.lg,
+                backgroundColor: 'rgba(13, 92, 207, 0.03)',
+                border: '2px dashed rgba(13, 92, 207, 0.15)',
+                textAlign: 'center',
+                mb: 3,
+              }}
+            >
+              <TypewriterCode code={pase.codigo} />
             </Box>
+          </motion.div>
 
-            {/* Nota informativa */}
-            <Card sx={{ mb: 3, backgroundColor: 'rgba(13,92,207,0.04)', border: '1px solid rgba(13,92,207,0.12)', borderRadius: '8px' }}>
-                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography variant="body2" sx={{ color: '#0A2F86' }}>
-                        <strong>¿Cómo funciona?</strong> Genera un código alfanumérico de un solo uso. El conductor lo dicta al guardia,
-                        quien lo digita en su terminal junto con la verificación de cédula. El código se invalida tras su primer uso.
-                    </Typography>
-                </CardContent>
-            </Card>
+          {/* Warning premium */}
+          <Alert
+            severity="warning"
+            variant="outlined"
+            sx={{
+              mb: 3,
+              borderColor: vigiaColors.warning,
+              backgroundColor: 'rgba(237, 178, 0, 0.04)',
+              borderRadius: vigiaRadius.sm,
+              '& .MuiAlert-icon': { color: vigiaColors.warning },
+            }}
+          >
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem' }}>
+              Este código se muestra una sola vez.
+            </Typography>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: vigiaColors.textSecondary }}>
+              Cópielo o compártalo ahora. No podrá recuperarlo después de salir de esta pantalla.
+            </Typography>
+          </Alert>
 
-            {/* Tabla / Cards de pases existentes */}
-            {isMobile ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {pases.map((pase) => (
-                        <Card key={pase.pase_id} sx={{ borderRadius: '8px' }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                                    <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, letterSpacing: '0.1em' }}>
-                                        {pase.codigo}
-                                    </Typography>
-                                    <StatusChip estado={pase.estado} />
-                                </Box>
-                                <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                                    {pase.conductor_nombre} · {pase.conductor_cedula}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                                    Vehículo: {pase.vehiculo_placa}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                                    {formatFechaHora(pase.vigencia_inicio)} → {formatFechaHora(pase.vigencia_fin)}
-                                </Typography>
-                                {puedeRevocar(pase.estado) && (
-                                    <Button
-                                        fullWidth
-                                        variant="outlined"
-                                        color="error"
-                                        size="small"
-                                        sx={{ mt: 2 }}
-                                        onClick={() => handleRevocar(pase.pase_id)}
-                                    >
-                                        Revocar
-                                    </Button>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Box>
-            ) : (
-                <TableContainer component={Paper} sx={{ borderRadius: '8px' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: '#FAFBFC' }}>
-                                {['Código', 'Conductor', 'Cédula', 'Vehículo', 'Vigencia', 'Estado', 'Acciones'].map((h) => (
-                                    <TableCell key={h} sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
-                                        {h}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {pases.map((pase) => (
-                                <TableRow key={pase.pase_id} hover>
-                                    <TableCell sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, letterSpacing: '0.08em' }}>
-                                        {pase.codigo}
-                                    </TableCell>
-                                    <TableCell>{pase.conductor_nombre}</TableCell>
-                                    <TableCell>{pase.conductor_cedula}</TableCell>
-                                    <TableCell sx={{ fontWeight: 600 }}>{pase.vehiculo_placa}</TableCell>
-                                    <TableCell sx={{ fontSize: '0.8rem' }}>
-                                        {formatFechaHora(pase.vigencia_inicio)}
-                                        <br />
-                                        {formatFechaHora(pase.vigencia_fin)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusChip estado={pase.estado} />
-                                    </TableCell>
-                                    <TableCell>
-                                        {puedeRevocar(pase.estado) && (
-                                            <Button
-                                                variant="outlined"
-                                                color="error"
-                                                size="small"
-                                                onClick={() => handleRevocar(pase.pase_id)}
-                                            >
-                                                Revocar
-                                            </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
+          {/* Datos del pase */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+            {[
+              { label: 'Conductor', value: pase.conductor_nombre },
+              { label: 'Cédula', value: pase.conductor_cedula },
+              { label: 'Vehículo', value: pase.vehiculo_placa },
+              {
+                label: 'Vigencia',
+                value: `${new Date(pase.vigencia_inicio).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })} → ${new Date(pase.vigencia_fin).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}`,
+              },
+              { label: 'Motivo', value: pase.motivo },
+            ].map((item) => (
+              <Box key={item.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.75rem',
+                    color: vigiaColors.textTertiary,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {item.label}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.85rem',
+                    color: vigiaColors.textBody,
+                    fontWeight: 500,
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
 
-            {/* Dialog: Nuevo Pase */}
-            <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
-                <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
-                    Nuevo Pase de Acceso Rápido
-                </DialogTitle>
-                {solapamientoError && (
-                    <Alert
-                        severity="error"
-                        sx={{ mx: 3, mt: 1 }}
-                        onClose={() => setSolapamientoError(null)}
-                    >
-                        {solapamientoError}
-                    </Alert>
-                )}
-                <DialogContent>
-                    <Typography variant="body2" sx={{ color: '#6B7280', mb: 2 }}>
-                        Complete los datos del conductor que utilizará el pase. El código se generará automáticamente.
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Nombre del Conductor"
-                                required
-                                fullWidth
-                                value={formState.conductor_nombre}
-                                onChange={handleFieldChange('conductor_nombre')}
-                                placeholder="Ej: Jorge Luis Mendoza"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Cédula del Conductor"
-                                required
-                                fullWidth
-                                value={formState.conductor_cedula}
-                                onChange={handleFieldChange('conductor_cedula')}
-                                placeholder="Ej: 1723456789"
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                select
-                                label="Vehículo Autorizado"
-                                required
-                                fullWidth
-                                value={formState.vehiculo_placa}
-                                onChange={handleFieldChange('vehiculo_placa')}
-                            >
-                                {MOCK_PLACAS.map((placa) => (
-                                    <MenuItem key={placa} value={placa}>
-                                        {placa}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Fecha/Hora Inicio"
-                                type="datetime-local"
-                                required
-                                fullWidth
-                                InputLabelProps={{ shrink: true }}
-                                value={formState.vigencia_inicio}
-                                onChange={handleFieldChange('vigencia_inicio')}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Fecha/Hora Fin"
-                                type="datetime-local"
-                                required
-                                fullWidth
-                                InputLabelProps={{ shrink: true }}
-                                value={formState.vigencia_fin}
-                                onChange={handleFieldChange('vigencia_fin')}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Motivo del Acceso"
-                                required
-                                fullWidth
-                                multiline
-                                rows={2}
-                                value={formState.motivo}
-                                onChange={handleFieldChange('motivo')}
-                                placeholder="Ej: Entrega de materiales de construcción"
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={handleCloseDialog}>Cancelar</Button>
-                    <Button variant="contained" color="primary" onClick={handleCrearPase}>
-                        Generar Pase
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </DashboardTemplate>
-    );
+          {/* Botones de acción */}
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<ContentCopyIcon />}
+              onClick={handleCopiar}
+              sx={{
+                background: vigiaColors.gradientIA,
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                textTransform: 'none',
+                borderRadius: vigiaRadius.sm,
+                py: 1.2,
+                boxShadow: vigiaShadows.sm,
+                '&:hover': { background: vigiaColors.gradientIA, boxShadow: vigiaShadows.md },
+              }}
+            >
+              {copiado ? '✓ Copiado' : 'Copiar Código'}
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<ShareIcon />}
+              onClick={handleCompartir}
+              sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                textTransform: 'none',
+                borderRadius: vigiaRadius.sm,
+                borderColor: 'rgba(13, 92, 207, 0.2)',
+                color: vigiaColors.primary,
+                py: 1.2,
+                '&:hover': {
+                  borderColor: vigiaColors.primary,
+                  backgroundColor: 'rgba(13, 92, 207, 0.04)',
+                },
+              }}
+            >
+              Compartir
+            </Button>
+          </Box>
+
+          {/* Botón volver */}
+          <Button
+            fullWidth
+            onClick={onClose}
+            sx={{
+              mt: 2,
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '0.8rem',
+              textTransform: 'none',
+              color: vigiaColors.textSecondary,
+            }}
+          >
+            Volver a mis pases
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 };
 
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════
+const PasesRapidosPage: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const shouldReduceMotion = useReducedMotion();
+
+  // Estado
+  const [pases, setPases] = useState<PaseRapidoViewDto[]>(MOCK_PASES);
+  const [filtroActivo, setFiltroActivo] = useState('TODOS');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formState, setFormState] = useState(INITIAL_FORM);
+  const [solapamientoError, setSolapamientoError] = useState<string | null>(null);
+  const [paseGenerado, setPaseGenerado] = useState<PaseRapidoViewDto | null>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+  // Filtrado
+  const pasesFiltrados = pases.filter((p) => {
+    if (filtroActivo === 'TODOS') return true;
+    return p.estado === filtroActivo;
+  });
+  const pasesActivos = pases.filter((p) => p.estado === 'ACTIVO').length;
+
+  // Handlers
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSolapamientoError(null);
+    setFormState(INITIAL_FORM);
+  };
+
+  const handleCrearPase = () => {
+    setSolapamientoError(null);
+    if (!formState.conductor_nombre || !formState.conductor_cedula || !formState.vehiculo_placa || !formState.vigencia_inicio || !formState.vigencia_fin || !formState.motivo) {
+      return;
+    }
+    const inicio = new Date(formState.vigencia_inicio).getTime();
+    const fin = new Date(formState.vigencia_fin).getTime();
+    if (fin <= inicio) {
+      setSolapamientoError('La fecha/hora de fin debe ser posterior a la de inicio.');
+      return;
+    }
+    const paseConflicto = pases.find(
+      (p) =>
+        p.vehiculo_placa === formState.vehiculo_placa &&
+        p.estado === 'ACTIVO' &&
+        new Date(p.vigencia_inicio).getTime() < fin &&
+        new Date(p.vigencia_fin).getTime() > inicio
+    );
+    if (paseConflicto) {
+      setSolapamientoError(
+        `El vehículo ${formState.vehiculo_placa} ya tiene un pase activo (${paseConflicto.codigo}) en ese rango horario. Revoque el pase existente o elija otro horario.`
+      );
+      return;
+    }
+    const nuevoPase: PaseRapidoViewDto = {
+      pase_id: `pase-${Date.now()}`,
+      codigo: generarCodigo(),
+      conductor_nombre: formState.conductor_nombre,
+      conductor_cedula: formState.conductor_cedula,
+      vehiculo_placa: formState.vehiculo_placa,
+      vigencia_inicio: formState.vigencia_inicio,
+      vigencia_fin: formState.vigencia_fin,
+      motivo: formState.motivo,
+      estado: 'ACTIVO',
+    };
+    setPases((prev) => [nuevoPase, ...prev]);
+    setPaseGenerado(nuevoPase);
+    handleCloseDialog();
+  };
+
+  const handleRevocar = (id: string) => {
+    setPases((prev) => prev.map((p) => (p.pase_id === id ? { ...p, estado: 'REVOCADO' as const } : p)));
+    setSnackbar({ open: true, message: 'Pase revocado exitosamente' });
+  };
+
+  // Si hay pase generado, mostrar CodigoGeneradoView
+  if (paseGenerado) {
+    return (
+      <DashboardTemplate rol="PROPIETARIO" pageTitle="Pase Generado">
+        <Box sx={{ py: 2 }}>
+          <CodigoGeneradoView pase={paseGenerado} onClose={() => setPaseGenerado(null)} />
+        </Box>
+      </DashboardTemplate>
+    );
+  }
+
+  return (
+    <DashboardTemplate rol="PROPIETARIO" pageTitle="Pases de Acceso Rápido">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
+
+        {/* Header */}
+        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 1.5,
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{
+                  fontFamily: '"Exo 2", sans-serif',
+                  fontWeight: 600,
+                  fontSize: '1.25rem',
+                  color: vigiaColors.textHeading,
+                }}
+              >
+                Pases de Acceso Rápido
+              </Typography>
+              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mt: 0.25 }}>
+                {pasesActivos > 0 ? (
+                  <>
+                    <Box component="span" sx={{ fontWeight: 600, color: vigiaColors.success }}>{pasesActivos}</Box>
+                    {` pase${pasesActivos > 1 ? 's' : ''} activo${pasesActivos > 1 ? 's' : ''} · ${pases.length} totales`}
+                  </>
+                ) : (
+                  `${pases.length} pases registrados · Ninguno activo`
+                )}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setDialogOpen(true)}
+              sx={{
+                background: vigiaColors.gradientIA,
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                textTransform: 'none',
+                borderRadius: vigiaRadius.sm,
+                px: 3,
+                py: 1.2,
+                boxShadow: vigiaShadows.sm,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  background: vigiaColors.gradientIA,
+                  boxShadow: vigiaShadows.md,
+                  transform: shouldReduceMotion ? 'none' : 'translateY(-1px)',
+                },
+              }}
+            >
+              Generar Pase
+            </Button>
+          </Box>
+        </motion.div>
+
+        {/* Card informativa */}
+        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
+          <Card
+            sx={{
+              backgroundColor: 'rgba(13,92,207,0.03)',
+              border: '1px solid rgba(13,92,207,0.08)',
+              borderRadius: vigiaRadius.md,
+            }}
+          >
+            <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary }}>
+                <strong style={{ color: vigiaColors.textHeading }}>¿Cómo funciona?</strong> Genere un código alfanumérico de un solo uso. El conductor lo dicta al guardia en el punto de acceso. El código es válido únicamente dentro de la ventana de tiempo definida.
+              </Typography>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Filtros */}
+        <FilterChips options={FILTER_OPTIONS} activeKey={filtroActivo} onChange={setFiltroActivo} />
+
+        {/* Lista de pases */}
+        {pasesFiltrados.length === 0 ? (
+          <EmptyState
+            titulo="Sin pases"
+            descripcion={
+              filtroActivo === 'TODOS'
+                ? 'No ha generado ningún pase de acceso rápido aún.'
+                : `No hay pases con el filtro "${FILTER_OPTIONS.find((f) => f.key === filtroActivo)?.label}" aplicado.`
+            }
+            icono={<VpnKeyIcon sx={{ fontSize: 64, color: '#E0E3E8' }} />}
+            accionLabel="Generar Pase"
+            onAccion={() => setDialogOpen(true)}
+          />
+        ) : (
+          <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {pasesFiltrados.map((pase) => (
+                <motion.div key={pase.pase_id} variants={staggerItem}>
+                  <Card
+                    sx={{
+                      borderRadius: vigiaRadius.md,
+                      boxShadow: vigiaShadows.sm,
+                      borderLeft: `4px solid ${getBorderColor(pase.estado)}`,
+                      transition: 'all 0.2s ease',
+                      '&:hover': { boxShadow: vigiaShadows.md, backgroundColor: vigiaColors.bgCardHover },
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: isMobile ? 'flex-start' : 'center',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          gap: 1,
+                        }}
+                      >
+                        {/* Código + datos */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+                          {/* Código como badge protagonista */}
+                          <Box
+                            sx={{
+                              px: 1.5,
+                              py: 0.75,
+                              borderRadius: vigiaRadius.sm,
+                              backgroundColor: pase.estado === 'ACTIVO' ? 'rgba(13, 92, 207, 0.06)' : 'rgba(10, 47, 134, 0.03)',
+                              border: pase.estado === 'ACTIVO'
+                                ? '1px solid rgba(13, 92, 207, 0.15)'
+                                : '1px solid rgba(10, 47, 134, 0.06)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontFamily: '"Fira Code", "JetBrains Mono", "Courier New", monospace',
+                                fontWeight: 700,
+                                fontSize: '1rem',
+                                color: pase.estado === 'ACTIVO' ? vigiaColors.textHeading : vigiaColors.textTertiary,
+                                letterSpacing: '1px',
+                              }}
+                            >
+                              {pase.codigo}
+                            </Typography>
+                          </Box>
+                          {/* Datos */}
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                color: vigiaColors.textBody,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {pase.conductor_nombre}
+                            </Typography>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary }}>
+                              {pase.vehiculo_placa} · {pase.motivo}
+                            </Typography>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.7rem', color: vigiaColors.textTertiary, mt: 0.25 }}>
+                              {new Date(pase.vigencia_inicio).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+                              {' → '}
+                              {new Date(pase.vigencia_fin).toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Estado + acción */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                          <StatusChip estado={pase.estado} />
+                          {pase.estado === 'ACTIVO' && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRevocar(pase.pase_id)}
+                              sx={{ fontSize: '0.75rem', textTransform: 'none', minWidth: 'auto' }}
+                            >
+                              Revocar
+                            </Button>
+                          )}
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </Box>
+          </motion.div>
+        )}
+      </Box>
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* DIALOG: Generar nuevo pase                             */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: vigiaColors.textHeading }}>
+          Generar Pase de Acceso Rápido
+        </DialogTitle>
+        {solapamientoError && (
+          <Alert severity="error" sx={{ mx: 3, mt: 1 }} onClose={() => setSolapamientoError(null)}>
+            {solapamientoError}
+          </Alert>
+        )}
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, mb: 2 }}>
+            Genere un código alfanumérico de un solo uso para autorizar el acceso temporal de un conductor.
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Nombre del Conductor"
+                required
+                fullWidth
+                value={formState.conductor_nombre}
+                onChange={(e) => setFormState((p) => ({ ...p, conductor_nombre: e.target.value }))}
+                placeholder="Ej: Jorge Mendoza"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Cédula"
+                required
+                fullWidth
+                value={formState.conductor_cedula}
+                onChange={(e) => setFormState((p) => ({ ...p, conductor_cedula: e.target.value }))}
+                placeholder="Ej: 1723456789"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Vehículo"
+                required
+                fullWidth
+                value={formState.vehiculo_placa}
+                onChange={(e) => setFormState((p) => ({ ...p, vehiculo_placa: e.target.value }))}
+              >
+                {MOCK_PLACAS.map((placa) => (
+                  <MenuItem key={placa} value={placa}>{placa}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Motivo"
+                required
+                fullWidth
+                value={formState.motivo}
+                onChange={(e) => setFormState((p) => ({ ...p, motivo: e.target.value }))}
+                placeholder="Ej: Entrega de materiales"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Inicio"
+                type="datetime-local"
+                required
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={formState.vigencia_inicio}
+                onChange={(e) => setFormState((p) => ({ ...p, vigencia_inicio: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Fin"
+                type="datetime-local"
+                required
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={formState.vigencia_fin}
+                onChange={(e) => setFormState((p) => ({ ...p, vigencia_fin: e.target.value }))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDialog} sx={{ color: vigiaColors.textSecondary }}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCrearPase}
+            sx={{
+              background: vigiaColors.gradientIA,
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: vigiaRadius.sm,
+              boxShadow: vigiaShadows.sm,
+              '&:hover': { background: vigiaColors.gradientIA, boxShadow: vigiaShadows.md },
+            }}
+          >
+            Generar Pase
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2500}
+        onClose={() => setSnackbar({ open: false, message: '' })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </DashboardTemplate>
+  );
+};
+
+export { PasesRapidosPage };
 export default PasesRapidosPage;

@@ -294,16 +294,6 @@ const CambiarPasswordPage: React.FC = () => {
       leftTitle="Control de Acceso Vehicular Inteligente"
       leftSubtitle="Establezca una contraseña segura para proteger su cuenta y la de su familia."
     >
-      {/* Logo pequeño */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
-        <Box
-          component="img"
-          src="/assets/vigia-logo.png"
-          alt="VIGIA"
-          sx={{ width: 80, height: 80, objectFit: 'contain' }}
-        />
-      </Box>
-
       {/* Título */}
       <Typography
         sx={{

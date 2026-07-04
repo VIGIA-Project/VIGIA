@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { fadeInUp, staggerContainer, staggerItem } from '../config/animations.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../theme/vigia-theme';
 import { AUTH_FEATURES, AUTH_ROUTES, getFeatureIcon } from '../config/auth.config';
+import logoFull from '../assets/logo/vigia-full.png';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,24 +63,13 @@ const HomePage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             component="img"
-            src="/assets/vigia-logo.png"
+            src={logoFull}
             alt="VIGIA"
             sx={{
-              width: 36,
-              height: 36,
+              height: 40,
               objectFit: 'contain',
             }}
           />
-          <Typography
-            sx={{
-              fontFamily: '"Exo 2", sans-serif',
-              fontWeight: 700,
-              fontSize: '1.1rem',
-              color: vigiaColors.textHeading,
-            }}
-          >
-            VIGIA
-          </Typography>
         </Box>
 
         {/* CTA Header */}

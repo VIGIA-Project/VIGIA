@@ -3,6 +3,7 @@ import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { fadeInLeft, fadeInUp, staggerContainer, staggerItem } from '../../config/animations.config';
 import { getFeatureIcon } from '../../config/auth.config';
+import logoFull from '../../assets/logo/vigia-full.png';
 
 interface AuthFeature {
   icon: string;
@@ -63,37 +64,25 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
           >
             {/* Logo real */}
             <Box
-              component="img"
-              src="/assets/vigia-logo.png"
-              alt="VIGIA"
               sx={{
-                width: 36,
-                height: 36,
-                objectFit: 'contain',
+                background: '#FFFFFF',
+                borderRadius: '8px',
+                p: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 flexShrink: 0,
               }}
-            />
-            <Box>
-              <Typography
+            >
+              <Box
+                component="img"
+                src={logoFull}
+                alt="VIGIA"
                 sx={{
-                  fontFamily: '"Exo 2", sans-serif',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  color: '#FFFFFF',
-                  lineHeight: 1.2,
+                  height: 28,
+                  objectFit: 'contain',
                 }}
-              >
-                VIGIA
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: '"Inter", sans-serif',
-                  fontSize: '0.7rem',
-                  color: 'rgba(255,255,255,0.7)',
-                }}
-              >
-                Control de Acceso Vehicular Inteligente
-              </Typography>
+              />
             </Box>
           </Box>
         </motion.div>
@@ -141,17 +130,25 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
             <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 400, textAlign: 'left', width: '100%' }}>
               {/* Logo */}
               <Box
-                component="img"
-                src="/assets/vigia-logo.png"
-                alt="VIGIA"
                 sx={{
-                  width: 52,
-                  height: 52,
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
+                  background: '#FFFFFF',
+                  borderRadius: '16px',
+                  p: 2.5,
                   mb: 4,
+                  display: 'inline-block',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                 }}
-              />
+              >
+                <Box
+                  component="img"
+                  src={logoFull}
+                  alt="VIGIA"
+                  sx={{
+                    width: 220,
+                    objectFit: 'contain',
+                  }}
+                />
+              </Box>
               {/* Título */}
               <Typography
                 sx={{

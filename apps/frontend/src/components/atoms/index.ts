@@ -7,3 +7,5 @@ export * from './RolBadge';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { ErrorState } from './ErrorState';
 export { EmptyState } from './EmptyState';
+export { AnimatedCounter } from './AnimatedCounter';
+export { SectionHeader } from './SectionHeader';

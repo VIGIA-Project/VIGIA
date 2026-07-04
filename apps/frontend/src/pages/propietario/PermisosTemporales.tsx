@@ -25,12 +25,74 @@ import {
     TableBody,
     TableContainer,
     Paper,
+    Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardTemplate } from '../../components/templates';
 import { PermisosTable, PermisoTemporalViewDto } from '../../components/organisms';
 import { EstadoAutorizacion } from '@vigia/shared-types';
 import { StatusChip } from '../../components/atoms';
+
+interface PersonaAutorizadaViewDto {
+    persona_id: string;
+    nombre_completo: string;
+    cedula: string;
+    rol: 'PROPIETARIO' | 'FAMILIAR' | 'CONDUCTOR_PERMANENTE';
+    vehiculos_vinculados: string[]; // placas
+    enrollment_biometrico: 'COMPLETADO' | 'PENDIENTE' | 'NO_SOLICITADO';
+    estado: 'ACTIVO' | 'INACTIVO';
+}
+
+const MOCK_PERSONAS_AUTORIZADAS: PersonaAutorizadaViewDto[] = [
+    {
+        persona_id: 'per-001',
+        nombre_completo: 'Antony Coello',
+        cedula: '1720123456',
+        rol: 'PROPIETARIO',
+        vehiculos_vinculados: ['PBW-1234', 'PBA-5678', 'PBB-3456'],
+        enrollment_biometrico: 'COMPLETADO',
+        estado: 'ACTIVO',
+    },
+    {
+        persona_id: 'per-002',
+        nombre_completo: 'Stalin Joel Coello',
+        cedula: '1724567890',
+        rol: 'FAMILIAR',
+        vehiculos_vinculados: ['PBW-1234'],
+        enrollment_biometrico: 'PENDIENTE',
+        estado: 'ACTIVO',
+    },
+    {
+        persona_id: 'per-003',
+        nombre_completo: 'María Elena Arévalo',
+        cedula: '1756789012',
+        rol: 'FAMILIAR',
+        vehiculos_vinculados: ['PBW-1234'],
+        enrollment_biometrico: 'COMPLETADO',
+        estado: 'ACTIVO',
+    },
+    {
+        persona_id: 'per-004',
+        nombre_completo: 'Carlos Andrés Coello',
+        cedula: '1701234567',
+        rol: 'FAMILIAR',
+        vehiculos_vinculados: ['PBA-5678'],
+        enrollment_biometrico: 'NO_SOLICITADO',
+        estado: 'INACTIVO',
+    },
+    {
+        persona_id: 'per-005',
+        nombre_completo: 'Jorge Luis Mendoza',
+        cedula: '1723456789',
+        rol: 'CONDUCTOR_PERMANENTE',
+        vehiculos_vinculados: ['PBW-1234', 'PBA-5678'],
+        enrollment_biometrico: 'PENDIENTE',
+        estado: 'ACTIVO',
+    },
+];
 
 interface AutorizacionPermanenteViewDto {
     autorizacion_id: string;
@@ -135,6 +197,39 @@ const INITIAL_FORM: NuevoPermisoFormState = {
     motivo_otorgamiento: '',
 };
 
+// Componente: Chip de Rol (diferenciación visual)
+const RolChip: React.FC<{ rol: string }> = ({ rol }) => {
+    const config: Record<string, { bg: string; text: string; label: string }> = {
+        PROPIETARIO: { bg: '#E3F2FD', text: '#0D5CCF', label: 'Propietario' },
+        FAMILIAR: { bg: '#E8F5E9', text: '#2E7D32', label: 'Familiar' },
+        CONDUCTOR_PERMANENTE: { bg: '#F3F4F6', text: '#4B5563', label: 'Conductor' },
+    };
+    const c = config[rol] || config.CONDUCTOR_PERMANENTE;
+    return (
+        <Chip
+            label={c.label}
+            size="small"
+            sx={{ backgroundColor: c.bg, color: c.text, fontWeight: 600, fontSize: '0.7rem' }}
+        />
+    );
+};
+
+// Componente: Indicador de Enrollment Biométrico
+const EnrollmentIndicator: React.FC<{ estado: string }> = ({ estado }) => {
+    const config: Record<string, { icon: React.ReactNode; text: string; color: string }> = {
+        COMPLETADO: { icon: <CheckCircleIcon sx={{ fontSize: 16, color: '#2E7D32' }} />, text: 'Completado', color: '#2E7D32' },
+        PENDIENTE: { icon: <HourglassEmptyIcon sx={{ fontSize: 16, color: '#EDB200' }} />, text: 'Pendiente', color: '#EDB200' },
+        NO_SOLICITADO: { icon: <RemoveCircleOutlineIcon sx={{ fontSize: 16, color: '#9CA3AF' }} />, text: 'No solicitado', color: '#9CA3AF' },
+    };
+    const c = config[estado] || config.NO_SOLICITADO;
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {c.icon}
+            <Typography variant="caption" sx={{ color: c.color, fontWeight: 500 }}>{c.text}</Typography>
+        </Box>
+    );
+};
+
 export const PermisosTemporalesPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -229,6 +324,7 @@ export const PermisosTemporalesPage: React.FC = () => {
             >
                 <Tab label="Permisos Temporales" />
                 <Tab label="Autorizaciones Permanentes" />
+                <Tab label="Personas Autorizadas" />
             </Tabs>
 
             {/* Tab 0: Permisos Temporales */}
@@ -491,6 +587,77 @@ export const PermisosTemporalesPage: React.FC = () => {
                             </Button>
                         </DialogActions>
                     </Dialog>
+                </>
+            )}
+
+            {/* Tab 2: Personas Autorizadas */}
+            {tabActual === 2 && (
+                <>
+                    <Card sx={{ mb: 3, backgroundColor: 'rgba(21,101,192,0.04)', border: '1px solid rgba(21,101,192,0.12)', borderRadius: '8px' }}>
+                        <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                            <Typography variant="body2" sx={{ color: '#0A2F86', fontFamily: '"Inter", sans-serif' }}>
+                                <strong>Personas Autorizadas</strong> — Todas las personas vinculadas a sus vehículos con su estado de enrollment biométrico.
+                                El enrollment pendiente no bloquea el acceso pero permite validación biométrica cuando esté completado.
+                            </Typography>
+                        </CardContent>
+                    </Card>
+
+                    {/* Tabla/Cards de personas */}
+                    {isMobile ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {MOCK_PERSONAS_AUTORIZADAS.map((persona) => (
+                                <Card key={persona.persona_id} sx={{ borderRadius: '8px' }}>
+                                    <CardContent>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600 }}>{persona.nombre_completo}</Typography>
+                                                <Typography variant="caption" sx={{ color: '#6B7280' }}>{persona.cedula}</Typography>
+                                            </Box>
+                                            <RolChip rol={persona.rol} />
+                                        </Box>
+                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', my: 1 }}>
+                                            {persona.vehiculos_vinculados.map((placa) => (
+                                                <Chip key={placa} label={placa} size="small" variant="outlined" />
+                                            ))}
+                                        </Box>
+                                        <EnrollmentIndicator estado={persona.enrollment_biometrico} />
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </Box>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ borderRadius: '8px' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: '#FAFBFC' }}>
+                                        {['Persona', 'Cédula', 'Rol', 'Vehículos', 'Enrollment', 'Estado'].map((h) => (
+                                            <TableCell key={h} sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
+                                                {h}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {MOCK_PERSONAS_AUTORIZADAS.map((persona) => (
+                                        <TableRow key={persona.persona_id} hover>
+                                            <TableCell sx={{ fontWeight: 500 }}>{persona.nombre_completo}</TableCell>
+                                            <TableCell>{persona.cedula}</TableCell>
+                                            <TableCell><RolChip rol={persona.rol} /></TableCell>
+                                            <TableCell>
+                                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                                    {persona.vehiculos_vinculados.map((placa) => (
+                                                        <Chip key={placa} label={placa} size="small" variant="outlined" />
+                                                    ))}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell><EnrollmentIndicator estado={persona.enrollment_biometrico} /></TableCell>
+                                            <TableCell><StatusChip estado={persona.estado} /></TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
                 </>
             )}
 

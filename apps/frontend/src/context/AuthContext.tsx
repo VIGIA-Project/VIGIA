@@ -2,59 +2,82 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface AuthUser {
   email: string;
+  role: string;
   rol: string;
   must_change_password: boolean;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionExpired: boolean;
-  login: (user: AuthUser) => void;
+  login: (user: AuthUser, token?: string) => void;
   logout: () => void;
   completePasswordChange: () => void;
   clearSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AUTH_STORAGE_KEY = 'vigia_auth_user';
+const AUTH_TOKEN_KEY = 'vigia_access_token';
+
+const normalizeUser = (userData: Partial<AuthUser>): AuthUser => ({
+  email: userData.email || '',
+  role: userData.role || userData.rol || 'PROPIETARIO',
+  rol: userData.rol || userData.role || 'PROPIETARIO',
+  must_change_password: Boolean(userData.must_change_password),
+});
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
-  // Verificar sesión al montar
   useEffect(() => {
-    const stored = sessionStorage.getItem('vigia_auth_user');
-    if (stored) {
+    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+    const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+
+    if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(stored));
+        setUser(normalizeUser(JSON.parse(storedUser)));
+        setToken(storedToken);
       } catch {
-        sessionStorage.removeItem('vigia_auth_user');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
       }
     }
-    // Simular verificación de token (en producción sería una llamada al backend)
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
+
+    setIsLoading(false);
   }, []);
 
-  const login = (userData: AuthUser) => {
-    setUser(userData);
+  const login = (userData: AuthUser, authToken?: string) => {
+    const normalizedUser = normalizeUser(userData);
+    setUser(normalizedUser);
+    setToken(authToken || null);
     setSessionExpired(false);
-    sessionStorage.setItem('vigia_auth_user', JSON.stringify(userData));
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizedUser));
+    if (authToken) {
+      localStorage.setItem(AUTH_TOKEN_KEY, authToken);
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+    }
   };
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('vigia_auth_user');
+    setToken(null);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
   };
 
   const completePasswordChange = () => {
     if (user) {
       const updated = { ...user, must_change_password: false };
       setUser(updated);
-      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
     }
   };
 
@@ -66,7 +89,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        token,
+        isAuthenticated: !!user && !!token,
         isLoading,
         sessionExpired,
         login,

@@ -8,7 +8,7 @@ import { vigiaTheme } from './theme/vigia-theme';
 
 // ─── Páginas: Home & Login ────────────────────────────────────
 import HomePage from './pages/Home';
-import { LoginPage } from './pages/Login';
+import { LoginPage } from './pages/auth';
 
 // ─── Páginas: Propietario ───────────────────────────────────
 import { InicioPage } from './pages/propietario/Inicio';

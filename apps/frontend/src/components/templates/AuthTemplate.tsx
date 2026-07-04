@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { fadeInLeft, fadeInUp, staggerContainer, staggerItem } from '../../config/animations.config';
+import { getFeatureIcon } from '../../config/auth.config';
 
 interface AuthFeature {
   icon: string;
@@ -60,41 +61,18 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
               overflow: 'hidden',
             }}
           >
-            {/* Watermark */}
+            {/* Logo real */}
             <Box
+              component="img"
+              src="/assets/vigia-logo.png"
+              alt="VIGIA"
               sx={{
-                position: 'absolute',
-                top: '50%',
-                right: '-10%',
-                transform: 'translateY(-50%)',
-                opacity: 0.05,
-                fontSize: '8rem',
-                fontFamily: '"Exo 2", sans-serif',
-                fontWeight: 900,
-                color: '#FFFFFF',
-                userSelect: 'none',
-                pointerEvents: 'none',
-              }}
-            >
-              V
-            </Box>
-            {/* Logo placeholder */}
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '8px',
-                background: 'rgba(255,255,255,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                objectFit: 'contain',
                 flexShrink: 0,
               }}
-            >
-              <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#FFFFFF' }}>
-                V
-              </Typography>
-            </Box>
+            />
             <Box>
               <Typography
                 sx={{
@@ -145,45 +123,35 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
               overflow: 'hidden',
             }}
           >
-            {/* Watermark logo */}
+            {/* Fondo difuminado con logo real */}
             <Box
               sx={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) scale(2.5)',
-                opacity: 0.05,
-                fontSize: '12rem',
-                fontFamily: '"Exo 2", sans-serif',
-                fontWeight: 900,
-                color: '#FFFFFF',
-                userSelect: 'none',
+                inset: 0,
+                backgroundImage: 'url(/assets/vigia-logo.png)',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                backgroundSize: '55%',
+                opacity: 0.07,
+                filter: 'blur(1.5px)',
                 pointerEvents: 'none',
               }}
-            >
-              VIGIA
-            </Box>
+            />
             {/* Contenido */}
             <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 400, textAlign: 'left', width: '100%' }}>
               {/* Logo */}
               <Box
+                component="img"
+                src="/assets/vigia-logo.png"
+                alt="VIGIA"
                 sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: 52,
+                  height: 52,
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
                   mb: 4,
-                  border: '1px solid rgba(255,255,255,0.15)',
                 }}
-              >
-                <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#FFFFFF' }}>
-                  V
-                </Typography>
-              </Box>
+              />
               {/* Título */}
               <Typography
                 sx={{
@@ -217,7 +185,9 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
                   {features.map((feature, i) => (
                     <motion.div key={i} variants={staggerItem}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Typography sx={{ fontSize: '1.25rem' }}>{feature.icon}</Typography>
+                        <Box sx={{ color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center' }}>
+                          {getFeatureIcon(feature.icon, { fontSize: 22, color: 'inherit' })}
+                        </Box>
                         <Typography
                           sx={{
                             fontFamily: '"Inter", sans-serif',

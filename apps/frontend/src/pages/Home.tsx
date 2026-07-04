@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { fadeInUp, staggerContainer, staggerItem } from '../config/animations.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../theme/vigia-theme';
-import { AUTH_ROUTES, AUTH_FEATURES } from '../config/auth.config';
+import { AUTH_FEATURES, AUTH_ROUTES, getFeatureIcon } from '../config/auth.config';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,19 +26,23 @@ const HomePage: React.FC = () => {
         sx={{
           position: 'absolute',
           top: '50%',
-          right: '-5%',
-          transform: 'translateY(-50%)',
-          opacity: 0.03,
-          fontSize: '20rem',
-          fontFamily: '"Exo 2", sans-serif',
-          fontWeight: 900,
-          color: vigiaColors.deep,
-          userSelect: 'none',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '45%',
+          maxWidth: 500,
+          opacity: 0.04,
+          filter: 'blur(1px)',
           pointerEvents: 'none',
-          lineHeight: 1,
+          userSelect: 'none',
         }}
       >
-        VIGIA
+        <Box
+          component="img"
+          src="/assets/vigia-full.png"
+          alt=""
+          aria-hidden="true"
+          sx={{ width: '100%', height: 'auto' }}
+        />
       </Box>
 
       {/* ═══ HEADER ═══ */}
@@ -57,20 +61,15 @@ const HomePage: React.FC = () => {
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
+            component="img"
+            src="/assets/vigia-logo.png"
+            alt="VIGIA"
             sx={{
               width: 36,
               height: 36,
-              borderRadius: '8px',
-              background: vigiaColors.gradientIA,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              objectFit: 'contain',
             }}
-          >
-            <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, fontSize: '1rem', color: '#FFFFFF' }}>
-              V
-            </Typography>
-          </Box>
+          />
           <Typography
             sx={{
               fontFamily: '"Exo 2", sans-serif',
@@ -139,7 +138,7 @@ const HomePage: React.FC = () => {
               fontSize: { xs: '1.8rem', sm: '2.4rem', md: '3rem' },
               color: vigiaColors.textHeading,
               lineHeight: 1.15,
-              mb: 2,
+              mb: 3,
               maxWidth: 700,
               mx: 'auto',
             }}
@@ -220,7 +219,7 @@ const HomePage: React.FC = () => {
         aria-labelledby="pilares-title"
         sx={{
           px: { xs: 3, md: 6 },
-          py: { xs: 6, md: 8 },
+          py: { xs: 4, md: 5 },
           position: 'relative',
           zIndex: 1,
         }}
@@ -258,7 +257,21 @@ const HomePage: React.FC = () => {
                     },
                   }}
                 >
-                  <Typography sx={{ fontSize: '2rem', mb: 1.5 }}>{feature.icon}</Typography>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '12px',
+                      background: 'rgba(13, 92, 207, 0.06)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 1.5,
+                      mx: 'auto',
+                    }}
+                  >
+                    {getFeatureIcon(feature.icon, { fontSize: 24, color: vigiaColors.primary })}
+                  </Box>
                   <Typography
                     sx={{
                       fontFamily: '"Inter", sans-serif',

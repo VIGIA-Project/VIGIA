@@ -24,9 +24,9 @@ import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme'
 // FEATURES DEL PANEL IZQUIERDO (tono seguridad)
 // ═══════════════════════════════════════════════════════════════
 const SECURITY_FEATURES = [
-  { icon: '🛡️', text: 'Tu seguridad es nuestra prioridad' },
-  { icon: '🔐', text: 'Contraseña cifrada con estándares modernos' },
-  { icon: '✅', text: 'Protección para ti y tu grupo familiar' },
+  { icon: 'shield', text: 'Tu seguridad es nuestra prioridad' },
+  { icon: 'https', text: 'Contraseña cifrada con estándares modernos' },
+  { icon: 'lock', text: 'Protección para ti y tu grupo familiar' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -297,20 +297,11 @@ const CambiarPasswordPage: React.FC = () => {
       {/* Logo pequeño */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
         <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: '8px',
-            background: vigiaColors.gradientIA,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#FFFFFF' }}>
-            V
-          </Typography>
-        </Box>
+          component="img"
+          src="/assets/vigia-logo.png"
+          alt="VIGIA"
+          sx={{ width: 44, height: 44, objectFit: 'contain' }}
+        />
       </Box>
 
       {/* Título */}

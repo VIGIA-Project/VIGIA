@@ -15,7 +15,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole } from '../../config/auth.config';
+import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 
 // ═══════════════════════════════════════════════════════════════
@@ -167,20 +167,15 @@ const LoginPage: React.FC = () => {
       {/* Logo pequeño */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
         <Box
+          component="img"
+          src="/assets/vigia-logo.png"
+          alt="VIGIA"
           sx={{
-            width: 40,
-            height: 40,
-            borderRadius: '8px',
-            background: vigiaColors.gradientIA,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: 44,
+            height: 44,
+            objectFit: 'contain',
           }}
-        >
-          <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#FFFFFF' }}>
-            V
-          </Typography>
-        </Box>
+        />
       </Box>
 
       {/* Título */}
@@ -363,7 +358,9 @@ const LoginPage: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2.5, flexWrap: 'wrap' }}>
         {AUTH_TRUST_SIGNALS.map((signal, i) => (
           <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography sx={{ fontSize: '0.85rem' }}>{signal.icon}</Typography>
+            <Box sx={{ color: vigiaColors.textTertiary, display: 'flex', alignItems: 'center' }}>
+              {getFeatureIcon(signal.icon, { fontSize: 14, color: 'inherit' })}
+            </Box>
             <Typography
               sx={{
                 fontFamily: '"Inter", sans-serif',

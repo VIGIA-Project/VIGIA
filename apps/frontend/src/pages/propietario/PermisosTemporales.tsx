@@ -34,7 +34,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardTemplate } from '../../components/templates';
 import { PermisosTable, PermisoTemporalViewDto } from '../../components/organisms';
 import { EstadoAutorizacion } from '@vigia/shared-types';
-import { StatusChip } from '../../components/atoms';
+import { StatusChip, EmptyState } from '../../components/atoms';
 
 interface PersonaAutorizadaViewDto {
     persona_id: string;
@@ -387,7 +387,16 @@ export const PermisosTemporalesPage: React.FC = () => {
                         </Button>
                     </Box>
 
-                    <PermisosTable permisos={permisos} isMobile={isMobile} onRevocar={handleRevocar} />
+                    {permisos.length === 0 ? (
+                        <EmptyState
+                            titulo="Sin permisos temporales"
+                            descripcion="Cree un permiso temporal para autorizar acceso por tiempo limitado."
+                            accionLabel="Nuevo Permiso"
+                            onAccion={handleOpenDialog}
+                        />
+                    ) : (
+                        <PermisosTable permisos={permisos} isMobile={isMobile} onRevocar={handleRevocar} />
+                    )}
 
                     <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
                         <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>
@@ -500,7 +509,14 @@ export const PermisosTemporalesPage: React.FC = () => {
                     </Box>
 
                     {/* Tabla desktop / Cards mobile */}
-                    {isMobile ? (
+                    {autorizaciones.length === 0 ? (
+                        <EmptyState
+                            titulo="Sin autorizaciones permanentes"
+                            descripcion="Otorgue acceso indefinido a personas de confianza."
+                            accionLabel="Nueva Autorización"
+                            onAccion={() => setDialogAutorizacionOpen(true)}
+                        />
+                    ) : isMobile ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {autorizaciones.map((auth) => (
                                 <Card key={auth.autorizacion_id} sx={{ borderRadius: '8px' }}>

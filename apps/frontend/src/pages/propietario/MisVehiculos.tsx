@@ -6,6 +6,8 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import { DashboardTemplate } from '../../components/templates';
 import { VehicleGrid } from '../../components/organisms';
+import { EmptyState } from '../../components/atoms';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { VehiculoConEstadoDto } from '../../components/molecules/VehicleCard';
 import { EstadoAutorizacion } from '@vigia/shared-types';
 
@@ -106,7 +108,17 @@ export const MisVehiculosPage: React.FC = () => {
                 </Button>
             </Box>
 
-            <VehicleGrid vehiculos={vehiculos} onAddClick={handleAddClick} />
+            {vehiculos.length === 0 ? (
+                <EmptyState
+                    titulo="Sin vehículos registrados"
+                    descripcion="Registre su primer vehículo para comenzar a gestionar accesos."
+                    icono={<DirectionsCarIcon sx={{ fontSize: 64, color: '#E0E3E8' }} />}
+                    accionLabel="Registrar Vehículo"
+                    onAccion={handleAddClick}
+                />
+            ) : (
+                <VehicleGrid vehiculos={vehiculos} onAddClick={handleAddClick} />
+            )}
 
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>

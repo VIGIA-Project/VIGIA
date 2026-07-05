@@ -10,13 +10,37 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { IUserRepository, USER_REPOSITORY } from '../domain/user.repository';
+import {
+    IUserRepository,
+    USER_REPOSITORY,
+    UserFilters,
+    PaginatedUsers,
+} from '../domain/user.repository';
 import { User, UserRole, UserStatus } from '../domain/user.entity';
 
 export interface LoginResult {
     access_token: string;
     must_change_password: boolean;
     role: UserRole;
+}
+
+export interface UserResponseDto {
+    id: string;
+    email: string;
+    role: UserRole;
+    status: UserStatus;
+    mustChangePassword: boolean;
+    personaId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface PaginatedUsersResponseDto {
+    data: UserResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
 }
 
 @Injectable()
@@ -95,7 +119,8 @@ export class AuthService {
         role: UserRole,
         temporaryPassword: string,
         personaId?: string,
-    ): Promise<User> {
+        createdBy?: string,
+    ): Promise<UserResponseDto> {
         if (!email.endsWith('@uce.edu.ec')) {
             throw new BadRequestException(
                 'Solo se permiten correos institucionales @uce.edu.ec',
@@ -115,39 +140,87 @@ export class AuthService {
             email,
             passwordHash,
             role,
-            status: UserStatus.ACTIVE,
+            status: UserStatus.PENDING_PASSWORD_CHANGE,
             mustChangePassword: true,
             personaId,
         });
 
-        return this.userRepository.save(user);
+        const saved = await this.userRepository.save(user);
+        return this.toResponse(saved);
     }
 
-    async activateUser(userId: string): Promise<void> {
+    async findById(userId: string): Promise<UserResponseDto> {
         const user = await this.userRepository.findById(userId);
         if (!user) throw new NotFoundException('Usuario no encontrado');
-        await this.userRepository.update(userId, { status: UserStatus.ACTIVE });
+        return this.toResponse(user);
     }
 
-    async deactivateUser(userId: string): Promise<void> {
-        const user = await this.userRepository.findById(userId);
-        if (!user) throw new NotFoundException('Usuario no encontrado');
-        await this.userRepository.update(userId, { status: UserStatus.INACTIVE });
+    async findAll(filters?: UserFilters): Promise<PaginatedUsersResponseDto> {
+        const result = await this.userRepository.findAll(filters);
+        return {
+            data: result.data.map((u) => this.toResponse(u)),
+            total: result.total,
+            page: result.page,
+            limit: result.limit,
+            totalPages: result.totalPages,
+        };
     }
 
-    async resetPassword(userId: string): Promise<string> {
+    async activateUser(userId: string, updatedBy?: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new NotFoundException('Usuario no encontrado');
+        await this.userRepository.update(userId, {
+            status: UserStatus.ACTIVE,
+            updatedBy,
+        });
+    }
+
+    async deactivateUser(userId: string, updatedBy?: string): Promise<void> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new NotFoundException('Usuario no encontrado');
+        await this.userRepository.update(userId, {
+            status: UserStatus.INACTIVE,
+            updatedBy,
+        });
+    }
+
+    async resetPassword(userId: string, updatedBy?: string): Promise<string> {
         const user = await this.userRepository.findById(userId);
         if (!user) throw new NotFoundException('Usuario no encontrado');
 
-        const tempPassword = Math.random().toString(36).slice(-8);
+        const tempPassword = this.generateSecurePassword();
         const rounds = this.configService.get<number>('BCRYPT_ROUNDS', 10);
         const passwordHash = await bcrypt.hash(tempPassword, rounds);
 
         await this.userRepository.update(userId, {
             passwordHash,
             mustChangePassword: true,
+            status: UserStatus.PENDING_PASSWORD_CHANGE,
+            updatedBy,
         });
 
         return tempPassword;
+    }
+
+    private generateSecurePassword(): string {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+    }
+
+    private toResponse(user: User): UserResponseDto {
+        return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            mustChangePassword: user.mustChangePassword,
+            personaId: user.personaId,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        };
     }
 }

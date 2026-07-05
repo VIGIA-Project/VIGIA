@@ -8,10 +8,6 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -21,23 +17,31 @@ import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
+import { apiPost } from '../../services';
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK AUTH (reemplazar con API real en integración)
-// ═══════════════════════════════════════════════════════════════
 interface AuthResponse {
-  success: boolean;
-  rol?: string;
-  must_change_password?: boolean;
-  error?: string;
+  access_token: string;
+  must_change_password: boolean;
+  role: string;
 }
 
-const mockAuthenticate = async (_email: string, _password: string, rol: string): Promise<AuthResponse> => {
-  // Simular latencia de red
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  timestamp: string;
+  path: string;
+}
 
-  // Aceptar cualquier credencial para testing y forzar cambio de contraseña
-  return { success: true, rol, must_change_password: true };
+const authenticate = async (
+  email: string,
+  password: string
+): Promise<AuthResponse> => {
+  const response = await apiPost<ApiResponse<AuthResponse>>(
+    '/auth/login',
+    { email, password }
+  );
+
+  return response.data;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -71,7 +75,6 @@ const LoginPage: React.FC = () => {
   // Estado del formulario
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState('PROPIETARIO');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,26 +98,30 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await mockAuthenticate(email.trim(), password, rol);
+      const response = await authenticate(email.trim(), password);
 
-      if (response.success) {
-        login({
+      console.log(response)
+
+      login(
+        {
           email: email.trim(),
-          rol: response.rol || 'PROPIETARIO',
+          rol: response.role || 'OWNER',
+          role: response.role || 'OWNER',
           must_change_password: response.must_change_password || false,
-        });
+        },
+        response.access_token,
+      );
 
-        if (response.must_change_password) {
-          navigate(AUTH_ROUTES.changePassword);
-        } else {
-          navigate(getDashboardByRole(response.rol || 'PROPIETARIO'));
-        }
+      console.log(response.must_change_password)
+
+      if (response.must_change_password) {
+        navigate(AUTH_ROUTES.changePassword);
       } else {
-        setError(response.error || 'Error de autenticación.');
-        setShake(true);
+        navigate(getDashboardByRole(response.role || 'OWNER'));
       }
-    } catch {
-      setError('Error de conexión. Intente nuevamente.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error de conexión. Intente nuevamente.';
+      setError(message);
       setShake(true);
     } finally {
       setIsLoading(false);
@@ -181,7 +188,7 @@ const LoginPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-        <Alert
+          <Alert
             severity="error"
             variant="outlined"
             role="alert"
@@ -209,22 +216,6 @@ const LoginPage: React.FC = () => {
       <Box component="form" onSubmit={handleSubmit} noValidate aria-label="Formulario de inicio de sesión">
         <ShakeWrapper shake={shake}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Campo: Rol (Mock Testing) */}
-            <FormControl fullWidth sx={inputSx}>
-              <InputLabel id="rol-label">Rol (Para pruebas)</InputLabel>
-              <Select
-                labelId="rol-label"
-                value={rol}
-                label="Rol (Para pruebas)"
-                onChange={(e) => setRol(e.target.value)}
-                disabled={isLoading}
-              >
-                <MenuItem value="PROPIETARIO">Propietario</MenuItem>
-                <MenuItem value="GUARDIA">Guardia</MenuItem>
-                <MenuItem value="ADMIN">Administrador</MenuItem>
-              </Select>
-            </FormControl>
-
             {/* Campo: Email/Identificador */}
             <TextField
               label="Correo institucional"

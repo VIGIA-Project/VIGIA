@@ -25,9 +25,23 @@ interface AuthResponse {
   role: string;
 }
 
-const authenticate = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await apiPost<AuthResponse>('/auth/login', { email, password });
-  return response;
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  timestamp: string;
+  path: string;
+}
+
+const authenticate = async (
+  email: string,
+  password: string
+): Promise<AuthResponse> => {
+  const response = await apiPost<ApiResponse<AuthResponse>>(
+    '/auth/login',
+    { email, password }
+  );
+
+  return response.data;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -86,20 +100,24 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authenticate(email.trim(), password);
 
+      console.log(response)
+
       login(
         {
           email: email.trim(),
-          rol: response.role || 'PROPIETARIO',
-          role: response.role || 'PROPIETARIO',
+          rol: response.role || 'OWNER',
+          role: response.role || 'OWNER',
           must_change_password: response.must_change_password || false,
         },
         response.access_token,
       );
 
+      console.log(response.must_change_password)
+
       if (response.must_change_password) {
         navigate(AUTH_ROUTES.changePassword);
       } else {
-        navigate(getDashboardByRole(response.role || 'PROPIETARIO'));
+        navigate(getDashboardByRole(response.role || 'OWNER'));
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error de conexión. Intente nuevamente.';
@@ -170,7 +188,7 @@ const LoginPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-        <Alert
+          <Alert
             severity="error"
             variant="outlined"
             role="alert"

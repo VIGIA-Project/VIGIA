@@ -25,8 +25,8 @@ const AUTH_TOKEN_KEY = 'vigia_access_token';
 
 const normalizeUser = (userData: Partial<AuthUser>): AuthUser => ({
   email: userData.email || '',
-  role: userData.role || userData.rol || 'PROPIETARIO',
-  rol: userData.rol || userData.role || 'PROPIETARIO',
+  role: userData.role || userData.rol || 'OWNER',
+  rol: userData.rol || userData.role || 'OWNER',
   must_change_password: Boolean(userData.must_change_password),
 });
 

@@ -5,7 +5,7 @@ import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined
 import { DashboardTemplate } from '../../components/templates';
 
 export const AlertasGuardiaPage: React.FC = () => (
-  <DashboardTemplate rol="GUARDIA" pageTitle="Alertas">
+  <DashboardTemplate rol="GUARD" pageTitle="Alertas">
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10, gap: 2 }}>
       <NotificationsOutlinedIcon sx={{ fontSize: 80, color: '#E0E3E8' }} />
       <Typography variant="h6" sx={{ fontFamily: '"Exo 2", sans-serif', color: '#6B7280', fontWeight: 600 }}>

@@ -13,13 +13,13 @@ export const AUTH_ROUTES = {
 } as const;
 
 export const DASHBOARD_ROUTES: Record<string, string> = {
-  PROPIETARIO: '/propietario/inicio',
-  GUARDIA: '/guardia/inicio',
+  OWNER: '/propietario/inicio',
+  GUARD: '/guardia/inicio',
   ADMIN: '/admin/inicio',
 };
 
 export const getDashboardByRole = (rol: string): string => {
-  return DASHBOARD_ROUTES[rol] || DASHBOARD_ROUTES.PROPIETARIO;
+  return DASHBOARD_ROUTES[rol] || DASHBOARD_ROUTES.OWNER;
 };
 
 export const PASSWORD_RULES = [

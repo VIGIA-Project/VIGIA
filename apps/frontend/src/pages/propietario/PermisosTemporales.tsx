@@ -60,7 +60,7 @@ interface PersonaAutorizadaViewDto {
   persona_id: string;
   nombre_completo: string;
   cedula: string;
-  rol: 'PROPIETARIO' | 'FAMILIAR' | 'CONDUCTOR_PERMANENTE';
+  rol: 'OWNER' | 'FAMILIAR' | 'CONDUCTOR_PERMANENTE';
   vehiculos_vinculados: string[];
   enrollment_biometrico: 'COMPLETADO' | 'PENDIENTE' | 'NO_SOLICITADO';
   estado: 'ACTIVO' | 'INACTIVO';
@@ -94,7 +94,7 @@ const MOCK_AUTORIZACIONES: AutorizacionPermanenteViewDto[] = [
 ];
 
 const MOCK_PERSONAS: PersonaAutorizadaViewDto[] = [
-  { persona_id: 'per-001', nombre_completo: 'Antony Coello', cedula: '1720123456', rol: 'PROPIETARIO', vehiculos_vinculados: ['PBW-1234', 'PBA-5678', 'PBB-3456'], enrollment_biometrico: 'COMPLETADO', estado: 'ACTIVO' },
+  { persona_id: 'per-001', nombre_completo: 'Antony Coello', cedula: '1720123456', rol: 'OWNER', vehiculos_vinculados: ['PBW-1234', 'PBA-5678', 'PBB-3456'], enrollment_biometrico: 'COMPLETADO', estado: 'ACTIVO' },
   { persona_id: 'per-002', nombre_completo: 'Stalin Joel Coello', cedula: '1724567890', rol: 'FAMILIAR', vehiculos_vinculados: ['PBW-1234'], enrollment_biometrico: 'PENDIENTE', estado: 'ACTIVO' },
   { persona_id: 'per-003', nombre_completo: 'María Elena Arévalo', cedula: '1756789012', rol: 'FAMILIAR', vehiculos_vinculados: ['PBW-1234'], enrollment_biometrico: 'COMPLETADO', estado: 'ACTIVO' },
   { persona_id: 'per-004', nombre_completo: 'Carlos Andrés Coello', cedula: '1701234567', rol: 'FAMILIAR', vehiculos_vinculados: ['PBA-5678'], enrollment_biometrico: 'NO_SOLICITADO', estado: 'INACTIVO' },
@@ -123,7 +123,7 @@ const FILTER_AUTORIZACIONES = [
 // ═══════════════════════════════════════════════════════════════
 const RolChip: React.FC<{ rol: string }> = ({ rol }) => {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    PROPIETARIO: { bg: '#E3F2FD', text: '#0D5CCF', label: 'Propietario' },
+    OWNER: { bg: '#E3F2FD', text: '#0D5CCF', label: 'Propietario' },
     FAMILIAR: { bg: '#E8F5E9', text: '#2E7D32', label: 'Familiar' },
     CONDUCTOR_PERMANENTE: { bg: '#F3F4F6', text: '#4B5563', label: 'Conductor' },
   };
@@ -241,7 +241,7 @@ const PermisosTemporalesPage: React.FC = () => {
   // RENDER
   // ═══════════════════════════════════════════════════════════════
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Gestión de Autorizaciones">
+    <DashboardTemplate rol="OWNER" pageTitle="Gestión de Autorizaciones">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
 
         {/* TABS — Solo 2 */}

@@ -83,42 +83,42 @@ const SuccessCheckmark: React.FC = () => {
       style={{ textAlign: 'center' }}
     >
       <Box role="status" aria-live="polite">
-      <Box
-        sx={{
-          width: 64,
-          height: 64,
-          borderRadius: '50%',
-          background: vigiaColors.gradientIA,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mx: 'auto',
-          mb: 2,
-          boxShadow: '0 8px 24px rgba(25, 214, 196, 0.3)',
-        }}
-      >
-        <CheckCircleIcon sx={{ fontSize: 36, color: '#FFFFFF' }} />
-      </Box>
-      <Typography
-        sx={{
-          fontFamily: '"Exo 2", sans-serif',
-          fontWeight: 600,
-          fontSize: '1.1rem',
-          color: vigiaColors.textHeading,
-          mb: 0.5,
-        }}
-      >
-        ¡Contraseña actualizada!
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: '"Inter", sans-serif',
-          fontSize: '0.8rem',
-          color: vigiaColors.textSecondary,
-        }}
-      >
-        Redirigiendo al sistema...
-      </Typography>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: vigiaColors.gradientIA,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 2,
+            boxShadow: '0 8px 24px rgba(25, 214, 196, 0.3)',
+          }}
+        >
+          <CheckCircleIcon sx={{ fontSize: 36, color: '#FFFFFF' }} />
+        </Box>
+        <Typography
+          sx={{
+            fontFamily: '"Exo 2", sans-serif',
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            color: vigiaColors.textHeading,
+            mb: 0.5,
+          }}
+        >
+          ¡Contraseña actualizada!
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: '"Inter", sans-serif',
+            fontSize: '0.8rem',
+            color: vigiaColors.textSecondary,
+          }}
+        >
+          Redirigiendo al sistema...
+        </Typography>
       </Box>
     </motion.div>
   );
@@ -194,7 +194,7 @@ const CambiarPasswordPage: React.FC = () => {
       setSuccess(true);
       completePasswordChange();
       setTimeout(() => {
-        navigate(getDashboardByRole((user?.rol || user?.role || 'PROPIETARIO').toUpperCase()));
+        navigate(getDashboardByRole((user?.rol || user?.role || 'OWNER').toUpperCase()));
       }, 1500);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error al cambiar la contraseña.';

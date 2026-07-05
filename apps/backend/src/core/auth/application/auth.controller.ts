@@ -53,7 +53,7 @@ export class CreateUserDto {
 @Controller('auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(private readonly authService: AuthService) { }
 
     @Public()
     @Post('login')
@@ -65,6 +65,7 @@ export class AuthController {
     @Post('change-password')
     @HttpCode(HttpStatus.OK)
     async changePassword(@Request() req, @Body() dto: ChangePasswordDto) {
+        console.log(req)
         await this.authService.changePassword(
             req.user.id,
             dto.currentPassword,

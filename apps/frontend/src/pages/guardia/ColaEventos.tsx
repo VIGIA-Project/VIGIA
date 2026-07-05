@@ -5,7 +5,7 @@ import QueueIcon from '@mui/icons-material/Queue';
 import { DashboardTemplate } from '../../components/templates';
 
 export const ColaEventosPage: React.FC = () => (
-  <DashboardTemplate rol="GUARDIA" pageTitle="Cola de Eventos">
+  <DashboardTemplate rol="GUARD" pageTitle="Cola de Eventos">
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10, gap: 2 }}>
       <QueueIcon sx={{ fontSize: 80, color: '#E0E3E8' }} />
       <Typography variant="h6" sx={{ fontFamily: '"Exo 2", sans-serif', color: '#6B7280', fontWeight: 600 }}>

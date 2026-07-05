@@ -168,7 +168,7 @@ const AlertasPage: React.FC = () => {
   };
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Mis Alertas">
+    <DashboardTemplate rol="OWNER" pageTitle="Mis Alertas">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
 
         {/* Header con contador y acción masiva */}

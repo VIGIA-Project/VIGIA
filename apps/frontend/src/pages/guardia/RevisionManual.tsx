@@ -5,7 +5,7 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { DashboardTemplate } from '../../components/templates';
 
 export const RevisionManualPage: React.FC = () => (
-  <DashboardTemplate rol="GUARDIA" pageTitle="Revisión Manual">
+  <DashboardTemplate rol="GUARD" pageTitle="Revisión Manual">
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10, gap: 2 }}>
       <FactCheckIcon sx={{ fontSize: 80, color: '#E0E3E8' }} />
       <Typography variant="h6" sx={{ fontFamily: '"Exo 2", sans-serif', color: '#6B7280', fontWeight: 600 }}>

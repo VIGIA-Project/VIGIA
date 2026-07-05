@@ -101,7 +101,7 @@ const MisVehiculosPage: React.FC = () => {
   };
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Mis Vehículos">
+    <DashboardTemplate rol="OWNER" pageTitle="Mis Vehículos">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
 
         {/* Header con botón premium */}

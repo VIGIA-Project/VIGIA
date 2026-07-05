@@ -6,7 +6,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import { DashboardTemplate } from '../../components/templates';
 
 export const GuardiaInicioPage: React.FC = () => (
-  <DashboardTemplate rol="GUARDIA" pageTitle="Panel del Guardia">
+  <DashboardTemplate rol="GUARD" pageTitle="Panel del Guardia">
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, gap: 3 }}>
       <SecurityIcon sx={{ fontSize: 80, color: '#E0E3E8' }} />
       <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, color: '#0A2F86' }}>

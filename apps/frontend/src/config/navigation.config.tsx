@@ -21,7 +21,7 @@ export interface NavRoute {
 }
 
 // ══════════════════════════════════════════════════════════════
-// NAVEGACIÓN DEL PROPIETARIO
+// NAVEGACIÓN DEL OWNER
 // ══════════════════════════════════════════════════════════════
 // REGLAS:
 // - El icono de "Pases de Acceso Rápido" es VpnKey (NO QrCode2)
@@ -30,7 +30,7 @@ export interface NavRoute {
 // - El orden es: Inicio → Vehículos → Permisos → Pases → Alertas
 // ══════════════════════════════════════════════════════════════
 
-export const PROPIETARIO_NAV_ROUTES: NavRoute[] = [
+export const OWNER_NAV_ROUTES: NavRoute[] = [
   {
     label: 'Inicio',
     path: '/propietario/inicio',
@@ -58,17 +58,17 @@ export const PROPIETARIO_NAV_ROUTES: NavRoute[] = [
   },
 ];
 
-export const PROPIETARIO_CONFIG = {
+export const OWNER_CONFIG = {
   rol: 'Propietario',
   userInitials: 'AC',
   notificationCount: 2,
 } as const;
 
 // ══════════════════════════════════════════════════════════════
-// NAVEGACIÓN DEL GUARDIA DE SEGURIDAD
+// NAVEGACIÓN DEL GUARD DE SEGURIDAD
 // ══════════════════════════════════════════════════════════════
 
-export const GUARDIA_NAV_ROUTES: NavRoute[] = [
+export const GUARD_NAV_ROUTES: NavRoute[] = [
   {
     label: 'Inicio',
     path: '/guardia/inicio',
@@ -96,7 +96,7 @@ export const GUARDIA_NAV_ROUTES: NavRoute[] = [
   },
 ];
 
-export const GUARDIA_CONFIG = {
+export const GUARD_CONFIG = {
   rol: 'Guardia',
   userInitials: 'GS',
   notificationCount: 0,

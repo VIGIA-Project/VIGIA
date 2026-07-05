@@ -437,7 +437,7 @@ const PasesRapidosPage: React.FC = () => {
   // Si hay pase generado, mostrar CodigoGeneradoView
   if (paseGenerado) {
     return (
-      <DashboardTemplate rol="PROPIETARIO" pageTitle="Pase Generado">
+      <DashboardTemplate rol="OWNER" pageTitle="Pase Generado">
         <Box sx={{ py: 2 }}>
           <CodigoGeneradoView pase={paseGenerado} onClose={() => setPaseGenerado(null)} />
         </Box>
@@ -446,7 +446,7 @@ const PasesRapidosPage: React.FC = () => {
   }
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Pases de Acceso Rápido">
+    <DashboardTemplate rol="OWNER" pageTitle="Pases de Acceso Rápido">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
 
         {/* Header */}

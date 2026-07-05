@@ -50,7 +50,7 @@ const InicioPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Inicio">
+    <DashboardTemplate rol="OWNER" pageTitle="Inicio">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
         {/* BLOQUE 1: Saludo contextual */}
         <motion.div variants={fadeInUp} initial="hidden" animate="visible">

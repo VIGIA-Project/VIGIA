@@ -11,3 +11,6 @@ export { AlertCard } from './AlertCard';
 export { FilterChips } from './FilterChips';
 export { MiniVehicleItem } from './MiniVehicleItem';
 export { MiniFamilyCard } from './MiniFamilyCard';
+export { EventQueueItem } from './EventQueueItem';
+export { RecentAlertItem } from './RecentAlertItem';
+export * from './EventQueueCard';

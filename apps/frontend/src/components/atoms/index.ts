@@ -12,4 +12,5 @@ export { SectionHeader } from './SectionHeader';
 export { PageTransition } from './PageTransition';
 export { SkipToContent } from './SkipToContent';
 export { SessionExpiredAlert } from './SessionExpiredAlert';
+export { AuthNoticeAlert } from './AuthNoticeAlert';
 export { FullPageLoader } from './FullPageLoader';

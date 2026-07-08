@@ -10,15 +10,19 @@ import { vigiaTheme } from './theme/vigia-theme';
 // ─── Auth, Guards y Átomos ─────────────────────────────────────────────────
 import { AuthProvider, useAuth } from './context';
 import { ProtectedRoute, PublicRoute } from './components/guards';
-import { SkipToContent, SessionExpiredAlert, PageTransition } from './components/atoms';
+import { SkipToContent, SessionExpiredAlert, AuthNoticeAlert, PageTransition } from './components/atoms';
 
 // ─── Páginas: Home & Login ────────────────────────────────────────────────
 import HomePage from './pages/Home';
 import { LoginPage, CambiarPasswordPage } from './pages/auth';
 
 // ─── Páginas: Propietario ─────────────────────────────────────────────────
+import BiometricOnboardingPage from './pages/propietario/onboarding/BiometricOnboardingPage';
+import VehicleOnboardingPage from './pages/propietario/onboarding/VehicleOnboardingPage';
 import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
+import { VehiculoDetallePage } from './pages/propietario/VehiculoDetallePage';
+import { PersonasAutorizadasPage } from './pages/propietario/PersonasAutorizadas';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
 import { PasesRapidosPage } from './pages/propietario/PasesRapidos';
 import { AlertasPage } from './pages/propietario/Alertas';
@@ -43,12 +47,13 @@ const queryClient = new QueryClient();
 // ─────────────────────────────────────────────────────────────────────────
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
-  const { sessionExpired, clearSessionExpired } = useAuth();
+  const { sessionExpired, clearSessionExpired, authNotice, setAuthNotice } = useAuth();
 
   return (
     <>
       <SkipToContent />
       <SessionExpiredAlert open={sessionExpired} onClose={clearSessionExpired} />
+      <AuthNoticeAlert message={authNotice} onClose={() => setAuthNotice(null)} />
       <div id="main-content" role="main">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -84,9 +89,33 @@ const AnimatedRoutes: React.FC = () => {
               }
             />
 
+            {/* ═══ Propietario: Onboarding obligatorio ═══ */}
+            <Route
+              path="/propietario/onboarding/biometria"
+              element={
+                <ProtectedRoute requireBiometricOnboarding={true}>
+                  <PageTransition>
+                    <BiometricOnboardingPage />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/propietario/onboarding/primer-vehiculo"
+              element={
+                <ProtectedRoute requireVehicleOnboarding={true}>
+                  <PageTransition>
+                    <VehicleOnboardingPage />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+
             {/* ═══ Propietario ═══ */}
             <Route path="/propietario/inicio" element={<ProtectedRoute><PageTransition><InicioPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/vehiculos" element={<ProtectedRoute><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/vehiculos/:placa" element={<ProtectedRoute><PageTransition><VehiculoDetallePage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/personas" element={<ProtectedRoute><PageTransition><PersonasAutorizadasPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />

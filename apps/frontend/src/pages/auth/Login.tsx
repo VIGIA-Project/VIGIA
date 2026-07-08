@@ -8,10 +8,6 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -19,8 +15,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
+import { AUTH_ROUTES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
+import logoFull from '../../assets/logo/vigia-full.png';
 
 // ═══════════════════════════════════════════════════════════════
 // MOCK AUTH (reemplazar con API real en integración)
@@ -32,12 +29,15 @@ interface AuthResponse {
   error?: string;
 }
 
-const mockAuthenticate = async (_email: string, _password: string, rol: string): Promise<AuthResponse> => {
+// El rol lo determina el backend a partir de las credenciales — no se selecciona en UI (§5.1)
+const MOCK_ROLE = 'PROPIETARIO';
+
+const mockAuthenticate = async (_email: string, _password: string): Promise<AuthResponse> => {
   // Simular latencia de red
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
   // Aceptar cualquier credencial para testing y forzar cambio de contraseña
-  return { success: true, rol, must_change_password: true };
+  return { success: true, rol: MOCK_ROLE, must_change_password: true };
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -71,7 +71,6 @@ const LoginPage: React.FC = () => {
   // Estado del formulario
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState('PROPIETARIO');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +94,7 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await mockAuthenticate(email.trim(), password, rol);
+      const response = await mockAuthenticate(email.trim(), password);
 
       if (response.success) {
         login({
@@ -156,22 +155,37 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthTemplate
-      features={AUTH_FEATURES.map((f) => ({ icon: f.icon, text: f.text }))}
+      features={[
+        { icon: 'lock', text: 'Validación biométrica en milisegundos' },
+        { icon: 'car', text: 'Protección absoluta de entradas y salidas' },
+        { icon: 'shield', text: 'Respaldo institucional y seguridad UCE' },
+        { icon: 'family', text: 'Gestión inteligente de roles y vehículos' },
+      ]}
       leftTitle="Control de Acceso Vehicular Inteligente"
-      leftSubtitle="Seguridad biométrica, validación en tiempo real y gestión centralizada de accesos vehiculares."
+      leftSubtitle="VIGIA verifica instantáneamente autorizaciones, roles y datos biométricos para garantizar la máxima seguridad en el campus universitario."
     >
-      {/* Título */}
+      {/* Logo VIGIA Full */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 1 }}>
+        <Box
+          component="img"
+          src={logoFull}
+          alt="VIGIA - La inteligencia que protege cada acceso"
+          sx={{ height: 64, objectFit: 'contain' }}
+        />
+      </Box>
       <Typography
+        component="h1"
         sx={{
           fontFamily: '"Exo 2", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '1.25rem',
-          color: vigiaColors.textHeading,
+          color: vigiaColors.deep,
           textAlign: 'center',
-          mb: 3,
+          mb: 4,
+          letterSpacing: '-0.5px'
         }}
       >
-        Acceder al Sistema
+        Ingreso al Sistema
       </Typography>
 
       {/* Error global */}
@@ -209,22 +223,6 @@ const LoginPage: React.FC = () => {
       <Box component="form" onSubmit={handleSubmit} noValidate aria-label="Formulario de inicio de sesión">
         <ShakeWrapper shake={shake}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Campo: Rol (Mock Testing) */}
-            <FormControl fullWidth sx={inputSx}>
-              <InputLabel id="rol-label">Rol (Para pruebas)</InputLabel>
-              <Select
-                labelId="rol-label"
-                value={rol}
-                label="Rol (Para pruebas)"
-                onChange={(e) => setRol(e.target.value)}
-                disabled={isLoading}
-              >
-                <MenuItem value="PROPIETARIO">Propietario</MenuItem>
-                <MenuItem value="GUARDIA">Guardia</MenuItem>
-                <MenuItem value="ADMIN">Administrador</MenuItem>
-              </Select>
-            </FormControl>
-
             {/* Campo: Email/Identificador */}
             <TextField
               label="Correo institucional"
@@ -338,17 +336,7 @@ const LoginPage: React.FC = () => {
             fontWeight: 500,
           }}
         >
-          ¿No puede acceder?
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: '0.75rem',
-            color: vigiaColors.textTertiary,
-            mt: 0.5,
-          }}
-        >
-          Contacte al Administrador del sistema para solicitar un reseteo de credenciales.
+          ¿No puede acceder? Contacte al Administrador del sistema.
         </Typography>
       </Box>
 

@@ -3,7 +3,10 @@ import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { fadeInLeft, fadeInUp, staggerContainer, staggerItem } from '../../config/animations.config';
 import { getFeatureIcon } from '../../config/auth.config';
+import { vigiaColors } from '../../theme/vigia-theme';
+
 import logoFull from '../../assets/logo/vigia-full.png';
+const VIGIA_ISOTIPO = '/assets/vigia-logo.png';
 
 interface AuthFeature {
   icon: string;
@@ -21,9 +24,9 @@ interface AuthTemplateProps {
 export const AuthTemplate: React.FC<AuthTemplateProps> = ({
   children,
   features = [
-    { icon: '🔒', text: 'Validación biométrica segura' },
-    { icon: '🚗', text: 'Control de accesos en tiempo real' },
-    { icon: '👨‍👩‍👧', text: 'Gestión de autorizaciones y grupo familiar' },
+    { icon: 'lock', text: 'Validación biométrica segura' },
+    { icon: 'car', text: 'Control de accesos en tiempo real' },
+    { icon: 'family', text: 'Gestión de autorizaciones y grupo familiar' },
   ],
   leftTitle = 'Control de Acceso Vehicular Inteligente',
   leftSubtitle,
@@ -42,9 +45,9 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
         flexDirection: isMobile ? 'column' : 'row',
       }}
     >
-      {/* ═══ PANEL IZQUIERDO ═══ */}
+      {/* ═══ PANEL IZQUIERDO — puerta institucional protegida ═══ */}
       {isMobile ? (
-        // Mobile: Header compacto con gradiente
+        // Mobile: header compacto con gradiente, NO desaparece
         <motion.div
           initial={shouldReduceMotion ? {} : { opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -52,38 +55,33 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
         >
           <Box
             sx={{
-              background: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 50%, #19D6C4 100%)',
+              background: vigiaColors.gradientHero,
               py: 3,
               px: 3,
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              gap: 1.5,
               position: 'relative',
               overflow: 'hidden',
             }}
           >
-            {/* Logo real */}
             <Box
+              component="img"
+              src={VIGIA_ISOTIPO}
+              alt="VIGIA"
+              sx={{ height: 40, objectFit: 'contain', flexShrink: 0 }}
+            />
+            <Typography
               sx={{
-                background: '#FFFFFF',
-                borderRadius: '8px',
-                p: 0.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                fontFamily: '"Exo 2", sans-serif',
+                fontWeight: 700,
+                fontSize: '1rem',
+                lineHeight: 1.2,
+                color: vigiaColors.white,
               }}
             >
-              <Box
-                component="img"
-                src={logoFull}
-                alt="VIGIA"
-                sx={{
-                  height: 28,
-                  objectFit: 'contain',
-                }}
-              />
-            </Box>
+              {leftTitle}
+            </Typography>
           </Box>
         </motion.div>
       ) : (
@@ -101,7 +99,7 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
             sx={{
               width: '100%',
               minHeight: '100vh',
-              background: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 50%, #19D6C4 100%)',
+              background: vigiaColors.gradientHero,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -112,50 +110,84 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
               overflow: 'hidden',
             }}
           >
-            {/* Fondo difuminado con logo real */}
+            {/* Watermark decorativo — logo VIGIA enorme, casi invisible, detrás de todo */}
             <Box
+              component="img"
+              src={VIGIA_ISOTIPO}
+              alt=""
+              aria-hidden="true"
               sx={{
                 position: 'absolute',
-                inset: 0,
-                backgroundImage: 'url(/assets/vigia-logo.png)',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center right',
-                backgroundSize: '120%',
-                opacity: 0.06,
-                filter: 'blur(3px)',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '65%',
+                opacity: 0.05,
+                filter: 'blur(2px)',
                 pointerEvents: 'none',
+                userSelect: 'none',
               }}
             />
             {/* Contenido */}
             <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 400, textAlign: 'left', width: '100%' }}>
-              {/* Logo */}
+              {/* Logo principal — nítido, con contenedor redondeado */}
+              <Box
+                component="img"
+                src={logoFull}
+                alt="VIGIA"
+                sx={{
+                  width: 320, // tamaño ajustado para coincidir con la imagen
+                  objectFit: 'contain',
+                  display: 'block',
+                  mb: 4,
+                  borderRadius: '20px', // bordes más suaves
+                  filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.15))',
+                }}
+              />
+              {/* Badge institucional */}
               <Box
                 sx={{
-                  background: '#FFFFFF',
-                  borderRadius: '16px',
-                  p: 2.5,
-                  mb: 4,
-                  display: 'inline-block',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 0.75,
+                  borderRadius: '100px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  mb: 3,
+                  backdropFilter: 'blur(8px)',
                 }}
               >
                 <Box
-                  component="img"
-                  src={logoFull}
-                  alt="VIGIA"
                   sx={{
-                    width: 220,
-                    objectFit: 'contain',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: vigiaColors.greenIA,
+                    boxShadow: `0 0 8px ${vigiaColors.greenIA}`,
                   }}
                 />
+                <Typography
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: vigiaColors.white,
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  SISTEMA ACTIVO · UCE
+                </Typography>
               </Box>
+
               {/* Título */}
               <Typography
                 sx={{
                   fontFamily: '"Exo 2", sans-serif',
                   fontWeight: 700,
                   fontSize: isTablet ? '1.6rem' : '2rem',
-                  color: '#FFFFFF',
+                  color: vigiaColors.white,
                   lineHeight: 1.2,
                   mb: 1.5,
                 }}

@@ -12,3 +12,7 @@ export { FilterChips } from './FilterChips';
 export { MiniVehicleItem } from './MiniVehicleItem';
 export { MiniFamilyCard } from './MiniFamilyCard';
 export { LandingSectionHeading } from './LandingSectionHeading';
+export { CaptureStepCard } from './CaptureStepCard';
+export type { CaptureStepState } from './CaptureStepCard';
+export { QualityBar } from './QualityBar';
+export { CameraStatusPills } from './CameraStatusPills';

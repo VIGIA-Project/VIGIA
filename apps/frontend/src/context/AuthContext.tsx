@@ -4,6 +4,7 @@ interface AuthUser {
   email: string;
   rol: string;
   must_change_password: boolean;
+  biometric_registered?: boolean;
 }
 
 interface AuthContextType {
@@ -11,10 +12,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionExpired: boolean;
+  authNotice: string | null;
   login: (user: AuthUser) => void;
   logout: () => void;
   completePasswordChange: () => void;
+  completeBiometricOnboarding: () => void;
   clearSessionExpired: () => void;
+  setAuthNotice: (message: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   // Verificar sesión al montar
   useEffect(() => {
@@ -58,6 +63,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const completeBiometricOnboarding = () => {
+    if (user) {
+      const updated = { ...user, biometric_registered: true };
+      setUser(updated);
+      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+    }
+  };
+
   const clearSessionExpired = () => {
     setSessionExpired(false);
   };
@@ -69,10 +82,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         isLoading,
         sessionExpired,
+        authNotice,
         login,
         logout,
         completePasswordChange,
+        completeBiometricOnboarding,
         clearSessionExpired,
+        setAuthNotice,
       }}
     >
       {children}

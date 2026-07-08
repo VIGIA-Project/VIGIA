@@ -10,13 +10,14 @@ import { vigiaTheme } from './theme/vigia-theme';
 // ─── Auth, Guards y Átomos ─────────────────────────────────────────────────
 import { AuthProvider, useAuth } from './context';
 import { ProtectedRoute, PublicRoute } from './components/guards';
-import { SkipToContent, SessionExpiredAlert, PageTransition } from './components/atoms';
+import { SkipToContent, SessionExpiredAlert, AuthNoticeAlert, PageTransition } from './components/atoms';
 
 // ─── Páginas: Home & Login ────────────────────────────────────────────────
 import HomePage from './pages/Home';
 import { LoginPage, CambiarPasswordPage } from './pages/auth';
 
 // ─── Páginas: Propietario ─────────────────────────────────────────────────
+import BiometricOnboardingPage from './pages/propietario/onboarding/BiometricOnboardingPage';
 import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
@@ -43,12 +44,13 @@ const queryClient = new QueryClient();
 // ─────────────────────────────────────────────────────────────────────────
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
-  const { sessionExpired, clearSessionExpired } = useAuth();
+  const { sessionExpired, clearSessionExpired, authNotice, setAuthNotice } = useAuth();
 
   return (
     <>
       <SkipToContent />
       <SessionExpiredAlert open={sessionExpired} onClose={clearSessionExpired} />
+      <AuthNoticeAlert message={authNotice} onClose={() => setAuthNotice(null)} />
       <div id="main-content" role="main">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -79,6 +81,18 @@ const AnimatedRoutes: React.FC = () => {
                 <ProtectedRoute requirePasswordChange={true}>
                   <PageTransition>
                     <CambiarPasswordPage />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ═══ Propietario: Onboarding obligatorio ═══ */}
+            <Route
+              path="/propietario/onboarding/biometria"
+              element={
+                <ProtectedRoute requireBiometricOnboarding={true}>
+                  <PageTransition>
+                    <BiometricOnboardingPage />
                   </PageTransition>
                 </ProtectedRoute>
               }

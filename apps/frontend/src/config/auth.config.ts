@@ -10,6 +10,8 @@ export const AUTH_ROUTES = {
   home: '/',
   login: '/login',
   changePassword: '/cambiar-password',
+  onboardingBiometria: '/propietario/onboarding/biometria',
+  onboardingVehiculo: '/propietario/onboarding/primer-vehiculo',
 } as const;
 
 export const DASHBOARD_ROUTES: Record<string, string> = {

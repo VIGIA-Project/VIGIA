@@ -17,7 +17,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
+import { AUTH_ROUTES, PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 import { apiPost } from '../../services';
 
@@ -26,7 +26,7 @@ import { apiPost } from '../../services';
 // ═══════════════════════════════════════════════════════════════
 const SECURITY_FEATURES = [
   { icon: 'shield', text: 'Tu seguridad es nuestra prioridad' },
-  { icon: 'https', text: 'Contraseña cifrada con estándares modernos' },
+  { icon: 'https', text: 'Contraseña protegida' },
   { icon: 'lock', text: 'Protección para ti y tu grupo familiar' },
 ];
 
@@ -161,14 +161,12 @@ const CambiarPasswordPage: React.FC = () => {
       met: newPassword.length > 0 && newPassword !== currentPassword,
     });
 
-    // Regla adicional: confirmación coincide (solo si confirmPassword tiene valor)
-    if (confirmPassword.length > 0) {
-      rules.push({
-        key: 'match',
-        label: 'Confirmación coincide',
-        met: newPassword === confirmPassword,
-      });
-    }
+    // Regla adicional: confirmación coincide — siempre visible como último item
+    rules.push({
+      key: 'match',
+      label: 'Confirmación coincide',
+      met: newPassword.length > 0 && confirmPassword.length > 0 && newPassword === confirmPassword,
+    });
 
     return rules;
   }, [newPassword, currentPassword, confirmPassword]);
@@ -190,16 +188,25 @@ const CambiarPasswordPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await changePassword(currentPassword, newPassword);
-      setSuccess(true);
-      completePasswordChange();
-      setTimeout(() => {
-        navigate(getDashboardByRole((user?.rol || user?.role || 'OWNER').toUpperCase()));
-      }, 1500);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error al cambiar la contraseña.';
-      setError(message);
-      setShakeField('current');
+      const response = await mockChangePassword(currentPassword, newPassword);
+
+      if (response.success) {
+        setSuccess(true);
+        completePasswordChange();
+        // Redirect después de 1.5s — OWNER pasa primero por el onboarding biométrico obligatorio
+        setTimeout(() => {
+          if (user?.rol === 'PROPIETARIO') {
+            navigate(AUTH_ROUTES.onboardingBiometria);
+          } else {
+            navigate(getDashboardByRole(user?.rol || 'PROPIETARIO'));
+          }
+        }, 1500);
+      } else {
+        setError(response.error || 'Error al cambiar la contraseña.');
+        setShakeField('current');
+      }
+    } catch {
+      setError('Error de conexión. Intente nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +323,7 @@ const CambiarPasswordPage: React.FC = () => {
               lineHeight: 1.5,
             }}
           >
-            Por seguridad, debe establecer una nueva contraseña personal. Esta reemplazará la contraseña temporal asignada.
+            Por seguridad, debe establecer una nueva contraseña personal.
           </Typography>
         </Box>
       </Box>
@@ -493,7 +500,7 @@ const CambiarPasswordPage: React.FC = () => {
             color: vigiaColors.textTertiary,
           }}
         >
-          Su contraseña se almacena cifrada
+          Su contraseña se almacena de forma protegida.
         </Typography>
       </Box>
     </AuthTemplate>

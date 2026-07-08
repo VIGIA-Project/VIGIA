@@ -5,6 +5,8 @@ interface AuthUser {
   role: string;
   rol: string;
   must_change_password: boolean;
+  biometric_registered?: boolean;
+  vehicle_registered?: boolean;
 }
 
 interface AuthContextType {
@@ -13,10 +15,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionExpired: boolean;
-  login: (user: AuthUser, token?: string) => void;
+  authNotice: string | null;
+  login: (user: AuthUser) => void;
   logout: () => void;
   completePasswordChange: () => void;
+  completeBiometricOnboarding: () => void;
+  completeVehicleOnboarding: () => void;
   clearSessionExpired: () => void;
+  setAuthNotice: (message: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,6 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -81,6 +88,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const completeBiometricOnboarding = () => {
+    if (user) {
+      const updated = { ...user, biometric_registered: true };
+      setUser(updated);
+      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+    }
+  };
+
+  const completeVehicleOnboarding = () => {
+    if (user) {
+      const updated = { ...user, vehicle_registered: true };
+      setUser(updated);
+      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+    }
+  };
+
   const clearSessionExpired = () => {
     setSessionExpired(false);
   };
@@ -93,10 +116,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user && !!token,
         isLoading,
         sessionExpired,
+        authNotice,
         login,
         logout,
         completePasswordChange,
+        completeBiometricOnboarding,
+        completeVehicleOnboarding,
         clearSessionExpired,
+        setAuthNotice,
       }}
     >
       {children}

@@ -69,3 +69,4 @@ apps/backend/src/core/database/migrations/*.js.map
 .claude/
 .claudeignore
 CLAUDE.md
+claudeignore

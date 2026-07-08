@@ -187,6 +187,8 @@ export const vigiaColors = {
   warning: '#EDB200',
   error: '#C62828',
   gradientIA: 'linear-gradient(90deg, #19D6C4 0%, #11A9D6 40%, #0D5CCF 100%)',
+  gradientHero: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 35%, #11A9D6 70%, #19D6C4 100%)',
+  gradientRoleCard: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 100%)',
 };
 
 export default vigiaTheme;

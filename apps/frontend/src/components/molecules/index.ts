@@ -11,3 +11,4 @@ export { AlertCard } from './AlertCard';
 export { FilterChips } from './FilterChips';
 export { MiniVehicleItem } from './MiniVehicleItem';
 export { MiniFamilyCard } from './MiniFamilyCard';
+export { LandingSectionHeading } from './LandingSectionHeading';

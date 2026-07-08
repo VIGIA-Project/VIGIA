@@ -17,7 +17,7 @@ export const AUTH_ROUTES = {
 export const DASHBOARD_ROUTES: Record<string, string> = {
   OWNER: '/propietario/inicio',
   GUARD: '/guardia/inicio',
-  ADMIN: '/admin/inicio',
+  ADMIN: '/admin',
 };
 
 export const getDashboardByRole = (rol: string): string => {

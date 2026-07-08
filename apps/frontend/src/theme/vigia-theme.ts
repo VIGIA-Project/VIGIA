@@ -11,6 +11,16 @@ declare module '@mui/material/styles' {
             doradoPremium: string;
             doradoClaro: string;
         };
+        admin: {
+            blueDeep: string;
+            bluePrimary: string;
+            gold: string;
+            blueMid: string;
+            greenIa: string;
+            bgPage: string;
+            textPrimary: string;
+            textSecondary: string;
+        };
     }
     interface PaletteOptions {
         vigia?: {
@@ -20,6 +30,16 @@ declare module '@mui/material/styles' {
             verdeIA: string;
             doradoPremium: string;
             doradoClaro: string;
+        };
+        admin?: {
+            blueDeep?: string;
+            bluePrimary?: string;
+            gold?: string;
+            blueMid?: string;
+            greenIa?: string;
+            bgPage?: string;
+            textPrimary?: string;
+            textSecondary?: string;
         };
     }
 }
@@ -66,6 +86,16 @@ const themeOptions: ThemeOptions = {
             doradoPremium: '#F2B51F',
             doradoClaro: '#FFD85A',
         },
+        admin: {
+            blueDeep: '#0A2F86',
+            bluePrimary: '#0D5CCF',
+            gold: '#F2B51F',
+            blueMid: '#11A9D6',
+            greenIa: '#19D6C4',
+            bgPage: '#F8FAFC',
+            textPrimary: '#1F2A44',
+            textSecondary: '#6B7280',
+        },
     },
     typography: {
         fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -92,10 +122,17 @@ const themeOptions: ThemeOptions = {
             },
         },
         MuiCard: {
+            defaultProps: { elevation: 0 },
             styleOverrides: {
                 root: {
-                    borderRadius: 12,
-                    boxShadow: '0 2px 8px rgba(13, 92, 207, 0.08)',
+                    border: '1px solid rgba(13, 92, 207, 0.06)',
+                    borderRadius: 16,
+                    boxShadow: '0px 10px 30px rgba(13, 92, 207, 0.05), 0px 2px 4px rgba(0, 0, 0, 0.02)',
+                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                    '&:hover': {
+                        boxShadow: '0px 16px 40px rgba(13, 92, 207, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.03)',
+                        transform: 'translateY(-2px)'
+                    }
                 },
             },
         },
@@ -104,6 +141,15 @@ const themeOptions: ThemeOptions = {
                 root: {
                     fontWeight: 600,
                     fontSize: '0.75rem',
+                },
+            },
+        },
+        MuiPaper: {
+            defaultProps: { elevation: 0 },
+            styleOverrides: {
+                root: {
+                    backgroundImage: 'none',
+                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                 },
             },
         },

@@ -75,12 +75,6 @@ export const HISTORIAL_ACCESOS_COPY = {
   empty: 'Cuando tus vehículos registren accesos, los verás aquí.',
 } as const;
 
-export const VEHICLE_DETAIL_COPY = {
-  backLabel: 'Volver a Mis vehículos',
-  title: (placa: string) => `Vehículo ${placa}`,
-  underConstruction: 'Detalle en construcción',
-} as const;
-
 export interface AccesoRecienteEvento {
   id: string;
   placa: string;

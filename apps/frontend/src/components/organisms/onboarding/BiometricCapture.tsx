@@ -1,5 +1,5 @@
 // src/components/organisms/onboarding/BiometricCapture.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';

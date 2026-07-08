@@ -1,2 +1,10 @@
 export { VehicleGrid } from './VehicleGrid';
 export { RegisterVehicleDrawer } from './RegisterVehicleDrawer';
+export { VehiculoResumenTab } from './VehiculoResumenTab';
+export { VehiculoPersonasTab } from './VehiculoPersonasTab';
+export { VehiculoPermisosTab } from './VehiculoPermisosTab';
+export { VehiculoPasesTab } from './VehiculoPasesTab';
+export { VehiculoActividadTab } from './VehiculoActividadTab';
+export { PersonasGrid } from './PersonasGrid';
+export { AddPersonaDrawer } from './AddPersonaDrawer';
+export { RevokePersonaModal } from './RevokePersonaModal';

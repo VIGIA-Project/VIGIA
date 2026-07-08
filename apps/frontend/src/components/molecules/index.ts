@@ -17,3 +17,8 @@ export type { CaptureStepState } from './CaptureStepCard';
 export { QualityBar } from './QualityBar';
 export { CameraStatusPills } from './CameraStatusPills';
 export { VehiclePreviewCard } from './VehiclePreviewCard';
+export { MiniKpiCard } from './MiniKpiCard';
+export { PermisoCard } from './PermisoCard';
+export { PaseCard } from './PaseCard';
+export { EventoTimeline } from './EventoTimeline';
+export { PersonaCard } from './PersonaCard';

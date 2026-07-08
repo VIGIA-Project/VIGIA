@@ -1,0 +1,162 @@
+// src/config/propietario-personas.config.ts
+// Mock data y contenido de "Personas autorizadas" — Dashboard PROPIETARIO v1.2 §13-14
+
+export type PersonaTipo = 'familia' | 'frecuente';
+export type PersonaBiometria = 'COMPLETADA' | 'PENDIENTE';
+export type PersonaEstado = 'ACTIVA' | 'REVOCADA';
+
+export interface PersonaAutorizada {
+  id: string;
+  nombre: string;
+  cedula: string;
+  relacion: string;
+  tipo: PersonaTipo;
+  biometria: PersonaBiometria;
+  estado: PersonaEstado;
+  telefono?: string;
+  autorizadoDesde: string;
+}
+
+export const FAMILIA_MAX_MIEMBROS = 5;
+
+// Los grupos "familia" y "frecuente" derivan de la relación seleccionada — no hay un
+// selector de tipo separado en el formulario (§13, sin selector de vehículos ni de tipo).
+export const RELACION_OPTIONS = ['Cónyuge', 'Hijo/a', 'Familiar', 'Chofer', 'Visitante frecuente', 'Otro'] as const;
+const RELACIONES_FRECUENTES = new Set(['Chofer', 'Visitante frecuente']);
+export const tipoFromRelacion = (relacion: string): PersonaTipo => (RELACIONES_FRECUENTES.has(relacion) ? 'frecuente' : 'familia');
+
+// Mismos datos que se muestran en la tab "Personas autorizadas" del detalle de vehículo.
+export const MOCK_PERSONAS: PersonaAutorizada[] = [
+  {
+    id: 'per-1',
+    nombre: 'Andrea Torres',
+    cedula: '17XXXXXX45',
+    relacion: 'Cónyuge',
+    tipo: 'familia',
+    biometria: 'COMPLETADA',
+    estado: 'ACTIVA',
+    telefono: '0991234567',
+    autorizadoDesde: '15 May 2026',
+  },
+  {
+    id: 'per-2',
+    nombre: 'Luis Pérez',
+    cedula: '17XXXXXX12',
+    relacion: 'Hijo',
+    tipo: 'familia',
+    biometria: 'PENDIENTE',
+    estado: 'ACTIVA',
+    telefono: '0987654321',
+    autorizadoDesde: '02 Jun 2026',
+  },
+  {
+    id: 'per-3',
+    nombre: 'Carlos Ruiz',
+    cedula: '10XXXXXX78',
+    relacion: 'Chofer',
+    tipo: 'frecuente',
+    biometria: 'COMPLETADA',
+    estado: 'ACTIVA',
+    telefono: '0998765432',
+    autorizadoDesde: '20 Jun 2026',
+  },
+];
+
+export const PERSONAS_HEADER_COPY = {
+  title: 'Personas autorizadas',
+  subtitle: (n: number) => `Grupo familiar del propietario · ${n}/${FAMILIA_MAX_MIEMBROS} cupos usados`,
+  addCta: 'Agregar persona',
+  limitHelper: 'Has alcanzado el límite de personas autorizadas para tu grupo familiar',
+  requiresVehicleTitle: 'Necesitas al menos un vehículo registrado',
+  requiresVehicleDescription: 'Registra tu primer vehículo para poder autorizar personas.',
+  requiresVehicleCta: 'Registrar vehículo',
+} as const;
+
+export const PERSONAS_FILTERS_COPY = {
+  todas: 'Todas',
+  familia: 'Familia',
+  frecuentes: 'Frecuentes',
+  pendiente: 'Biometría pendiente',
+  searchPlaceholder: 'Buscar persona...',
+} as const;
+
+export const RESUMEN_CONFIANZA_COPY = {
+  title: 'Resumen de confianza',
+  activas: (n: number) => (n === 1 ? '1 persona activa' : `${n} personas activas`),
+  pendientes: (n: number) => `${n} con biometría pendiente`,
+  revocadas: (n: number) => `${n} autorizaciones revocadas`,
+} as const;
+
+export const REGLAS_VISIBLES_COPY = {
+  title: 'Reglas visibles',
+  bullets: ['Máximo 5 personas por propietario', 'Acceso a todos tus vehículos activos', 'Biometría solo presencial'],
+} as const;
+
+export const PERSONA_CARD_COPY = {
+  bioCompleta: 'Biometría completada',
+  bioPendiente: 'Biometría pendiente',
+  revocada: 'Revocada',
+  accessText: 'Acceso a todos tus vehículos',
+  pendingMicrocopy: 'Registra su biometría cuando esté presente',
+  viewDetail: 'Ver detalle',
+  registerBio: 'Registrar biometría',
+  revoke: 'Revocar',
+} as const;
+
+export const GRUPO_FAMILIAR_TITLE = 'Grupo familiar';
+export const PERSONAS_FRECUENTES_TITLE = 'Personas frecuentes';
+
+export const PERSONAS_EMPTY_COPY = {
+  title: 'Aún no tienes personas autorizadas',
+  description: 'Autoriza hasta 5 personas para que accedan con todos tus vehículos registrados.',
+  cta: 'Agregar persona',
+} as const;
+
+export const PERSONAS_EMPTY_SEARCH = 'No se encontraron personas con ese criterio.';
+
+export const ADD_PERSONA_DRAWER_COPY = {
+  title: 'Agregar persona autorizada',
+  subtitle: 'Permite que una persona use tus vehículos',
+  sectionDatos: 'Datos de la persona',
+  nombreLabel: 'Nombre completo',
+  nombrePlaceholder: 'Nombre y apellido',
+  cedulaLabel: 'Cédula / identificación',
+  cedulaPlaceholder: '17XXXXXXXX',
+  cedulaHelper: '10 dígitos numéricos',
+  relacionLabel: 'Relación',
+  telefonoLabel: 'Teléfono / contacto',
+  telefonoPlaceholder: '09XXXXXXXX',
+  sectionAlcance: 'Alcance de autorización',
+  alcanceTitle: 'Grupo familiar del propietario',
+  alcanceHelper: 'Tendrá autorización permanente para todos tus vehículos registrados.',
+  cuposLabel: (n: number) => `Cupos: ${n}/${FAMILIA_MAX_MIEMBROS} usados`,
+  sectionBiometria: 'Biometría presencial',
+  checkboxLabel: 'La persona está presente para capturar biometría',
+  helperUnchecked: 'Si no está presente, quedará con biometría pendiente. Podrá usar un pase rápido para accesos puntuales.',
+  helperChecked: 'Después de confirmar, se iniciará la captura biométrica presencial.',
+  cancelLabel: 'Cancelar',
+  continueLabel: 'Continuar',
+  confirmTitle: 'Confirmar autorización',
+  confirmPersonaLabel: 'Persona',
+  confirmRelacionLabel: 'Relación',
+  confirmAlcanceLabel: 'Alcance',
+  confirmAlcanceValue: 'Todos tus vehículos registrados',
+  confirmBiometriaLabel: 'Biometría',
+  confirmBiometriaCapturar: 'Se capturará a continuación',
+  confirmBiometriaPendiente: 'Quedará pendiente',
+  confirmText: 'Esta persona formará parte de tu grupo familiar y podrá usar tus vehículos activos mientras la autorización esté vigente.',
+  backLabel: 'Volver',
+  confirmCta: 'Confirmar',
+  successToast: 'Persona autorizada correctamente',
+} as const;
+
+export const REVOKE_PERSONA_MODAL_COPY = {
+  title: 'Revocar autorización',
+  coverageLabel: 'todos tus vehículos',
+  bodyText: 'Al revocar, esta persona dejará de tener acceso con tus vehículos.',
+  motivoLabel: 'Motivo de revocación (opcional)',
+  motivoPlaceholder: 'Ej: Ya no forma parte del grupo familiar',
+  cancelLabel: 'Cancelar',
+  confirmCta: 'Revocar autorización',
+  successToast: 'Autorización revocada',
+} as const;

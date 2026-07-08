@@ -21,6 +21,7 @@ import BiometricOnboardingPage from './pages/propietario/onboarding/BiometricOnb
 import VehicleOnboardingPage from './pages/propietario/onboarding/VehicleOnboardingPage';
 import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
+import { VehicleDetailPlaceholderPage } from './pages/propietario/VehicleDetailPlaceholder';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
 import { PasesRapidosPage } from './pages/propietario/PasesRapidos';
 import { AlertasPage } from './pages/propietario/Alertas';
@@ -112,6 +113,7 @@ const AnimatedRoutes: React.FC = () => {
             {/* ═══ Propietario ═══ */}
             <Route path="/propietario/inicio" element={<ProtectedRoute><PageTransition><InicioPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/vehiculos" element={<ProtectedRoute><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/vehiculos/:placa" element={<ProtectedRoute><PageTransition><VehicleDetailPlaceholderPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />

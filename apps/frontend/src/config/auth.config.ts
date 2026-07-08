@@ -37,7 +37,7 @@ export const AUTH_FEATURES = [
 
 export const AUTH_TRUST_SIGNALS = [
   { icon: 'https', text: 'Conexión segura' },
-  { icon: 'shield', text: 'Datos cifrados E2E' },
+  { icon: 'shield', text: 'Datos protegidos' },
 ] as const;
 
 // Helper para renderizar iconos por key

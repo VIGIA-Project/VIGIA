@@ -24,9 +24,11 @@ const PROCESSING_DELAY_MS = 1500;
 export interface BiometricCaptureProps {
   onAllCaptured: () => void;
   onSkipForNow: () => void;
+  /** Callback para informar al padre cuántas capturas se completaron (para la barra de progreso) */
+  onCaptureProgress?: (done: number, total: number) => void;
 }
 
-export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow }) => {
+export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow, onCaptureProgress }) => {
   const shouldReduceMotion = useReducedMotion();
   const [captureIndex, setCaptureIndex] = useState(0);
   const [statuses, setStatuses] = useState<CaptureStepState[]>(['active', 'pending', 'pending']);
@@ -40,6 +42,7 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
     setIsProcessing(true);
     setTimeout(() => {
       const isLast = captureIndex === TOTAL_CAPTURES - 1;
+      const newDone = captureIndex + 1;
 
       setStatuses((prev) =>
         prev.map((status, i) => {
@@ -49,6 +52,7 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
         })
       );
       setIsProcessing(false);
+      onCaptureProgress?.(newDone, TOTAL_CAPTURES);
 
       if (isLast) {
         setAllDone(true);
@@ -80,16 +84,17 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
                 width: 80,
                 height: 80,
                 borderRadius: '50%',
-                background: vigiaColors.gradientIA,
+                // Verde esmeralda premium — no genérico
+                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
                 mb: 3,
-                boxShadow: vigiaShadows.glow.ia,
+                boxShadow: '0 8px 24px rgba(5,150,105,0.35)',
               }}
             >
-              <CheckCircleIcon sx={{ fontSize: 44, color: vigiaColors.white }} />
+              <CheckCircleIcon sx={{ fontSize: 44, color: '#FFFFFF' }} />
             </Box>
           </motion.div>
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.4rem', color: vigiaColors.textHeading, mb: 1 }}>
@@ -102,20 +107,26 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
             variant="contained"
             onClick={onAllCaptured}
             sx={{
-              background: vigiaColors.gradientIA,
+              // Gradiente verde → azul: transmite "éxito y continuidad"
+              background: 'linear-gradient(90deg, #059669 0%, #0D5CCF 100%)',
               fontFamily: '"Exo 2", sans-serif',
-              fontWeight: 600,
+              fontWeight: 700,
+              fontSize: '0.95rem',
               textTransform: 'none',
               borderRadius: vigiaRadius.md,
-              minHeight: 48,
-              px: 4,
-              boxShadow: vigiaShadows.sm,
-              transition: 'transform 0.15s ease',
-              '&:hover': { transform: 'scale(1.02)' },
+              minHeight: 52,
+              px: 5,
+              letterSpacing: '0.3px',
+              boxShadow: '0 4px 16px rgba(5,150,105,0.3)',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 24px rgba(5,150,105,0.4)',
+              },
               '&:active': { transform: 'scale(0.98)' },
             }}
           >
-            {SUCCESS_COPY.cta}
+            ✓  Continuar con el Registro del Vehículo
           </Button>
         </Box>
       </motion.div>

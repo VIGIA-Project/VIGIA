@@ -5,6 +5,7 @@ interface AuthUser {
   rol: string;
   must_change_password: boolean;
   biometric_registered?: boolean;
+  vehicle_registered?: boolean;
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   logout: () => void;
   completePasswordChange: () => void;
   completeBiometricOnboarding: () => void;
+  completeVehicleOnboarding: () => void;
   clearSessionExpired: () => void;
   setAuthNotice: (message: string | null) => void;
 }
@@ -71,6 +73,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const completeVehicleOnboarding = () => {
+    if (user) {
+      const updated = { ...user, vehicle_registered: true };
+      setUser(updated);
+      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+    }
+  };
+
   const clearSessionExpired = () => {
     setSessionExpired(false);
   };
@@ -87,6 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         completePasswordChange,
         completeBiometricOnboarding,
+        completeVehicleOnboarding,
         clearSessionExpired,
         setAuthNotice,
       }}

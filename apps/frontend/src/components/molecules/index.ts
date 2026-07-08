@@ -16,3 +16,4 @@ export { CaptureStepCard } from './CaptureStepCard';
 export type { CaptureStepState } from './CaptureStepCard';
 export { QualityBar } from './QualityBar';
 export { CameraStatusPills } from './CameraStatusPills';
+export { VehiclePreviewCard } from './VehiclePreviewCard';

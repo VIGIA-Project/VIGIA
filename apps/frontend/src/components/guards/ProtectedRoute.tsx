@@ -8,12 +8,14 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requirePasswordChange?: boolean;
   requireBiometricOnboarding?: boolean;
+  requireVehicleOnboarding?: boolean;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requirePasswordChange = false,
   requireBiometricOnboarding = false,
+  requireVehicleOnboarding = false,
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -49,6 +51,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Ya completó la biometría pero intenta reingresar al onboarding → redirigir al dashboard
     if (!needsBiometricOnboarding && requireBiometricOnboarding) {
       return <Navigate to={getDashboardByRole(user.rol)} replace />;
+    }
+
+    // Onboarding de vehículo obligatorio para PROPIETARIO — solo se evalúa una vez superada
+    // la biometría, para no competir con el gate de arriba.
+    if (!needsBiometricOnboarding) {
+      const needsVehicleOnboarding = user.rol === 'PROPIETARIO' && !user.vehicle_registered;
+
+      if (needsVehicleOnboarding && !requireVehicleOnboarding) {
+        return <Navigate to={AUTH_ROUTES.onboardingVehiculo} replace />;
+      }
+
+      // Ya registró su vehículo pero intenta reingresar al onboarding → redirigir al dashboard
+      if (!needsVehicleOnboarding && requireVehicleOnboarding) {
+        return <Navigate to={getDashboardByRole(user.rol)} replace />;
+      }
     }
   }
 

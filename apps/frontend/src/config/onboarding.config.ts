@@ -107,6 +107,47 @@ export const SUCCESS_COPY = {
   cta: 'Continuar al registro de vehículo',
 } as const;
 
+export const VEHICLE_MAIN_COPY = {
+  eyebrow: 'PASO 2 DE 3 — OBLIGATORIO',
+  title: 'Registrar tu primer vehículo',
+  description:
+    'Ingresa los datos de al menos un vehículo que utilizas para acceder al campus. Podrás agregar más vehículos posteriormente.',
+} as const;
+
+export const VEHICLE_WHY_MANDATORY = {
+  title: '¿Por qué registrar un vehículo?',
+  bullets: [
+    'El sistema necesita al menos un vehículo para gestionar tus accesos.',
+    'Podrás agregar más vehículos después desde tu dashboard.',
+    'La placa es el identificador principal en los puntos de control.',
+  ],
+} as const;
+
+export const VEHICLE_COLOR_OPTIONS = ['Blanco', 'Negro', 'Gris', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Otro'] as const;
+
+export const VEHICLE_FORM_COPY = {
+  placaLabel: 'Placa',
+  placaPlaceholder: 'ABC-1234',
+  placaHelper: 'Formato ecuatoriano: 3 letras, guión, 4 números',
+  marcaLabel: 'Marca',
+  marcaPlaceholder: 'Toyota',
+  modeloLabel: 'Modelo',
+  modeloPlaceholder: 'Corolla',
+  colorLabel: 'Color',
+  anioLabel: 'Año',
+  anioPlaceholder: '2020',
+  submitLabel: 'Registrar vehículo',
+  submittingLabel: 'Registrando...',
+} as const;
+
+export const VEHICLE_SUCCESS_COPY = {
+  title: '¡Vehículo registrado correctamente!',
+  description: 'Tu cuenta está completamente configurada. Ya puedes acceder a tu dashboard.',
+  cta: 'Ir a mi dashboard',
+} as const;
+
+export const VEHICLE_STORAGE_KEY = 'vigia_first_vehicle';
+
 // Helper para renderizar iconos por key
 export const getOnboardingIcon = (key: string, sx?: object): React.ReactNode => {
   const defaultSx = { fontSize: 22, ...sx };

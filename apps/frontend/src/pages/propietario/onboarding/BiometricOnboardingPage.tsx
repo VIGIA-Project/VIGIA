@@ -16,6 +16,8 @@ const BiometricOnboardingPage: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const { user, logout, completeBiometricOnboarding, setAuthNotice } = useAuth();
 
+  const [capturesDone, setCapturesDone] = React.useState(0);
+
   const initials = (user?.email || 'U').split('@')[0].slice(0, 2).toUpperCase();
 
   const handleAllCaptured = () => {
@@ -67,7 +69,7 @@ const BiometricOnboardingPage: React.FC = () => {
         }}
       >
         <Box sx={{ order: { xs: 2, md: 1 }, width: { xs: '100%', md: 'auto' } }}>
-          <OnboardingProgressPanel currentStep={1} />
+        <OnboardingProgressPanel currentStep={1} capturesDone={capturesDone} totalCaptures={3} />
         </Box>
 
         <Box
@@ -118,7 +120,11 @@ const BiometricOnboardingPage: React.FC = () => {
               {BIOMETRIC_MAIN_COPY.description}
             </Typography>
 
-            <BiometricCapture onAllCaptured={handleAllCaptured} onSkipForNow={handleSkipForNow} />
+            <BiometricCapture
+              onAllCaptured={handleAllCaptured}
+              onSkipForNow={handleSkipForNow}
+              onCaptureProgress={(done) => setCapturesDone(done)}
+            />
           </motion.div>
         </Box>
       </Box>

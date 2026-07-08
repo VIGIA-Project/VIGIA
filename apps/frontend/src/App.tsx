@@ -18,6 +18,7 @@ import { LoginPage, CambiarPasswordPage } from './pages/auth';
 
 // ─── Páginas: Propietario ─────────────────────────────────────────────────
 import BiometricOnboardingPage from './pages/propietario/onboarding/BiometricOnboardingPage';
+import VehicleOnboardingPage from './pages/propietario/onboarding/VehicleOnboardingPage';
 import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
@@ -93,6 +94,16 @@ const AnimatedRoutes: React.FC = () => {
                 <ProtectedRoute requireBiometricOnboarding={true}>
                   <PageTransition>
                     <BiometricOnboardingPage />
+                  </PageTransition>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/propietario/onboarding/primer-vehiculo"
+              element={
+                <ProtectedRoute requireVehicleOnboarding={true}>
+                  <PageTransition>
+                    <VehicleOnboardingPage />
                   </PageTransition>
                 </ProtectedRoute>
               }

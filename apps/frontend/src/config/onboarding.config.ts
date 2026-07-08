@@ -12,12 +12,12 @@ export const ONBOARDING_HEADER = {
   title: 'Configuración inicial de cuenta',
 } as const;
 
-export const ONBOARDING_STEPPER_LABELS = ['Registro biométrico', 'Registrar vehículo', 'Dashboard completo'] as const;
+export const ONBOARDING_STEPPER_LABELS = ['Registro biométrico', 'Registrar vehículo', 'Acceso completo'] as const;
 
 export const ONBOARDING_PROGRESS_LIST = [
   { icon: 'biometric', title: 'Registro biométrico', subtitle: '3 capturas faciales' },
   { icon: 'vehicle', title: 'Registrar vehículo', subtitle: 'Mínimo 1 vehículo' },
-  { icon: 'dashboard', title: 'Dashboard completo', subtitle: 'Acceso total al sistema' },
+  { icon: 'dashboard', title: 'Acceso completo', subtitle: 'Acceso total al sistema' },
 ] as const;
 
 export const ONBOARDING_WHY_MANDATORY = {
@@ -94,7 +94,7 @@ export const PRIVACY_NOTE =
 
 export const NO_CAMERA_MODAL = {
   title: 'Sin cámara disponible',
-  body: 'Sin registro biométrico no podrás acceder al dashboard completo. Puedes completarlo más adelante desde un dispositivo con cámara.',
+  body: 'Sin registro biométrico no podrás acceder al sistema completo. Puedes completarlo más adelante desde un dispositivo con cámara.',
   confirmLater: 'Entendido, lo haré después',
   cancel: 'Tengo cámara, continuar',
 } as const;
@@ -142,11 +142,19 @@ export const VEHICLE_FORM_COPY = {
 
 export const VEHICLE_SUCCESS_COPY = {
   title: '¡Vehículo registrado correctamente!',
-  description: 'Tu cuenta está completamente configurada. Ya puedes acceder a tu dashboard.',
-  cta: 'Ir a mi dashboard',
+  description: 'Tu cuenta está completamente configurada. Ya puedes acceder al sistema.',
+  cta: 'Continuar al inicio',
 } as const;
 
 export const VEHICLE_STORAGE_KEY = 'vigia_first_vehicle';
+
+// Texto dinámico bajo la barra "Tu progreso" — paso 1 (capturas biométricas)
+export const getBiometricProgressLabel = (capturesDone: number, total = 3): string =>
+  capturesDone >= total ? `${total} de ${total} capturas — ¡Completado!` : `${capturesDone} de ${total} capturas`;
+
+// Texto dinámico bajo la barra "Tu progreso" — paso 2 (campos del vehículo)
+export const getVehicleProgressLabel = (validFields: number, total = 5): string =>
+  validFields >= total ? `${total} de ${total} campos — ¡Listo para registrar!` : `${validFields} de ${total} campos`;
 
 // Helper para renderizar iconos por key
 export const getOnboardingIcon = (key: string, sx?: object): React.ReactNode => {

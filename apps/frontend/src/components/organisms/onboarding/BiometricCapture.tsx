@@ -20,6 +20,8 @@ import {
 
 const TOTAL_CAPTURES = CAPTURE_STEPS.length;
 const PROCESSING_DELAY_MS = 1500;
+// Verde de estado "completado" — consistente con OnboardingProgressPanel y VehicleRegistrationForm
+const SUCCESS_GREEN = '#22C55E';
 
 export interface BiometricCaptureProps {
   onAllCaptured: () => void;
@@ -71,7 +73,8 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
             py: { xs: 6, md: 8 },
             px: 3,
             borderRadius: vigiaRadius.lg,
-            border: '1px solid #E2E8F0',
+            backgroundColor: 'rgba(34,197,94,0.1)',
+            border: '1px solid rgba(34,197,94,0.3)',
           }}
         >
           <motion.div
@@ -84,14 +87,13 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
                 width: 80,
                 height: 80,
                 borderRadius: '50%',
-                // Verde esmeralda premium — no genérico
-                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                background: SUCCESS_GREEN,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
                 mb: 3,
-                boxShadow: '0 8px 24px rgba(5,150,105,0.35)',
+                boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 44, color: '#FFFFFF' }} />

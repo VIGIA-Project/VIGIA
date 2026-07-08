@@ -7,11 +7,17 @@ import { useAuth } from '../../../context/AuthContext';
 import { vigiaColors } from '../../../theme/vigia-theme';
 import { UserAvatar } from '../../../components/molecules';
 import { OnboardingStepper, OnboardingProgressPanel, VehicleRegistrationForm } from '../../../components/organisms/onboarding';
-import { ONBOARDING_HEADER, VEHICLE_MAIN_COPY, VEHICLE_WHY_MANDATORY } from '../../../config/onboarding.config';
+import {
+  ONBOARDING_HEADER,
+  VEHICLE_MAIN_COPY,
+  VEHICLE_WHY_MANDATORY,
+  getVehicleProgressLabel,
+} from '../../../config/onboarding.config';
 
 const VehicleOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, completeVehicleOnboarding } = useAuth();
+  const [validFieldsCount, setValidFieldsCount] = React.useState(0);
 
   const initials = (user?.email || 'U').split('@')[0].slice(0, 2).toUpperCase();
 
@@ -58,7 +64,12 @@ const VehicleOnboardingPage: React.FC = () => {
         }}
       >
         <Box sx={{ order: { xs: 2, md: 1 }, width: { xs: '100%', md: 'auto' } }}>
-          <OnboardingProgressPanel currentStep={2} whyMandatory={VEHICLE_WHY_MANDATORY} />
+          <OnboardingProgressPanel
+            currentStep={2}
+            internalProgress={validFieldsCount / 5}
+            progressLabel={getVehicleProgressLabel(validFieldsCount)}
+            whyMandatory={VEHICLE_WHY_MANDATORY}
+          />
         </Box>
 
         <Box
@@ -108,7 +119,7 @@ const VehicleOnboardingPage: React.FC = () => {
             {VEHICLE_MAIN_COPY.description}
           </Typography>
 
-          <VehicleRegistrationForm onComplete={handleComplete} />
+          <VehicleRegistrationForm onComplete={handleComplete} onFieldsProgress={setValidFieldsCount} />
         </Box>
       </Box>
     </Box>

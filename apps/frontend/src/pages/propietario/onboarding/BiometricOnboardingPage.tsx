@@ -9,7 +9,12 @@ import { AUTH_ROUTES } from '../../../config/auth.config';
 import { useAuth } from '../../../context/AuthContext';
 import { UserAvatar } from '../../../components/molecules';
 import { OnboardingStepper, OnboardingProgressPanel, BiometricCapture } from '../../../components/organisms/onboarding';
-import { ONBOARDING_HEADER, BIOMETRIC_MAIN_COPY, LOGIN_NOTICE_INCOMPLETE_BIOMETRIA } from '../../../config/onboarding.config';
+import {
+  ONBOARDING_HEADER,
+  BIOMETRIC_MAIN_COPY,
+  LOGIN_NOTICE_INCOMPLETE_BIOMETRIA,
+  getBiometricProgressLabel,
+} from '../../../config/onboarding.config';
 
 const BiometricOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +74,11 @@ const BiometricOnboardingPage: React.FC = () => {
         }}
       >
         <Box sx={{ order: { xs: 2, md: 1 }, width: { xs: '100%', md: 'auto' } }}>
-        <OnboardingProgressPanel currentStep={1} capturesDone={capturesDone} totalCaptures={3} />
+          <OnboardingProgressPanel
+            currentStep={1}
+            internalProgress={capturesDone / 3}
+            progressLabel={getBiometricProgressLabel(capturesDone)}
+          />
         </Box>
 
         <Box

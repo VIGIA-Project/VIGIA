@@ -1,5 +1,5 @@
 // src/components/organisms/onboarding/VehicleRegistrationForm.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, CircularProgress, MenuItem, TextField, Typography } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,8 @@ const PLACA_REGEX = /^[A-Z]{3}-\d{4}$/;
 const ANIO_MIN = 1990;
 const ANIO_MAX = 2027;
 const SUBMIT_DELAY_MS = 1500;
+// Verde de estado "completado" — consistente con OnboardingProgressPanel y BiometricCapture
+const SUCCESS_GREEN = '#22C55E';
 
 const vehicleSchema = z.object({
   placa: z.string().regex(PLACA_REGEX, 'Formato inválido. Use ABC-1234'),
@@ -36,9 +38,11 @@ type VehicleFormValues = z.infer<typeof vehicleSchema>;
 
 export interface VehicleRegistrationFormProps {
   onComplete: () => void;
+  /** Cuántos de los 5 campos son válidos en este momento — para la barra "Tu progreso" */
+  onFieldsProgress?: (validCount: number) => void;
 }
 
-export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = ({ onComplete }) => {
+export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = ({ onComplete, onFieldsProgress }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<VehicleFormValues | null>(null);
 
@@ -59,6 +63,22 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
   const color = watch('color') || '';
   const anio = watch('anio');
   const placaValid = PLACA_REGEX.test(placa);
+  // watch() no coacciona a número (eso solo ocurre en el resolver al validar) — se compara como string/num
+  const anioNum = typeof anio === 'number' ? anio : Number(anio);
+  const anioValid = String(anio ?? '').trim().length > 0 && !Number.isNaN(anioNum) && anioNum >= ANIO_MIN && anioNum <= ANIO_MAX;
+
+  const validCount = [
+    placaValid,
+    marca.trim().length > 0,
+    modelo.trim().length > 0,
+    color.trim().length > 0,
+    anioValid,
+  ].filter(Boolean).length;
+
+  useEffect(() => {
+    onFieldsProgress?.(validCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validCount]);
 
   const onSubmit = (data: VehicleFormValues) => {
     setIsSubmitting(true);
@@ -72,7 +92,16 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
   if (submitted) {
     return (
       <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-        <Box sx={{ textAlign: 'center', py: { xs: 6, md: 8 }, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: { xs: 6, md: 8 },
+            px: 3,
+            borderRadius: vigiaRadius.lg,
+            backgroundColor: 'rgba(34,197,94,0.1)',
+            border: '1px solid rgba(34,197,94,0.3)',
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -83,13 +112,13 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
                 width: 80,
                 height: 80,
                 borderRadius: '50%',
-                background: vigiaColors.gradientIA,
+                background: SUCCESS_GREEN,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
                 mb: 3,
-                boxShadow: vigiaShadows.glow.ia,
+                boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
               }}
             >
               <CheckCircleIcon sx={{ fontSize: 44, color: vigiaColors.white }} />

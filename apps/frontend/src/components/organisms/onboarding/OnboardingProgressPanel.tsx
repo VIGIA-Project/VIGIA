@@ -8,26 +8,29 @@ import { ONBOARDING_PROGRESS_LIST, ONBOARDING_WHY_MANDATORY, getOnboardingIcon }
 
 export interface OnboardingProgressPanelProps {
   currentStep: 1 | 2 | 3;
-  /** Cuántas capturas biométricas se han completado (0-3). Solo aplica en paso 1. */
-  capturesDone?: number;
-  totalCaptures?: number;
+  /** Progreso dentro del paso actual (0 a 1) — ej. capturas/3 en biometría, campos válidos/5 en vehículo */
+  internalProgress?: number;
+  /** Texto bajo la barra, ej. "2 de 3 capturas" o "5 de 5 campos — ¡Listo para registrar!" */
+  progressLabel?: string;
   /** Card "¿Por qué es obligatorio?" — varía el copy según el paso activo */
   whyMandatory?: { title: string; bullets: readonly string[] };
 }
 
 const TOTAL_STEPS = 3;
+const PROGRESS_COMPLETE_COLOR = '#22C55E';
 
 export const OnboardingProgressPanel: React.FC<OnboardingProgressPanelProps> = ({
   currentStep,
-  capturesDone = 0,
-  totalCaptures = 3,
+  internalProgress = 0,
+  progressLabel,
   whyMandatory = ONBOARDING_WHY_MANDATORY,
 }) => {
-  // Progreso general: cada paso vale 1/3. En paso 1 además sumamos el avance de capturas
-  const stepFraction = (currentStep - 1) / TOTAL_STEPS;
-  const captureFraction = currentStep === 1 ? (capturesDone / totalCaptures) * (1 / TOTAL_STEPS) : 0;
-  const progressPct = Math.round((stepFraction + captureFraction) * 100);
-  const biometricComplete = currentStep === 1 && capturesDone >= totalCaptures;
+  // La barra refleja SOLO el avance dentro del paso activo — se reinicia en 0% al cambiar de paso
+  const clampedProgress = Math.min(1, Math.max(0, internalProgress));
+  const progressPct = Math.round(clampedProgress * 100);
+  const isInternalComplete = clampedProgress >= 1;
+  const barColor = isInternalComplete ? PROGRESS_COMPLETE_COLOR : vigiaColors.gradientIA;
+  const progressText = progressLabel ?? `Paso ${currentStep} de ${TOTAL_STEPS}`;
 
   return (
     <motion.div variants={fadeInLeft} initial="hidden" animate="visible">
@@ -52,13 +55,13 @@ export const OnboardingProgressPanel: React.FC<OnboardingProgressPanelProps> = (
           <Box sx={{ height: 8, borderRadius: vigiaRadius.full, backgroundColor: 'rgba(10,47,134,0.08)', overflow: 'hidden', mb: 1 }}>
             <Box
               component={motion.div as React.ElementType}
-              animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-              sx={{ height: '100%', background: vigiaColors.gradientIA }}
+              animate={{ width: `${progressPct}%`, background: barColor }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              sx={{ height: '100%' }}
             />
           </Box>
           <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: vigiaColors.textSecondary }}>
-            Paso {currentStep} de {TOTAL_STEPS} completado — {progressPct}%
+            {progressText}
           </Typography>
         </Box>
 
@@ -68,14 +71,12 @@ export const OnboardingProgressPanel: React.FC<OnboardingProgressPanelProps> = (
             {ONBOARDING_PROGRESS_LIST.map((step, i) => {
               const stepNumber = i + 1;
               const isActive = stepNumber === currentStep;
-              const isCompleted = stepNumber < currentStep || (stepNumber === 1 && biometricComplete);
-              // Premium success green: no genérico, usa un verde esmeralda premium
-              const PREMIUM_GREEN = '#059669';
+              const isCompleted = stepNumber < currentStep || (stepNumber === currentStep && isInternalComplete);
               const badgeText = isCompleted ? 'Completado' : isActive ? 'En curso' : 'Pendiente';
               const badgeBg = isCompleted
-                ? 'rgba(5,150,105,0.1)'
+                ? PROGRESS_COMPLETE_COLOR
                 : isActive ? 'rgba(13,92,207,0.1)' : 'rgba(107,114,128,0.1)';
-              const badgeColor = isCompleted ? PREMIUM_GREEN : isActive ? vigiaColors.primary : vigiaColors.textTertiary;
+              const badgeColor = isCompleted ? vigiaColors.white : isActive ? vigiaColors.primary : vigiaColors.textTertiary;
 
               return (
                 <motion.div key={step.title} variants={staggerItem}>
@@ -99,9 +100,9 @@ export const OnboardingProgressPanel: React.FC<OnboardingProgressPanelProps> = (
                         alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: isCompleted
-                          ? 'rgba(5,150,105,0.1)'
+                          ? 'rgba(34,197,94,0.1)'
                           : isActive ? 'rgba(13,92,207,0.08)' : 'rgba(107,114,128,0.08)',
-                        color: isCompleted ? '#059669' : isActive ? vigiaColors.primary : vigiaColors.textTertiary,
+                        color: isCompleted ? PROGRESS_COMPLETE_COLOR : isActive ? vigiaColors.primary : vigiaColors.textTertiary,
                         flexShrink: 0,
                         transition: 'background-color 0.4s ease, color 0.4s ease',
                       }}

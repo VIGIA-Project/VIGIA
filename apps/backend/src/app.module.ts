@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '@core/database/database.module';
 import { LoggerModule } from '@shared/logger/logger.module';
+import * as path from 'path';
 import { HealthModule } from './presentation/health/health.module';
 import { AccessControlModule } from '@modules/access-control/presentation/access-control.module';
 import { AuthorizationModule } from '@modules/authorization/presentation/authorization.module';
@@ -20,7 +21,15 @@ import { envValidationSchema } from '@core/config/env.validation';
       isGlobal: true,
       load: [appConfig, databaseConfig],
       validationSchema: envValidationSchema,
-      envFilePath: ['.env', '.env.local'],
+      envFilePath: [
+        path.resolve(__dirname, '../../.env'),
+        path.resolve(__dirname, '../../.env.local'),
+        path.resolve(__dirname, '../../../.env'),
+        path.resolve(__dirname, '../../../.env.local'),
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), '../.env'),
+        path.resolve(process.cwd(), '../../.env'),
+      ],
       cache: true,
       expandVariables: true,
     }),

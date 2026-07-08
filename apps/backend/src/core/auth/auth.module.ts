@@ -18,12 +18,16 @@ import { USER_REPOSITORY } from './domain/user.repository';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRATION', '8h') as any,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const expiresInStr = configService.get<string>('JWT_EXPIRATION', '8h');
+        const expiresIn = /^\d+$/.test(expiresInStr) ? parseInt(expiresInStr, 10) : expiresInStr;
+        return {
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: expiresIn as any,
+          },
+        };
+      },
     }),
     TypeOrmModule.forFeature([UserOrmEntity]),
   ],

@@ -19,14 +19,17 @@ import { AUTH_ROUTES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } f
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 import logoFull from '../../assets/logo/vigia-full.png';
 
-// ═══════════════════════════════════════════════════════════════
-// MOCK AUTH (reemplazar con API real en integración)
-// ═══════════════════════════════════════════════════════════════
 interface AuthResponse {
+  access_token: string;
+  must_change_password: boolean;
+  role: string;
+}
+
+interface ApiResponse<T> {
   success: boolean;
-  rol?: string;
-  must_change_password?: boolean;
-  error?: string;
+  data: T;
+  timestamp: string;
+  path: string;
 }
 
 // El rol lo determina el backend a partir de las credenciales — no se selecciona en UI (§5.1)
@@ -96,24 +99,26 @@ const LoginPage: React.FC = () => {
     try {
       const response = await mockAuthenticate(email.trim(), password);
 
-      if (response.success) {
-        login({
+      login(
+        {
           email: email.trim(),
-          rol: response.rol || 'PROPIETARIO',
+          rol: response.role || 'OWNER',
+          role: response.role || 'OWNER',
           must_change_password: response.must_change_password || false,
-        });
+        },
+        response.access_token,
+      );
 
-        if (response.must_change_password) {
-          navigate(AUTH_ROUTES.changePassword);
-        } else {
-          navigate(getDashboardByRole(response.rol || 'PROPIETARIO'));
-        }
+      console.log(response.must_change_password)
+
+      if (response.must_change_password) {
+        navigate(AUTH_ROUTES.changePassword);
       } else {
-        setError(response.error || 'Error de autenticación.');
-        setShake(true);
+        navigate(getDashboardByRole(response.role || 'OWNER'));
       }
-    } catch {
-      setError('Error de conexión. Intente nuevamente.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error de conexión. Intente nuevamente.';
+      setError(message);
       setShake(true);
     } finally {
       setIsLoading(false);
@@ -195,7 +200,7 @@ const LoginPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-        <Alert
+          <Alert
             severity="error"
             variant="outlined"
             role="alert"

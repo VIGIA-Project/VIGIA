@@ -5,10 +5,10 @@ import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material';
 import { Sidebar } from '../organisms/Sidebar';
 import { Header } from '../organisms/Header';
 import {
-  PROPIETARIO_NAV_ROUTES,
-  PROPIETARIO_CONFIG,
-  GUARDIA_NAV_ROUTES,
-  GUARDIA_CONFIG,
+  OWNER_NAV_ROUTES,
+  OWNER_CONFIG,
+  GUARD_NAV_ROUTES,
+  GUARD_CONFIG,
   ADMIN_NAV_ROUTES,
   ADMIN_CONFIG,
   NavRoute,
@@ -18,13 +18,13 @@ const SIDEBAR_WIDTH = 260;
 
 // Mapeo de rol → configuración de navegación
 const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: { rol: string; userInitials: string; notificationCount: number } }> = {
-  PROPIETARIO: { routes: PROPIETARIO_NAV_ROUTES, config: PROPIETARIO_CONFIG },
-  GUARDIA: { routes: GUARDIA_NAV_ROUTES, config: GUARDIA_CONFIG },
+  OWNER: { routes: OWNER_NAV_ROUTES, config: OWNER_CONFIG },
+  GUARD: { routes: GUARD_NAV_ROUTES, config: GUARD_CONFIG },
   ADMIN: { routes: ADMIN_NAV_ROUTES, config: ADMIN_CONFIG },
 };
 
 export interface DashboardTemplateProps {
-  rol: 'PROPIETARIO' | 'GUARDIA' | 'ADMIN';
+  rol: 'OWNER' | 'GUARD' | 'ADMIN';
   pageTitle: string;
   userInitials?: string;
   notificationCount?: number;
@@ -45,7 +45,7 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Auto-resolver rutas según rol
-  const roleData = ROLE_CONFIG[rol] ?? ROLE_CONFIG.PROPIETARIO;
+  const roleData = ROLE_CONFIG[rol] ?? ROLE_CONFIG.OWNER;
   const routes = roleData.routes;
   const defaults = roleData.config;
 

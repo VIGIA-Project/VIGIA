@@ -15,12 +15,11 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     return <FullPageLoader />;
   }
 
-  // Si ya está autenticado, redirigir
   if (isAuthenticated && user) {
     if (user.must_change_password) {
       return <Navigate to={AUTH_ROUTES.changePassword} replace />;
     }
-    return <Navigate to={getDashboardByRole(user.rol)} replace />;
+    return <Navigate to={getDashboardByRole(user.rol || user.role)} replace />;
   }
 
   return <>{children}</>;

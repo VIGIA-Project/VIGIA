@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole, UserStatus } from '../domain/user.entity';
-import { IUserRepository } from '../domain/user.repository';
+import {
+    IUserRepository,
+    UserFilters,
+    PaginatedUsers,
+} from '../domain/user.repository';
 import { UserOrmEntity } from './user.orm-entity';
 
 @Injectable()
@@ -25,6 +29,34 @@ export class UserRepositoryImpl implements IUserRepository {
         return orm ? this.toDomain(orm) : null;
     }
 
+    async findAll(filters?: UserFilters): Promise<PaginatedUsers> {
+        const page = filters?.page ?? 1;
+        const limit = filters?.limit ?? 20;
+        const skip = (page - 1) * limit;
+
+        const qb = this.repo.createQueryBuilder('u');
+
+        if (filters?.role) {
+            qb.andWhere('u.role = :role', { role: filters.role });
+        }
+        if (filters?.status) {
+            qb.andWhere('u.status = :status', { status: filters.status });
+        }
+
+        qb.orderBy('u.created_at', 'DESC');
+        qb.skip(skip).take(limit);
+
+        const [orms, total] = await qb.getManyAndCount();
+
+        return {
+            data: orms.map((orm) => this.toDomain(orm)),
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
     async save(user: User): Promise<User> {
         const orm = this.repo.create({
             id: user.id,
@@ -45,11 +77,25 @@ export class UserRepositoryImpl implements IUserRepository {
             passwordHash: string;
             status: string;
             mustChangePassword: boolean;
+            updatedBy: string;
         }>,
     ): Promise<User> {
-        await this.repo.update(id, data);
-        const updated = await this.repo.findOneOrFail({ where: { id } });
-        return this.toDomain(updated);
+        const updateData: any = {};
+        if (data.passwordHash !== undefined) updateData.passwordHash = data.passwordHash;
+        if (data.status !== undefined) updateData.status = data.status;
+        if (data.mustChangePassword !== undefined) updateData.mustChangePassword = data.mustChangePassword;
+        if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
+
+        await this.repo
+            .createQueryBuilder()
+            .update(UserOrmEntity)
+            .set(updateData)
+            .where('user_id = :id', { id })
+            .execute();
+
+        const updated = await this.findById(id);
+        if (!updated) throw new Error('Usuario no encontrado después de update');
+        return updated;
     }
 
     private toDomain(orm: UserOrmEntity): User {

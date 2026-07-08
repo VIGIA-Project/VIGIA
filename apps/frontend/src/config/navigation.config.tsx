@@ -4,6 +4,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import SecurityIcon from '@mui/icons-material/Security';
 import QueueIcon from '@mui/icons-material/Queue';
@@ -27,7 +28,7 @@ export interface NavRoute {
 // - El icono de "Pases de Acceso Rápido" es VpnKey (NO QrCode2)
 // - El label es "Pases de Acceso Rápido" (NO "Pase Rápido")
 // - "Mis Alertas" (NO "Notificaciones")
-// - El orden es: Inicio → Vehículos → Permisos → Pases → Alertas
+// - El orden es: Inicio → Vehículos → Personas → Permisos → Pases → Alertas
 // ══════════════════════════════════════════════════════════════
 
 export const OWNER_NAV_ROUTES: NavRoute[] = [
@@ -40,6 +41,11 @@ export const OWNER_NAV_ROUTES: NavRoute[] = [
     label: 'Mis Vehículos',
     path: '/propietario/vehiculos',
     icon: <DirectionsCarIcon />,
+  },
+  {
+    label: 'Personas Autorizadas',
+    path: '/propietario/personas',
+    icon: <GroupOutlinedIcon />,
   },
   {
     label: 'Permisos Temporales',

@@ -34,7 +34,7 @@ const themeOptions: ThemeOptions = {
             contrastText: '#FFFFFF',
         },
         secondary: {
-            main: '#19D6C4',
+            main: '#00E5FF',
             contrastText: '#0A2F86',
         },
         warning: {
@@ -62,7 +62,7 @@ const themeOptions: ThemeOptions = {
             azulPrincipal: '#0D5CCF',
             azulProfundo: '#0A2F86',
             azulIntermedio: '#11A9D6',
-            verdeIA: '#19D6C4',
+            verdeIA: '#00E5FF', // Changed from generic green to Electric AI Cyan
             doradoPremium: '#F2B51F',
             doradoClaro: '#FFD85A',
         },
@@ -169,7 +169,7 @@ export const vigiaColors = {
   primary: '#0D5CCF',
   deep: '#0A2F86',
   mid: '#11A9D6',
-  greenIA: '#19D6C4',
+  greenIA: '#00E5FF', // Mantiene el nombre de variable pero ahora es Cyan AI
   gold: '#F2B51F',
   goldLight: '#FFD85A',
   white: '#FFFFFF',

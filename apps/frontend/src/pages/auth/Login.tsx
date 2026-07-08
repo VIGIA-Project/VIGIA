@@ -15,8 +15,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
+import { AUTH_ROUTES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
+import logoFull from '../../assets/logo/vigia-full.png';
 
 // ═══════════════════════════════════════════════════════════════
 // MOCK AUTH (reemplazar con API real en integración)
@@ -154,30 +155,37 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthTemplate
-      features={AUTH_FEATURES.map((f) => ({ icon: f.icon, text: f.text }))}
+      features={[
+        { icon: 'lock', text: 'Validación biométrica en milisegundos' },
+        { icon: 'car', text: 'Protección absoluta de entradas y salidas' },
+        { icon: 'shield', text: 'Respaldo institucional y seguridad UCE' },
+        { icon: 'family', text: 'Gestión inteligente de roles y vehículos' },
+      ]}
       leftTitle="Control de Acceso Vehicular Inteligente"
-      leftSubtitle="Seguridad biométrica, validación en tiempo real y gestión centralizada de accesos vehiculares."
+      leftSubtitle="VIGIA verifica instantáneamente autorizaciones, roles y datos biométricos para garantizar la máxima seguridad en el campus universitario."
     >
-      {/* Logo pequeño + Título */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+      {/* Logo VIGIA Full */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 1 }}>
         <Box
           component="img"
-          src="/assets/vigia-logo.png"
-          alt="VIGIA"
-          sx={{ height: 40, objectFit: 'contain' }}
+          src={logoFull}
+          alt="VIGIA - La inteligencia que protege cada acceso"
+          sx={{ height: 64, objectFit: 'contain' }}
         />
       </Box>
       <Typography
+        component="h1"
         sx={{
           fontFamily: '"Exo 2", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '1.25rem',
-          color: vigiaColors.textHeading,
+          color: vigiaColors.deep,
           textAlign: 'center',
-          mb: 3,
+          mb: 4,
+          letterSpacing: '-0.5px'
         }}
       >
-        Acceder al Sistema
+        Ingreso al Sistema
       </Typography>
 
       {/* Error global */}

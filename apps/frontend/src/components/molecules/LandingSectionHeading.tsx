@@ -21,11 +21,11 @@ export const LandingSectionHeading: React.FC<LandingSectionHeadingProps> = ({
       component="p"
       sx={{
         fontFamily: '"Inter", sans-serif',
-        fontWeight: 500,
-        fontSize: { xs: '0.75rem', md: '0.8rem' },
+        fontWeight: 700,
+        fontSize: { xs: '0.85rem', md: '0.9rem' },
         letterSpacing: '1.5px',
         textTransform: 'uppercase',
-        color: vigiaColors.greenIA,
+        color: light ? vigiaColors.greenIA : vigiaColors.primary,
         mb: 1.5,
       }}
     >

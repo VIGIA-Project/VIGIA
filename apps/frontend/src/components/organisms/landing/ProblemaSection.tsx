@@ -12,7 +12,7 @@ export const ProblemaSection: React.FC = () => (
     id="problema"
     component="section"
     aria-labelledby="problema-title"
-    sx={{ px: { xs: 3, md: 6 }, py: { xs: 5, md: 10 }, backgroundColor: vigiaColors.bgPage }}
+    sx={{ px: { xs: 3, md: 6 }, py: { xs: 5, md: 10 }, backgroundColor: '#F1F5F9' }}
   >
     <Box sx={{ maxWidth: 720, mx: 'auto', textAlign: 'center' }}>
       <LandingSectionHeading eyebrow={LANDING_PROBLEMA.eyebrow} title={LANDING_PROBLEMA.title} />

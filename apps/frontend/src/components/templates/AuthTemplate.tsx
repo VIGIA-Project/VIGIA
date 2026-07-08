@@ -5,6 +5,7 @@ import { fadeInLeft, fadeInUp, staggerContainer, staggerItem } from '../../confi
 import { getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors } from '../../theme/vigia-theme';
 
+import logoFull from '../../assets/logo/vigia-full.png';
 const VIGIA_ISOTIPO = '/assets/vigia-logo.png';
 
 interface AuthFeature {
@@ -129,19 +130,57 @@ export const AuthTemplate: React.FC<AuthTemplateProps> = ({
             />
             {/* Contenido */}
             <Box sx={{ position: 'relative', zIndex: 1, maxWidth: 400, textAlign: 'left', width: '100%' }}>
-              {/* Logo principal — nítido, sin contenedor blanco, directamente sobre el gradiente */}
+              {/* Logo principal — nítido, con contenedor redondeado */}
               <Box
                 component="img"
-                src={VIGIA_ISOTIPO}
+                src={logoFull}
                 alt="VIGIA"
                 sx={{
-                  width: 200,
+                  width: 320, // tamaño ajustado para coincidir con la imagen
                   objectFit: 'contain',
                   display: 'block',
                   mb: 4,
-                  filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.2))',
+                  borderRadius: '20px', // bordes más suaves
+                  filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.15))',
                 }}
               />
+              {/* Badge institucional */}
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 0.75,
+                  borderRadius: '100px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  mb: 3,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: vigiaColors.greenIA,
+                    boxShadow: `0 0 8px ${vigiaColors.greenIA}`,
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: vigiaColors.white,
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  SISTEMA ACTIVO · UCE
+                </Typography>
+              </Box>
+
               {/* Título */}
               <Typography
                 sx={{

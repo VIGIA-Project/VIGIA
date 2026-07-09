@@ -11,6 +11,16 @@ declare module '@mui/material/styles' {
             doradoPremium: string;
             doradoClaro: string;
         };
+        admin: {
+            blueDeep: string;
+            bluePrimary: string;
+            gold: string;
+            blueMid: string;
+            greenIa: string;
+            bgPage: string;
+            textPrimary: string;
+            textSecondary: string;
+        };
     }
     interface PaletteOptions {
         vigia?: {
@@ -20,6 +30,16 @@ declare module '@mui/material/styles' {
             verdeIA: string;
             doradoPremium: string;
             doradoClaro: string;
+        };
+        admin?: {
+            blueDeep?: string;
+            bluePrimary?: string;
+            gold?: string;
+            blueMid?: string;
+            greenIa?: string;
+            bgPage?: string;
+            textPrimary?: string;
+            textSecondary?: string;
         };
     }
 }
@@ -34,7 +54,7 @@ const themeOptions: ThemeOptions = {
             contrastText: '#FFFFFF',
         },
         secondary: {
-            main: '#19D6C4',
+            main: '#00E5FF',
             contrastText: '#0A2F86',
         },
         warning: {
@@ -62,9 +82,19 @@ const themeOptions: ThemeOptions = {
             azulPrincipal: '#0D5CCF',
             azulProfundo: '#0A2F86',
             azulIntermedio: '#11A9D6',
-            verdeIA: '#19D6C4',
+            verdeIA: '#00E5FF', // Changed from generic green to Electric AI Cyan
             doradoPremium: '#F2B51F',
             doradoClaro: '#FFD85A',
+        },
+        admin: {
+            blueDeep: '#0A2F86',
+            bluePrimary: '#0D5CCF',
+            gold: '#F2B51F',
+            blueMid: '#11A9D6',
+            greenIa: '#19D6C4',
+            bgPage: '#F8FAFC',
+            textPrimary: '#1F2A44',
+            textSecondary: '#6B7280',
         },
     },
     typography: {
@@ -92,10 +122,17 @@ const themeOptions: ThemeOptions = {
             },
         },
         MuiCard: {
+            defaultProps: { elevation: 0 },
             styleOverrides: {
                 root: {
-                    borderRadius: 12,
-                    boxShadow: '0 2px 8px rgba(13, 92, 207, 0.08)',
+                    border: '1px solid rgba(13, 92, 207, 0.06)',
+                    borderRadius: 16,
+                    boxShadow: '0px 10px 30px rgba(13, 92, 207, 0.05), 0px 2px 4px rgba(0, 0, 0, 0.02)',
+                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                    '&:hover': {
+                        boxShadow: '0px 16px 40px rgba(13, 92, 207, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.03)',
+                        transform: 'translateY(-2px)'
+                    }
                 },
             },
         },
@@ -104,6 +141,15 @@ const themeOptions: ThemeOptions = {
                 root: {
                     fontWeight: 600,
                     fontSize: '0.75rem',
+                },
+            },
+        },
+        MuiPaper: {
+            defaultProps: { elevation: 0 },
+            styleOverrides: {
+                root: {
+                    backgroundImage: 'none',
+                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                 },
             },
         },
@@ -169,7 +215,7 @@ export const vigiaColors = {
   primary: '#0D5CCF',
   deep: '#0A2F86',
   mid: '#11A9D6',
-  greenIA: '#19D6C4',
+  greenIA: '#00E5FF', // Mantiene el nombre de variable pero ahora es Cyan AI
   gold: '#F2B51F',
   goldLight: '#FFD85A',
   white: '#FFFFFF',
@@ -187,6 +233,8 @@ export const vigiaColors = {
   warning: '#EDB200',
   error: '#C62828',
   gradientIA: 'linear-gradient(90deg, #19D6C4 0%, #11A9D6 40%, #0D5CCF 100%)',
+  gradientHero: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 35%, #11A9D6 70%, #19D6C4 100%)',
+  gradientRoleCard: 'linear-gradient(135deg, #0A2F86 0%, #0D5CCF 100%)',
 };
 
 export default vigiaTheme;

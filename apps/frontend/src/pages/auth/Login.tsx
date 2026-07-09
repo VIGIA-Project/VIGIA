@@ -13,11 +13,13 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROUTES, AUTH_FEATURES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
+import { AUTH_ROUTES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 import { apiPost } from '../../services';
+import logoFull from '../../assets/logo/vigia-full.png';
 
 interface AuthResponse {
   access_token: string;
@@ -25,23 +27,16 @@ interface AuthResponse {
   role: string;
 }
 
-interface ApiResponse<T> {
+interface ApiEnvelope<T> {
   success: boolean;
   data: T;
   timestamp: string;
   path: string;
 }
 
-const authenticate = async (
-  email: string,
-  password: string
-): Promise<AuthResponse> => {
-  const response = await apiPost<ApiResponse<AuthResponse>>(
-    '/auth/login',
-    { email, password }
-  );
-
-  return response.data;
+const authenticate = async (email: string, password: string): Promise<AuthResponse> => {
+  const envelope = await apiPost<ApiEnvelope<AuthResponse>>('/auth/login', { email, password });
+  return envelope.data;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -100,8 +95,6 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authenticate(email.trim(), password);
 
-      console.log(response)
-
       login(
         {
           email: email.trim(),
@@ -112,15 +105,14 @@ const LoginPage: React.FC = () => {
         response.access_token,
       );
 
-      console.log(response.must_change_password)
-
       if (response.must_change_password) {
         navigate(AUTH_ROUTES.changePassword);
       } else {
         navigate(getDashboardByRole(response.role || 'OWNER'));
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error de conexión. Intente nuevamente.';
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      const message = axiosErr.response?.data?.message || 'Error de conexión. Intente nuevamente.';
       setError(message);
       setShake(true);
     } finally {
@@ -163,22 +155,37 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthTemplate
-      features={AUTH_FEATURES.map((f) => ({ icon: f.icon, text: f.text }))}
+      features={[
+        { icon: 'lock', text: 'Validación biométrica en milisegundos' },
+        { icon: 'car', text: 'Protección absoluta de entradas y salidas' },
+        { icon: 'shield', text: 'Respaldo institucional y seguridad UCE' },
+        { icon: 'family', text: 'Gestión inteligente de roles y vehículos' },
+      ]}
       leftTitle="Control de Acceso Vehicular Inteligente"
-      leftSubtitle="Seguridad biométrica, validación en tiempo real y gestión centralizada de accesos vehiculares."
+      leftSubtitle="VIGIA verifica instantáneamente autorizaciones, roles y datos biométricos para garantizar la máxima seguridad en el campus universitario."
     >
-      {/* Título */}
+      {/* Logo VIGIA Full */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, mt: 1 }}>
+        <Box
+          component="img"
+          src={logoFull}
+          alt="VIGIA - La inteligencia que protege cada acceso"
+          sx={{ height: 64, objectFit: 'contain' }}
+        />
+      </Box>
       <Typography
+        component="h1"
         sx={{
           fontFamily: '"Exo 2", sans-serif',
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '1.25rem',
-          color: vigiaColors.textHeading,
+          color: vigiaColors.deep,
           textAlign: 'center',
-          mb: 3,
+          mb: 4,
+          letterSpacing: '-0.5px'
         }}
       >
-        Acceder al Sistema
+        Ingreso al Sistema
       </Typography>
 
       {/* Error global */}
@@ -329,17 +336,7 @@ const LoginPage: React.FC = () => {
             fontWeight: 500,
           }}
         >
-          ¿No puede acceder?
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: '0.75rem',
-            color: vigiaColors.textTertiary,
-            mt: 0.5,
-          }}
-        >
-          Contacte al Administrador del sistema para solicitar un reseteo de credenciales.
+          ¿No puede acceder? Contacte al Administrador del sistema.
         </Typography>
       </Box>
 

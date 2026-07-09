@@ -10,16 +10,22 @@ export const AUTH_ROUTES = {
   home: '/',
   login: '/login',
   changePassword: '/cambiar-password',
+  onboardingBiometria: '/propietario/onboarding/biometria',
+  onboardingVehiculo: '/propietario/onboarding/primer-vehiculo',
 } as const;
 
 export const DASHBOARD_ROUTES: Record<string, string> = {
+  PROPIETARIO: '/propietario/inicio',
   OWNER: '/propietario/inicio',
+  GUARDIA: '/guardia/inicio',
   GUARD: '/guardia/inicio',
-  ADMIN: '/admin/inicio',
+  ADMINISTRADOR: '/admin',
+  ADMIN: '/admin',
 };
 
 export const getDashboardByRole = (rol: string): string => {
-  return DASHBOARD_ROUTES[rol] || DASHBOARD_ROUTES.OWNER;
+  const normalized = (rol || '').toUpperCase();
+  return DASHBOARD_ROUTES[normalized] || '/propietario/inicio';
 };
 
 export const PASSWORD_RULES = [
@@ -37,7 +43,7 @@ export const AUTH_FEATURES = [
 
 export const AUTH_TRUST_SIGNALS = [
   { icon: 'https', text: 'Conexión segura' },
-  { icon: 'shield', text: 'Datos cifrados E2E' },
+  { icon: 'shield', text: 'Datos protegidos' },
 ] as const;
 
 // Helper para renderizar iconos por key

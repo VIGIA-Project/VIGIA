@@ -15,6 +15,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
 import { PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
@@ -26,7 +27,7 @@ import { apiPost } from '../../services';
 // ═══════════════════════════════════════════════════════════════
 const SECURITY_FEATURES = [
   { icon: 'shield', text: 'Tu seguridad es nuestra prioridad' },
-  { icon: 'https', text: 'Contraseña cifrada con estándares modernos' },
+  { icon: 'https', text: 'Contraseña protegida' },
   { icon: 'lock', text: 'Protección para ti y tu grupo familiar' },
 ];
 
@@ -161,14 +162,12 @@ const CambiarPasswordPage: React.FC = () => {
       met: newPassword.length > 0 && newPassword !== currentPassword,
     });
 
-    // Regla adicional: confirmación coincide (solo si confirmPassword tiene valor)
-    if (confirmPassword.length > 0) {
-      rules.push({
-        key: 'match',
-        label: 'Confirmación coincide',
-        met: newPassword === confirmPassword,
-      });
-    }
+    // Regla adicional: confirmación coincide — siempre visible como último item
+    rules.push({
+      key: 'match',
+      label: 'Confirmación coincide',
+      met: newPassword.length > 0 && confirmPassword.length > 0 && newPassword === confirmPassword,
+    });
 
     return rules;
   }, [newPassword, currentPassword, confirmPassword]);
@@ -193,11 +192,14 @@ const CambiarPasswordPage: React.FC = () => {
       await changePassword(currentPassword, newPassword);
       setSuccess(true);
       completePasswordChange();
+      // Redirect después de 1.5s — ProtectedRoute intercepta y fuerza onboarding biométrico si aplica
       setTimeout(() => {
-        navigate(getDashboardByRole((user?.rol || user?.role || 'OWNER').toUpperCase()));
+        const rol = (user?.rol || user?.role || 'OWNER').toUpperCase();
+        navigate(getDashboardByRole(rol));
       }, 1500);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error al cambiar la contraseña.';
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      const message = axiosErr.response?.data?.message || 'Error al cambiar la contraseña.';
       setError(message);
       setShakeField('current');
     } finally {
@@ -316,7 +318,7 @@ const CambiarPasswordPage: React.FC = () => {
               lineHeight: 1.5,
             }}
           >
-            Por seguridad, debe establecer una nueva contraseña personal. Esta reemplazará la contraseña temporal asignada.
+            Por seguridad, debe establecer una nueva contraseña personal.
           </Typography>
         </Box>
       </Box>
@@ -493,7 +495,7 @@ const CambiarPasswordPage: React.FC = () => {
             color: vigiaColors.textTertiary,
           }}
         >
-          Su contraseña se almacena cifrada
+          Su contraseña se almacena de forma protegida.
         </Typography>
       </Box>
     </AuthTemplate>

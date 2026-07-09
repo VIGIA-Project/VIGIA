@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -7,7 +7,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { VehicleGrid, RegisterVehicleDrawer } from '../../components/organisms/propietario';
 import { ActivityTimelineItem, ActivitySeverity } from '../../components/molecules/ActivityTimelineItem';
@@ -36,10 +36,18 @@ const MisVehiculosPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shouldReduceMotion = useReducedMotion();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [vehiculos, setVehiculos] = useState<PropietarioVehiculo[]>(buildInitialVehiculos);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
+
+  useEffect(() => {
+    if ((location.state as { openRegistrar?: boolean } | null)?.openRegistrar) {
+      setDrawerOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const activos = vehiculos.filter((v) => v.estado === 'ACTIVO').length;
 

@@ -34,6 +34,8 @@ const normalizeUser = (userData: Partial<AuthUser>): AuthUser => ({
   role: userData.role || userData.rol || 'OWNER',
   rol: userData.rol || userData.role || 'OWNER',
   must_change_password: Boolean(userData.must_change_password),
+  biometric_registered: userData.biometric_registered,
+  vehicle_registered: userData.vehicle_registered,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

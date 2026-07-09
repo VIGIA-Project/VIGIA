@@ -6,6 +6,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import HistoryIcon from '@mui/icons-material/History';
 import SecurityIcon from '@mui/icons-material/Security';
 import QueueIcon from '@mui/icons-material/Queue';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
@@ -62,11 +63,19 @@ export const OWNER_NAV_ROUTES: NavRoute[] = [
     path: '/propietario/alertas',
     icon: <NotificationsOutlinedIcon />,
   },
+  {
+    label: 'Historial',
+    path: '/propietario/historial',
+    icon: <HistoryIcon />,
+  },
 ];
 
 export const OWNER_CONFIG = {
   rol: 'Propietario',
-  userInitials: 'AC',
+  // Fallback estático — DashboardTemplate calcula iniciales dinámicas desde el email
+  // del usuario autenticado (useAuth) y las sobrescribe; esto solo aplica antes de
+  // que el usuario esté disponible.
+  userInitials: 'PR',
   notificationCount: 2,
 } as const;
 

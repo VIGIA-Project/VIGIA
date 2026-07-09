@@ -51,7 +51,10 @@ export class User {
     }
 
     isActive(): boolean {
-        return this.status === UserStatus.ACTIVE;
+        return (
+            this.status === UserStatus.ACTIVE ||
+            this.status === UserStatus.PENDING_PASSWORD_CHANGE
+        );
     }
 
     needsPasswordChange(): boolean {

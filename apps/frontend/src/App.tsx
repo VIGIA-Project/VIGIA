@@ -28,6 +28,8 @@ import { BiometricCapturePersonaPage } from './pages/propietario/BiometricCaptur
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
 import { PasesRapidosPage } from './pages/propietario/PasesRapidos';
 import { AlertasPage } from './pages/propietario/Alertas';
+import { HistorialPage } from './pages/propietario/Historial';
+import { PerfilPage } from './pages/propietario/Perfil';
 
 // ─── Páginas: Guardia ─────────────────────────────────────────────────────
 import { GuardiaInicioPage } from './pages/guardia/Inicio';
@@ -137,6 +139,8 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/historial" element={<ProtectedRoute><PageTransition><HistorialPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/perfil" element={<ProtectedRoute><PageTransition><PerfilPage /></PageTransition></ProtectedRoute>} />
 
             {/* ═══ Guardia ═══ */}
             <Route path="/guardia/inicio" element={<ProtectedRoute allowedRoles={['GUARD']}><PageTransition><GuardiaInicioPage /></PageTransition></ProtectedRoute>} />

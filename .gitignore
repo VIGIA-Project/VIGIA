@@ -70,3 +70,9 @@ apps/backend/src/core/database/migrations/*.js.map
 .claudeignore
 CLAUDE.md
 claudeignore
+
+# ─── Claude Code ─────────────────────────────────────────────
+# Se COMMITEAN: CLAUDE.md, .claudeignore, .claude/commands/, .claude/rules/, .claude/skills/
+# Se IGNORAN: configuraciones locales del desarrollador
+.claude/settings.local.json
+.claude/launch.json

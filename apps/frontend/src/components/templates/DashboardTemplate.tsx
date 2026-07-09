@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material';
 import { Sidebar } from '../organisms/Sidebar';
 import { Header } from '../organisms/Header';
+import { useAuth } from '../../context';
 import {
   OWNER_NAV_ROUTES,
   OWNER_CONFIG,
@@ -43,11 +44,14 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
 
   // Auto-resolver rutas según rol
   const roleData = ROLE_CONFIG[rol] ?? ROLE_CONFIG.OWNER;
   const routes = roleData.routes;
   const defaults = roleData.config;
+
+  const dynamicInitials = user?.email ? user.email.slice(0, 2).toUpperCase() : undefined;
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -93,9 +97,10 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
         <Header
           pageTitle={pageTitle}
           notificationCount={notificationCount ?? defaults.notificationCount}
-          userInitials={userInitials ?? defaults.userInitials}
+          userInitials={userInitials ?? dynamicInitials ?? defaults.userInitials}
           isMobile={isMobile}
           onMenuClick={() => setMobileOpen(true)}
+          rol={rol}
         />
 
         <Box

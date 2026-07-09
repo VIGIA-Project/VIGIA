@@ -42,10 +42,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={getDashboardByRole(normalizedRole)} replace />;
   }
 
-  // Onboarding biométrico obligatorio para PROPIETARIO — solo aplica una vez cambiada la contraseña,
+  // Onboarding biométrico obligatorio para OWNER — solo aplica una vez cambiada la contraseña,
   // de lo contrario entra en ciclo con el gate de must_change_password de arriba.
+  // Acepta 'OWNER' (backend actual) y 'PROPIETARIO' (legado/mock) vía normalizedRole.
   if (!user.must_change_password) {
-    const needsBiometricOnboarding = user.rol === 'PROPIETARIO' && !user.biometric_registered;
+    const ownerRole = normalizedRole === 'OWNER' || normalizedRole === 'PROPIETARIO';
+    const needsBiometricOnboarding = ownerRole && !user.biometric_registered;
 
     if (needsBiometricOnboarding && !requireBiometricOnboarding) {
       return <Navigate to={AUTH_ROUTES.onboardingBiometria} replace />;
@@ -59,7 +61,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Onboarding de vehículo obligatorio para PROPIETARIO — solo se evalúa una vez superada
     // la biometría, para no competir con el gate de arriba.
     if (!needsBiometricOnboarding) {
-      const needsVehicleOnboarding = user.rol === 'PROPIETARIO' && !user.vehicle_registered;
+      const needsVehicleOnboarding = ownerRole && !user.vehicle_registered;
 
       if (needsVehicleOnboarding && !requireVehicleOnboarding) {
         return <Navigate to={AUTH_ROUTES.onboardingVehiculo} replace />;

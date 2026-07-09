@@ -25,6 +25,9 @@ interface AuthResponse {
   access_token: string;
   must_change_password: boolean;
   role: string;
+  // El backend aún no expone estos flags de onboarding — se leen si existen y si no, se asume false
+  biometric_registered?: boolean;
+  vehicle_registered?: boolean;
 }
 
 interface ApiEnvelope<T> {
@@ -101,6 +104,8 @@ const LoginPage: React.FC = () => {
           rol: response.role || 'OWNER',
           role: response.role || 'OWNER',
           must_change_password: response.must_change_password || false,
+          biometric_registered: response.biometric_registered ?? false,
+          vehicle_registered: response.vehicle_registered ?? false,
         },
         response.access_token,
       );

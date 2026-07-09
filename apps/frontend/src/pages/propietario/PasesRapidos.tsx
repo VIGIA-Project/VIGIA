@@ -1,7 +1,8 @@
 // src/pages/propietario/PasesRapidos.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
@@ -16,6 +17,8 @@ const PasesRapidosPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shouldReduceMotion = useReducedMotion();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [pases, setPases] = useState<PaseRapido[]>(MOCK_PASES);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -23,6 +26,13 @@ const PasesRapidosPage: React.FC = () => {
   const [detailTarget, setDetailTarget] = useState<PaseRapido | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  useEffect(() => {
+    if ((location.state as { openGenerarPase?: boolean } | null)?.openGenerarPase) {
+      setDrawerOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const handleGenerated = (pase: PaseRapido) => {
     setPases((prev) => [pase, ...prev]);

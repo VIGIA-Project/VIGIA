@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Snackbar, Typography, useMediaQuery, useTheme } from '@mui/material';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import DirectionsCarFilledOutlinedIcon from '@mui/icons-material/DirectionsCarFilledOutlined';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PersonasGrid, AddPersonaDrawer, RevokePersonaModal } from '../../components/organisms/propietario';
 import { fadeInUp } from '../../config/animations.config';
@@ -24,6 +24,7 @@ const PersonasAutorizadasPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shouldReduceMotion = useReducedMotion();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const tieneVehiculos = useMemo(() => buildInitialVehiculos().length > 0, []);
 
@@ -31,6 +32,13 @@ const PersonasAutorizadasPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if ((location.state as { openDrawer?: boolean } | null)?.openDrawer && tieneVehiculos) {
+      setDrawerOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, tieneVehiculos]);
 
   const activas = personas.filter((p) => p.estado === 'ACTIVA').length;
   const limitReached = activas >= FAMILIA_MAX_MIEMBROS;

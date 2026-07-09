@@ -12,10 +12,12 @@ import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../them
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
+import { useAuth } from '../../context';
 
 // === MOCK DATA ===
 const MOCK_KPIS = [
@@ -23,6 +25,7 @@ const MOCK_KPIS = [
   { value: 1, label: 'Permiso Activo', indicator: '⏰ Expira en 3 días', indicatorColor: '#EDB200', accentColor: '#19D6C4', route: '/propietario/permisos-temporales' },
   { value: 5, label: 'Pases Disponibles', indicator: '2 consumidos hoy', indicatorColor: '#6B7280', accentColor: '#F2B51F', route: '/propietario/pases-rapidos' },
   { value: 2, label: 'Alertas Pendientes', indicator: '🔴 1 alta prioridad', indicatorColor: '#C62828', accentColor: '#C62828', route: '/propietario/alertas' },
+  { value: 1, label: 'Biom. Pendiente', indicator: '🔶 1 persona sin biometría', indicatorColor: '#F59E0B', accentColor: '#F59E0B', route: '/propietario/personas' },
 ];
 
 const MOCK_ACTIVIDAD = [
@@ -48,6 +51,10 @@ const InicioPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
+
+  const displayName = user?.email?.split('@')[0] || 'Propietario';
+  const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
 
   return (
     <DashboardTemplate rol="OWNER" pageTitle="Inicio">
@@ -63,7 +70,7 @@ const InicioPage: React.FC = () => {
                 color: vigiaColors.textHeading,
               }}
             >
-              Bienvenido, Antony
+              Bienvenido, {capitalizedName}
             </Typography>
             <Typography
               sx={{
@@ -83,7 +90,7 @@ const InicioPage: React.FC = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+              gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr', md: 'repeat(5, 1fr)' },
               gap: `${vigiaSpacing.cardGap}px`,
             }}
           >
@@ -155,7 +162,7 @@ const InicioPage: React.FC = () => {
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                   {MOCK_VEHICULOS.map((v) => (
-                    <MiniVehicleItem key={v.placa} {...v} onClick={() => navigate('/propietario/vehiculos')} />
+                    <MiniVehicleItem key={v.placa} {...v} onClick={() => navigate(`/propietario/vehiculos/${v.placa}`)} />
                   ))}
                 </Box>
               </CardContent>
@@ -170,7 +177,7 @@ const InicioPage: React.FC = () => {
                   title="Grupo Familiar"
                   action={
                     <Typography
-                      onClick={() => navigate('/propietario/permisos-temporales')}
+                      onClick={() => navigate('/propietario/personas')}
                       sx={{ fontSize: '0.75rem', color: vigiaColors.primary, cursor: 'pointer', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
                     >
                       Gestionar →
@@ -179,7 +186,7 @@ const InicioPage: React.FC = () => {
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                   {MOCK_FAMILIA.map((f) => (
-                    <MiniFamilyCard key={f.nombre} {...f} onClick={() => navigate('/propietario/permisos-temporales')} />
+                    <MiniFamilyCard key={f.nombre} {...f} onClick={() => navigate('/propietario/personas')} />
                   ))}
                 </Box>
               </CardContent>
@@ -193,7 +200,7 @@ const InicioPage: React.FC = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
               gap: `${vigiaSpacing.cardGap}px`,
             }}
           >
@@ -201,19 +208,25 @@ const InicioPage: React.FC = () => {
               icon={<VpnKeyIcon />}
               label="Generar Pase"
               sublabel="de Acceso Rápido"
-              onClick={() => navigate('/propietario/pases-rapidos')}
+              onClick={() => navigate('/propietario/pases-rapidos', { state: { openGenerarPase: true } })}
             />
             <QuickActionButton
               icon={<AssignmentIcon />}
               label="Nuevo Permiso"
               sublabel="Temporal"
-              onClick={() => navigate('/propietario/permisos-temporales')}
+              onClick={() => navigate('/propietario/permisos-temporales', { state: { openCrearPermiso: true } })}
             />
             <QuickActionButton
               icon={<DirectionsCarIcon />}
               label="Registrar"
               sublabel="Vehículo"
-              onClick={() => navigate('/propietario/vehiculos')}
+              onClick={() => navigate('/propietario/vehiculos', { state: { openRegistrar: true } })}
+            />
+            <QuickActionButton
+              icon={<GroupOutlinedIcon />}
+              label="Agregar"
+              sublabel="Persona Autorizada"
+              onClick={() => navigate('/propietario/personas', { state: { openDrawer: true } })}
             />
           </Box>
         </motion.div>

@@ -25,3 +25,5 @@ export { PermisoCard } from './PermisoCard';
 export { PaseCard } from './PaseCard';
 export { EventoTimeline } from './EventoTimeline';
 export { PersonaCard } from './PersonaCard';
+export { PermisoTemporalCard } from './PermisoTemporalCard';
+export { PaseRapidoCard } from './PaseRapidoCard';

@@ -13,10 +13,12 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROUTES, AUTH_TRUST_SIGNALS, getDashboardByRole, getFeatureIcon } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
+import { apiPost } from '../../services';
 import logoFull from '../../assets/logo/vigia-full.png';
 
 interface AuthResponse {
@@ -25,22 +27,16 @@ interface AuthResponse {
   role: string;
 }
 
-interface ApiResponse<T> {
+interface ApiEnvelope<T> {
   success: boolean;
   data: T;
   timestamp: string;
   path: string;
 }
 
-// El rol lo determina el backend a partir de las credenciales — no se selecciona en UI (§5.1)
-const MOCK_ROLE = 'PROPIETARIO';
-
-const mockAuthenticate = async (_email: string, _password: string): Promise<AuthResponse> => {
-  // Simular latencia de red
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  // Aceptar cualquier credencial para testing y forzar cambio de contraseña
-  return { success: true, rol: MOCK_ROLE, must_change_password: true };
+const authenticate = async (email: string, password: string): Promise<AuthResponse> => {
+  const envelope = await apiPost<ApiEnvelope<AuthResponse>>('/auth/login', { email, password });
+  return envelope.data;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -97,7 +93,7 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await mockAuthenticate(email.trim(), password);
+      const response = await authenticate(email.trim(), password);
 
       login(
         {
@@ -109,15 +105,14 @@ const LoginPage: React.FC = () => {
         response.access_token,
       );
 
-      console.log(response.must_change_password)
-
       if (response.must_change_password) {
         navigate(AUTH_ROUTES.changePassword);
       } else {
         navigate(getDashboardByRole(response.role || 'OWNER'));
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error de conexión. Intente nuevamente.';
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      const message = axiosErr.response?.data?.message || 'Error de conexión. Intente nuevamente.';
       setError(message);
       setShake(true);
     } finally {

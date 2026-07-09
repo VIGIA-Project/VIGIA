@@ -11,6 +11,7 @@ import { RolesGuard } from './presentation/roles.guard';
 import { UserRepositoryImpl } from './infrastructure/user.repository.impl';
 import { UserOrmEntity } from './infrastructure/user.orm-entity';
 import { USER_REPOSITORY } from './domain/user.repository';
+import { SeedService } from '../database/seed.service';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { USER_REPOSITORY } from './domain/user.repository';
     JwtStrategy,
     JwtAuthGuard,
     RolesGuard,
+    SeedService,
     {
       provide: USER_REPOSITORY,
       useClass: UserRepositoryImpl,

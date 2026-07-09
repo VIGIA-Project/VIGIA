@@ -9,8 +9,6 @@ import {
   TextField,
   Button,
   FormControl,
-  Divider,
-  useTheme,
   LinearProgress,
   Tabs,
   Tab,
@@ -19,7 +17,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { fadeInUp, staggerContainer } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors, vigiaShadows } from '../../theme/vigia-theme';
+import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
 
 // Icons
 import TimerIcon from '@mui/icons-material/Timer';
@@ -33,8 +31,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export const RevisionManualPage: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  
+
   const [actionTab, setActionTab] = useState(0);
 
   // Flow 1: Resolución
@@ -267,7 +264,7 @@ export const RevisionManualPage: React.FC = () => {
                 <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: vigiaColors.white }}>
                   <Tabs
                     value={actionTab}
-                    onChange={(e, newValue) => setActionTab(newValue)}
+                    onChange={(_e, newValue) => setActionTab(newValue)}
                     variant="fullWidth"
                     sx={{
                       '& .MuiTab-root': { fontFamily: '"Exo 2", sans-serif', fontWeight: 600, textTransform: 'none', py: 2 },

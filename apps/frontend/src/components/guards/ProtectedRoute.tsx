@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
   requirePasswordChange?: boolean;
   requireBiometricOnboarding?: boolean;
   requireVehicleOnboarding?: boolean;
+  allowedRoles?: string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -16,6 +17,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requirePasswordChange = false,
   requireBiometricOnboarding = false,
   requireVehicleOnboarding = false,
+  allowedRoles = [],
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 

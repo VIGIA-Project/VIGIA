@@ -16,7 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   sessionExpired: boolean;
   authNotice: string | null;
-  login: (user: AuthUser) => void;
+  login: (user: AuthUser, authToken?: string) => void;
   logout: () => void;
   completePasswordChange: () => void;
   completeBiometricOnboarding: () => void;
@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) {
       const updated = { ...user, biometric_registered: true };
       setUser(updated);
-      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
     }
   };
 
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) {
       const updated = { ...user, vehicle_registered: true };
       setUser(updated);
-      sessionStorage.setItem('vigia_auth_user', JSON.stringify(updated));
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
     }
   };
 

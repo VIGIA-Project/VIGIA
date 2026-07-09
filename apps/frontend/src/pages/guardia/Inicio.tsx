@@ -3,16 +3,11 @@ import { Box, Typography, Card, CardContent, Button, useMediaQuery, useTheme } f
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { SectionHeader } from '../../components/atoms';
 import { KpiCard, EventQueueItem, RecentAlertItem } from '../../components/molecules';
 import { staggerContainer, fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 
 // Icons
-import AssignmentLateIcon from '@mui/icons-material/AssignmentLate';
-import TimerIcon from '@mui/icons-material/Timer';
-import ListAltIcon from '@mui/icons-material/ListAlt';
-import WarningIcon from '@mui/icons-material/Warning';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import CampaignIcon from '@mui/icons-material/Campaign';
 

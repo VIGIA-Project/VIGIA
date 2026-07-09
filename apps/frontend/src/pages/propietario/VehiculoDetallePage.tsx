@@ -27,7 +27,7 @@ const VehiculoDetallePage: React.FC = () => {
 
   if (!vehiculo) {
     return (
-      <DashboardTemplate rol="PROPIETARIO" pageTitle="Detalle de vehículo">
+      <DashboardTemplate rol="OWNER" pageTitle="Detalle de vehículo">
         <Box
           component="button"
           onClick={() => navigate('/propietario/vehiculos')}
@@ -52,7 +52,7 @@ const VehiculoDetallePage: React.FC = () => {
   const estadoStyle = ESTADO_VEHICULO_STYLES[vehiculo.estado];
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Detalle de vehículo">
+    <DashboardTemplate rol="OWNER" pageTitle="Detalle de vehículo">
       <Box sx={{ mx: -4, mt: -4 }}>
         {/* Header de página */}
         <Box sx={{ backgroundColor: vigiaColors.bgCard, borderBottom: '1px solid #E2E8F0', px: 4, py: 3 }}>

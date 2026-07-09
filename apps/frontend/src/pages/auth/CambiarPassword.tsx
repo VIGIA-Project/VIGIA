@@ -15,6 +15,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
 import { PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
@@ -197,7 +198,8 @@ const CambiarPasswordPage: React.FC = () => {
         navigate(getDashboardByRole(rol));
       }, 1500);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al cambiar la contraseña.';
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      const message = axiosErr.response?.data?.message || 'Error al cambiar la contraseña.';
       setError(message);
       setShakeField('current');
     } finally {

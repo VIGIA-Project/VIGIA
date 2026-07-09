@@ -18,6 +18,7 @@ export interface PropietarioVehiculo {
   personasAsignadas: number;
   /** De las personas asignadas, cuántas aún no completan su biometría propia */
   personasSinBiometria: number;
+  observacion?: string;
 }
 
 export const VEHICLE_TYPE_OPTIONS = ['Sedán', 'SUV', 'Camioneta', 'Motocicleta', 'Otro'] as const;
@@ -39,11 +40,14 @@ export const MIS_VEHICULOS_COPY = {
 export const REGISTER_VEHICLE_DRAWER_COPY = {
   title: 'Registrar vehículo',
   subtitle: 'Agrega un vehículo propio para gestionarlo',
+  editTitle: 'Editar vehículo',
+  editSubtitle: 'Actualiza los datos de tu vehículo',
   sectionVehiculo: 'Datos del vehículo',
   sectionAdicional: 'Información adicional',
   placaLabel: 'Placa',
   placaPlaceholder: 'ABC-1234',
   placaHelper: 'Formato ecuatoriano: 3 letras, guión, 4 números',
+  placaHelperEdit: 'La placa no puede modificarse una vez registrada',
   marcaLabel: 'Marca',
   marcaPlaceholder: 'Toyota',
   modeloLabel: 'Modelo',
@@ -56,8 +60,10 @@ export const REGISTER_VEHICLE_DRAWER_COPY = {
   observacionPlaceholder: 'Opcional',
   cancelLabel: 'Cancelar',
   submitLabel: 'Registrar',
+  submitEditLabel: 'Guardar cambios',
   submittingLabel: 'Registrando...',
   successToast: 'Vehículo registrado correctamente',
+  successToastEdit: 'Cambios guardados correctamente',
 } as const;
 
 export const VEHICLE_CARD_COPY = {

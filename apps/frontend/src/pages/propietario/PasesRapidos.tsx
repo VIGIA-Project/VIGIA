@@ -9,7 +9,7 @@ import { PasesGrid } from '../../components/organisms/propietario/PasesGrid';
 import { GenerarPaseDrawer } from '../../components/organisms/propietario/GenerarPaseDrawer';
 import { RevokePaseModal } from '../../components/organisms/propietario/RevokePaseModal';
 import { fadeInUp } from '../../config/animations.config';
-import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
+import { vigiaRadius } from '../../theme/vigia-theme';
 import { MOCK_PASES, PaseRapido } from '../../config/propietario-pases.config';
 
 const PasesRapidosPage: React.FC = () => {
@@ -59,16 +59,22 @@ const PasesRapidosPage: React.FC = () => {
               fullWidth={isMobile}
               startIcon={<BoltOutlinedIcon />}
               sx={{
-                background: vigiaColors.gradientIA,
+                background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
                 color: '#FFFFFF',
                 fontFamily: '"Inter", sans-serif',
                 fontWeight: 600,
                 textTransform: 'none',
-                borderRadius: vigiaRadius.md,
+                borderRadius: '12px',
                 height: 48,
                 px: 3,
                 flexShrink: 0,
-                '&:hover': { background: vigiaColors.gradientIA },
+                boxShadow: '0 4px 14px rgba(13, 92, 207, 0.3)',
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
+                  boxShadow: '0 8px 22px rgba(13, 92, 207, 0.4)',
+                  transform: 'translateY(-2px)',
+                },
               }}
             >
               Generar pase

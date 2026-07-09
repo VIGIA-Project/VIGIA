@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Tab, Tabs, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Snackbar, Alert, Tab, Tabs, Typography } from '@mui/material';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -12,9 +12,10 @@ import {
   VehiculoPermisosTab,
   VehiculoPasesTab,
   VehiculoActividadTab,
+  RegisterVehicleDrawer,
 } from '../../components/organisms/propietario';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
-import { buildInitialVehiculos } from '../../config/propietario-vehiculos.config';
+import { buildInitialVehiculos, PropietarioVehiculo, REGISTER_VEHICLE_DRAWER_COPY } from '../../config/propietario-vehiculos.config';
 import { VEHICULO_DETALLE_TABS, VEHICULO_DETALLE_COPY, ESTADO_VEHICULO_STYLES, TabKey } from '../../config/propietario-vehiculo-detalle.config';
 
 const VehiculoDetallePage: React.FC = () => {
@@ -22,8 +23,18 @@ const VehiculoDetallePage: React.FC = () => {
   const { placa } = useParams<{ placa: string }>();
   const shouldReduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [editToast, setEditToast] = useState(false);
 
-  const vehiculo = useMemo(() => buildInitialVehiculos().find((v) => v.placa === placa), [placa]);
+  const [vehiculo, setVehiculo] = useState<PropietarioVehiculo | undefined>(() =>
+    buildInitialVehiculos().find((v) => v.placa === placa)
+  );
+
+  const handleUpdated = (actualizado: PropietarioVehiculo) => {
+    setVehiculo(actualizado);
+    setEditDrawerOpen(false);
+    setEditToast(true);
+  };
 
   if (!vehiculo) {
     return (
@@ -94,7 +105,7 @@ const VehiculoDetallePage: React.FC = () => {
 
             <Box
               component="button"
-              onClick={() => console.log('Editar vehículo', vehiculo.placa)}
+              onClick={() => setEditDrawerOpen(true)}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -172,6 +183,20 @@ const VehiculoDetallePage: React.FC = () => {
           </motion.div>
         </AnimatePresence>
       </Box>
+
+      <RegisterVehicleDrawer
+        mode="edit"
+        vehiculo={vehiculo}
+        open={editDrawerOpen}
+        onClose={() => setEditDrawerOpen(false)}
+        onUpdated={handleUpdated}
+      />
+
+      <Snackbar open={editToast} autoHideDuration={3500} onClose={() => setEditToast(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert severity="success" variant="filled" onClose={() => setEditToast(false)} sx={{ borderRadius: vigiaRadius.sm }}>
+          {REGISTER_VEHICLE_DRAWER_COPY.successToastEdit}
+        </Alert>
+      </Snackbar>
     </DashboardTemplate>
   );
 };

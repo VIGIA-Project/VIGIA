@@ -28,9 +28,11 @@ export interface BiometricCaptureProps {
   onSkipForNow: () => void;
   /** Callback para informar al padre cuántas capturas se completaron (para la barra de progreso) */
   onCaptureProgress?: (done: number, total: number) => void;
+  /** Copy de la pantalla de éxito final — por defecto usa el copy del onboarding propio del propietario */
+  successCopy?: { title: string; subtitle: string; cta: string };
 }
 
-export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow, onCaptureProgress }) => {
+export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow, onCaptureProgress, successCopy = SUCCESS_COPY }) => {
   const shouldReduceMotion = useReducedMotion();
   const [captureIndex, setCaptureIndex] = useState(0);
   const [statuses, setStatuses] = useState<CaptureStepState[]>(['active', 'pending', 'pending']);
@@ -100,10 +102,10 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
             </Box>
           </motion.div>
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.4rem', color: vigiaColors.textHeading, mb: 1 }}>
-            {SUCCESS_COPY.title}
+            {successCopy.title}
           </Typography>
           <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 4 }}>
-            {SUCCESS_COPY.subtitle}
+            {successCopy.subtitle}
           </Typography>
           <Button
             variant="contained"
@@ -128,7 +130,7 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
               '&:active': { transform: 'scale(0.98)' },
             }}
           >
-            ✓  Continuar con el Registro del Vehículo
+            ✓  {successCopy.cta}
           </Button>
         </Box>
       </motion.div>

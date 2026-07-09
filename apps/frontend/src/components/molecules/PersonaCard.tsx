@@ -1,6 +1,6 @@
 // src/components/molecules/PersonaCard.tsx
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -145,9 +145,31 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({ persona, onViewDetail,
           </Box>
 
           {!isRevocada && !bioCompleta && (
-            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#64748B', mt: 0.5 }}>
-              {PERSONA_CARD_COPY.pendingMicrocopy}
-            </Typography>
+            <>
+              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#64748B', mt: 0.5, mb: 1.25 }}>
+                {PERSONA_CARD_COPY.pendingMicrocopy}
+              </Typography>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => onRegisterBio(persona.id)}
+                startIcon={<FingerprintOutlinedIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  minHeight: 44,
+                  backgroundColor: '#F59E0B',
+                  color: '#1F2937',
+                  fontFamily: '"Inter", sans-serif',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  textTransform: 'none',
+                  borderRadius: vigiaRadius.sm,
+                  boxShadow: 'none',
+                  '&:hover': { backgroundColor: '#D97706', boxShadow: 'none' },
+                }}
+              >
+                {PERSONA_CARD_COPY.registerBio}
+              </Button>
+            </>
           )}
         </Box>
 
@@ -169,17 +191,6 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({ persona, onViewDetail,
           >
             {PERSONA_CARD_COPY.viewDetail}
           </Box>
-
-          {!isRevocada && !bioCompleta && (
-            <Box
-              component="button"
-              onClick={() => onRegisterBio(persona.id)}
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.4, background: 'none', border: 'none', cursor: 'pointer', color: vigiaColors.greenIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', '&:hover': { textDecoration: 'underline' } }}
-            >
-              <FingerprintOutlinedIcon sx={{ fontSize: 14 }} />
-              {PERSONA_CARD_COPY.registerBio}
-            </Box>
-          )}
 
           {!isRevocada && (
             <Box

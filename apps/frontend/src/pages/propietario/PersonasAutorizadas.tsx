@@ -11,11 +11,12 @@ import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../them
 import { buildInitialVehiculos } from '../../config/propietario-vehiculos.config';
 import {
   PersonaAutorizada,
-  MOCK_PERSONAS,
   FAMILIA_MAX_MIEMBROS,
   PERSONAS_HEADER_COPY,
   ADD_PERSONA_DRAWER_COPY,
   REVOKE_PERSONA_MODAL_COPY,
+  loadPersonas,
+  savePersonas,
 } from '../../config/propietario-personas.config';
 
 const PersonasAutorizadasPage: React.FC = () => {
@@ -26,7 +27,7 @@ const PersonasAutorizadasPage: React.FC = () => {
 
   const tieneVehiculos = useMemo(() => buildInitialVehiculos().length > 0, []);
 
-  const [personas, setPersonas] = useState<PersonaAutorizada[]>(MOCK_PERSONAS);
+  const [personas, setPersonas] = useState<PersonaAutorizada[]>(loadPersonas);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -34,20 +35,30 @@ const PersonasAutorizadasPage: React.FC = () => {
   const activas = personas.filter((p) => p.estado === 'ACTIVA').length;
   const limitReached = activas >= FAMILIA_MAX_MIEMBROS;
 
-  const handleConfirmed = (nueva: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>) => {
+  const handleConfirmed = (nueva: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>, biometriaPresencial: boolean) => {
     const persona: PersonaAutorizada = {
       ...nueva,
       id: `per-${Date.now()}`,
       estado: 'ACTIVA',
       autorizadoDesde: new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }),
     };
-    setPersonas((prev) => [persona, ...prev]);
+    const next = [persona, ...personas];
+    setPersonas(next);
+    savePersonas(next);
     setDrawerOpen(false);
-    setToastMessage(ADD_PERSONA_DRAWER_COPY.successToast);
+
+    if (biometriaPresencial) {
+      setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPresencial);
+      setTimeout(() => navigate(`/propietario/personas/${persona.id}/biometria`), 1200);
+    } else {
+      setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPendiente);
+    }
   };
 
   const handleRevoke = (id: string, _motivo: string) => {
-    setPersonas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'REVOCADA' } : p)));
+    const next = personas.map((p) => (p.id === id ? { ...p, estado: 'REVOCADA' as const } : p));
+    setPersonas(next);
+    savePersonas(next);
     setRevokeTarget(null);
     setToastMessage(REVOKE_PERSONA_MODAL_COPY.successToast);
   };
@@ -124,8 +135,8 @@ const PersonasAutorizadasPage: React.FC = () => {
         <PersonasGrid
           personas={personas}
           onAdd={() => setDrawerOpen(true)}
-          onViewDetail={(id) => console.log('Ver detalle de persona', id)}
-          onRegisterBio={(id) => console.log('Registrar biometría para persona', id)}
+          onViewDetail={(id) => navigate(`/propietario/personas/${id}`)}
+          onRegisterBio={(id) => navigate(`/propietario/personas/${id}/biometria`)}
           onRevoke={(persona) => setRevokeTarget(persona)}
         />
       </Box>

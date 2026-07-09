@@ -54,7 +54,7 @@ const PersonasAutorizadasPage: React.FC = () => {
 
   if (!tieneVehiculos) {
     return (
-      <DashboardTemplate rol="PROPIETARIO" pageTitle="Personas autorizadas">
+      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
         <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
           <DirectionsCarFilledOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
@@ -76,7 +76,7 @@ const PersonasAutorizadasPage: React.FC = () => {
   }
 
   return (
-    <DashboardTemplate rol="PROPIETARIO" pageTitle="Personas autorizadas">
+    <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
         {/* Header de sección */}
         <motion.div variants={shouldReduceMotion ? undefined : fadeInUp} initial="hidden" animate="visible">

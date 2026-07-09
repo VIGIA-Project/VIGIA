@@ -25,13 +25,6 @@ interface AuthResponse {
   role: string;
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  timestamp: string;
-  path: string;
-}
-
 // El rol lo determina el backend a partir de las credenciales — no se selecciona en UI (§5.1)
 const MOCK_ROLE = 'PROPIETARIO';
 
@@ -40,7 +33,7 @@ const mockAuthenticate = async (_email: string, _password: string): Promise<Auth
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
   // Aceptar cualquier credencial para testing y forzar cambio de contraseña
-  return { success: true, rol: MOCK_ROLE, must_change_password: true };
+  return { access_token: 'mock-token', role: MOCK_ROLE, must_change_password: true };
 };
 
 // ═══════════════════════════════════════════════════════════════

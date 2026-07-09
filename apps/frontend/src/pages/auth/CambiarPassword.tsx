@@ -17,7 +17,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthTemplate } from '../../components/templates';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROUTES, PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
+import { PASSWORD_RULES, getDashboardByRole } from '../../config/auth.config';
 import { vigiaColors, vigiaShadows, vigiaRadius } from '../../theme/vigia-theme';
 import { apiPost } from '../../services';
 
@@ -188,25 +188,18 @@ const CambiarPasswordPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await mockChangePassword(currentPassword, newPassword);
-
-      if (response.success) {
-        setSuccess(true);
-        completePasswordChange();
-        // Redirect después de 1.5s — OWNER pasa primero por el onboarding biométrico obligatorio
-        setTimeout(() => {
-          if (user?.rol === 'PROPIETARIO') {
-            navigate(AUTH_ROUTES.onboardingBiometria);
-          } else {
-            navigate(getDashboardByRole(user?.rol || 'PROPIETARIO'));
-          }
-        }, 1500);
-      } else {
-        setError(response.error || 'Error al cambiar la contraseña.');
-        setShakeField('current');
-      }
-    } catch {
-      setError('Error de conexión. Intente nuevamente.');
+      await changePassword(currentPassword, newPassword);
+      setSuccess(true);
+      completePasswordChange();
+      // Redirect después de 1.5s — ProtectedRoute intercepta y fuerza onboarding biométrico si aplica
+      setTimeout(() => {
+        const rol = (user?.rol || user?.role || 'OWNER').toUpperCase();
+        navigate(getDashboardByRole(rol));
+      }, 1500);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cambiar la contraseña.';
+      setError(message);
+      setShakeField('current');
     } finally {
       setIsLoading(false);
     }

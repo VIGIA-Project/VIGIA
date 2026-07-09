@@ -30,7 +30,7 @@ const EMPTY_VALUES: AddPersonaFormValues = { nombre: '', cedula: '', relacion: '
 export interface AddPersonaDrawerProps {
   open: boolean;
   onClose: () => void;
-  onConfirmed: (persona: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>) => void;
+  onConfirmed: (persona: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>, biometriaPresencial: boolean) => void;
   cuposUsados: number;
 }
 
@@ -62,18 +62,17 @@ export const AddPersonaDrawer: React.FC<AddPersonaDrawerProps> = ({ open, onClos
   const goBackToForm = () => setPhase('form');
 
   const handleConfirm = () => {
-    if (values.biometriaPresencial) {
-      // Flujo de captura biométrica presencial para terceros no está implementado todavía
-      console.log('Iniciar biometría presencial para:', values.nombre);
-    }
-    onConfirmed({
-      nombre: values.nombre.trim(),
-      cedula: values.cedula,
-      relacion: values.relacion,
-      tipo: tipoFromRelacion(values.relacion),
-      telefono: values.telefono || undefined,
-      biometria: values.biometriaPresencial ? 'COMPLETADA' : 'PENDIENTE',
-    });
+    onConfirmed(
+      {
+        nombre: values.nombre.trim(),
+        cedula: values.cedula,
+        relacion: values.relacion,
+        tipo: tipoFromRelacion(values.relacion),
+        telefono: values.telefono || undefined,
+        biometria: 'PENDIENTE',
+      },
+      values.biometriaPresencial
+    );
   };
 
   return (

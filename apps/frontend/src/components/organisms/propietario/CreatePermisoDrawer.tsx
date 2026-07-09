@@ -42,7 +42,7 @@ const EMPTY_VALUES: CreatePermisoFormValues = {
   telefono: '',
   vehiculoId: vehiculosActivos.length === 1 ? vehiculosActivos[0].id : '',
   fechaInicio: today(),
-  fechaFin: '',
+  fechaFin: addDays(today(), 30),
   motivo: '',
 };
 
@@ -60,6 +60,7 @@ export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, 
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isValid },
   } = useForm<CreatePermisoFormValues>({
     resolver: zodResolver(createPermisoSchema),
@@ -186,7 +187,21 @@ export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, 
                     name="fechaInicio"
                     control={control}
                     render={({ field }) => (
-                      <TextField {...field} type="date" label="Fecha inicio" InputLabelProps={{ shrink: true }} inputProps={{ min: today() }} error={!!errors.fechaInicio} helperText={errors.fechaInicio?.message} fullWidth required />
+                      <TextField
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
+                          setValue('fechaFin', addDays(e.target.value, 30), { shouldValidate: true });
+                        }}
+                        type="date"
+                        label="Fecha inicio"
+                        InputLabelProps={{ shrink: true }}
+                        inputProps={{ min: today() }}
+                        error={!!errors.fechaInicio}
+                        helperText={errors.fechaInicio?.message}
+                        fullWidth
+                        required
+                      />
                     )}
                   />
                   <Controller
@@ -200,7 +215,7 @@ export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, 
                         InputLabelProps={{ shrink: true }}
                         inputProps={{ min: addDays(values.fechaInicio || today(), 1), max: addDays(values.fechaInicio || today(), 30) }}
                         error={!!errors.fechaFin}
-                        helperText={errors.fechaFin?.message || 'Máximo 30 días de vigencia'}
+                        helperText={errors.fechaFin?.message || 'Vigencia máxima: 30 días desde el inicio'}
                         fullWidth
                         required
                       />

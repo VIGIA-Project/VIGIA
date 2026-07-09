@@ -1,7 +1,8 @@
 // src/pages/propietario/PasesRapidos.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
@@ -9,13 +10,15 @@ import { PasesGrid } from '../../components/organisms/propietario/PasesGrid';
 import { GenerarPaseDrawer } from '../../components/organisms/propietario/GenerarPaseDrawer';
 import { RevokePaseModal } from '../../components/organisms/propietario/RevokePaseModal';
 import { fadeInUp } from '../../config/animations.config';
-import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
+import { vigiaRadius } from '../../theme/vigia-theme';
 import { MOCK_PASES, PaseRapido } from '../../config/propietario-pases.config';
 
 const PasesRapidosPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const shouldReduceMotion = useReducedMotion();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [pases, setPases] = useState<PaseRapido[]>(MOCK_PASES);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -23,6 +26,13 @@ const PasesRapidosPage: React.FC = () => {
   const [detailTarget, setDetailTarget] = useState<PaseRapido | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  useEffect(() => {
+    if ((location.state as { openGenerarPase?: boolean } | null)?.openGenerarPase) {
+      setDrawerOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const handleGenerated = (pase: PaseRapido) => {
     setPases((prev) => [pase, ...prev]);
@@ -59,16 +69,22 @@ const PasesRapidosPage: React.FC = () => {
               fullWidth={isMobile}
               startIcon={<BoltOutlinedIcon />}
               sx={{
-                background: vigiaColors.gradientIA,
+                background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
                 color: '#FFFFFF',
                 fontFamily: '"Inter", sans-serif',
                 fontWeight: 600,
                 textTransform: 'none',
-                borderRadius: vigiaRadius.md,
+                borderRadius: '12px',
                 height: 48,
                 px: 3,
                 flexShrink: 0,
-                '&:hover': { background: vigiaColors.gradientIA },
+                boxShadow: '0 4px 14px rgba(13, 92, 207, 0.3)',
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
+                  boxShadow: '0 8px 22px rgba(13, 92, 207, 0.4)',
+                  transform: 'translateY(-2px)',
+                },
               }}
             >
               Generar pase

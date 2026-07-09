@@ -148,6 +148,8 @@ export const ADD_PERSONA_DRAWER_COPY = {
   backLabel: 'Volver',
   confirmCta: 'Confirmar',
   successToast: 'Persona autorizada correctamente',
+  successToastPresencial: 'Persona autorizada. Iniciando captura biométrica presencial...',
+  successToastPendiente: 'Persona autorizada correctamente. Cuando esté físicamente contigo, podrás registrar su biometría desde su perfil.',
 } as const;
 
 export const REVOKE_PERSONA_MODAL_COPY = {
@@ -159,4 +161,80 @@ export const REVOKE_PERSONA_MODAL_COPY = {
   cancelLabel: 'Cancelar',
   confirmCta: 'Revocar autorización',
   successToast: 'Autorización revocada',
+} as const;
+
+// Persistencia mock en localStorage — permite que altas/ediciones sobrevivan la navegación
+// entre PersonasAutorizadas, PersonaDetallePage y BiometricCapturePersonaPage sin backend real.
+const PERSONAS_STORAGE_KEY = 'vigia_personas_autorizadas';
+
+export const loadPersonas = (): PersonaAutorizada[] => {
+  try {
+    const raw = localStorage.getItem(PERSONAS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as PersonaAutorizada[];
+  } catch {
+    // localStorage no disponible o dato corrupto — se recurre al mock
+  }
+  return MOCK_PERSONAS;
+};
+
+export const savePersonas = (personas: PersonaAutorizada[]): void => {
+  try {
+    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(personas));
+  } catch {
+    // Almacenamiento no disponible — la sesión continúa solo con estado en memoria
+  }
+};
+
+export const PERSONA_DETALLE_COPY = {
+  backLabel: 'Volver a Personas autorizadas',
+  notFoundTitle: 'Persona no encontrada',
+  notFoundDescription: 'La persona autorizada que buscas no existe o fue eliminada.',
+  estadoActiva: 'Activo',
+  estadoRevocada: 'Revocado',
+  bioCompleta: 'Biometría completada',
+  bioPendiente: 'Biometría pendiente',
+  bioNoRegistrada: 'No registrada',
+  sectionInfo: 'Información',
+  nombreLabel: 'Nombre completo',
+  cedulaLabel: 'Cédula / identificación',
+  relacionLabel: 'Relación con el propietario',
+  telefonoLabel: 'Teléfono / contacto',
+  telefonoVacio: 'No registrado',
+  autorizadoDesdeLabel: 'Fecha de autorización',
+  alcanceLabel: 'Alcance',
+  alcanceValue: 'Todos los vehículos del propietario',
+  sectionBiometria: 'Estado biométrico',
+  bioCompletaHelper: 'Validación biométrica habilitada',
+  bioPendienteTitle: 'Biometría pendiente',
+  bioPendienteDescription: 'La persona debe estar físicamente presente para completar el registro biométrico.',
+  bioPendienteCta: 'Registrar biometría presencial',
+  sectionActividad: 'Actividad reciente',
+  actividadEmpty: 'Aún no hay actividad registrada para esta persona.',
+  registerBioCta: 'Registrar biometría',
+  revokeCta: 'Revocar autorización',
+} as const;
+
+export interface PersonaActividadMock {
+  id: string;
+  title: string;
+  subtitle: string;
+  timestamp: string;
+}
+
+export const buildMockActividadPersona = (persona: PersonaAutorizada): PersonaActividadMock[] => [
+  { id: 'act-1', title: 'Acceso autorizado · Acceso Norte', subtitle: `Validación biométrica exitosa de ${persona.nombre}`, timestamp: 'hace 2 días' },
+  { id: 'act-2', title: 'Autorización actualizada', subtitle: `Alcance confirmado: ${PERSONA_DETALLE_COPY.alcanceValue}`, timestamp: persona.autorizadoDesde },
+  { id: 'act-3', title: 'Acceso autorizado · Acceso Sur', subtitle: `Validación biométrica exitosa de ${persona.nombre}`, timestamp: 'hace 6 días' },
+];
+
+export const PERSONA_BIOMETRIC_CAPTURE_COPY = {
+  eyebrow: 'CAPTURA BIOMÉTRICA PRESENCIAL',
+  headerTitle: (nombre: string) => `Registro biométrico de ${nombre}`,
+  description: 'Realiza las 3 capturas faciales de la persona autorizada. Debe estar físicamente presente durante todo el proceso.',
+  successTitle: 'Biometría registrada correctamente',
+  successSubtitle: 'La persona ya puede validarse automáticamente con la biometría registrada.',
+  successCta: 'Volver a Personas autorizadas',
+  backLabel: 'Volver a Personas autorizadas',
+  notFoundTitle: 'Persona no encontrada',
+  notFoundDescription: 'No se encontró la persona para registrar su biometría.',
 } as const;

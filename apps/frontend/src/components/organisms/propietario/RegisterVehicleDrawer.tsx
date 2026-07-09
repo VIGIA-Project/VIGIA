@@ -46,10 +46,14 @@ const EMPTY_VALUES = { placa: '', marca: '', modelo: '', color: '', tipo: '', ob
 export interface RegisterVehicleDrawerProps {
   open: boolean;
   onClose: () => void;
-  onRegistered: (vehiculo: PropietarioVehiculo) => void;
+  onRegistered?: (vehiculo: PropietarioVehiculo) => void;
+  onUpdated?: (vehiculo: PropietarioVehiculo) => void;
+  mode?: 'create' | 'edit';
+  vehiculo?: PropietarioVehiculo | null;
 }
 
-export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ open, onClose, onRegistered }) => {
+export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ open, onClose, onRegistered, onUpdated, mode = 'create', vehiculo }) => {
+  const isEdit = mode === 'edit';
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -65,8 +69,22 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
   });
 
   useEffect(() => {
-    if (!open) reset(EMPTY_VALUES);
-  }, [open, reset]);
+    if (!open) {
+      reset(EMPTY_VALUES);
+      return;
+    }
+    if (isEdit && vehiculo) {
+      reset({
+        placa: vehiculo.placa,
+        marca: vehiculo.marca,
+        modelo: vehiculo.modelo,
+        anio: vehiculo.anio,
+        color: vehiculo.color,
+        tipo: vehiculo.tipo,
+        observacion: vehiculo.observacion || '',
+      });
+    }
+  }, [open, isEdit, vehiculo, reset]);
 
   const placa = watch('placa') || '';
   const marca = watch('marca') || '';
@@ -79,7 +97,19 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      onRegistered({
+      if (isEdit && vehiculo) {
+        onUpdated?.({
+          ...vehiculo,
+          marca: data.marca,
+          modelo: data.modelo,
+          anio: data.anio,
+          color: data.color,
+          tipo: data.tipo,
+          observacion: data.observacion,
+        });
+        return;
+      }
+      onRegistered?.({
         id: `veh-${Date.now()}`,
         placa: data.placa,
         marca: data.marca,
@@ -92,6 +122,7 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
         alertas: 0,
         personasAsignadas: 0,
         personasSinBiometria: 0,
+        observacion: data.observacion,
       });
     }, SUBMIT_DELAY_MS);
   };
@@ -117,10 +148,10 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', p: 3, borderBottom: '1px solid #F1F5F9' }}>
           <Box>
             <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.25rem', color: vigiaColors.textHeading }}>
-              {COPY.title}
+              {isEdit ? COPY.editTitle : COPY.title}
             </Typography>
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mt: 0.25 }}>
-              {COPY.subtitle}
+              {isEdit ? COPY.editSubtitle : COPY.subtitle}
             </Typography>
           </Box>
           <IconButton onClick={onClose} aria-label="Cerrar" sx={{ color: vigiaColors.textSecondary }}>
@@ -143,8 +174,9 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
                 onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                 label={COPY.placaLabel}
                 placeholder={COPY.placaPlaceholder}
-                error={!!errors.placa}
-                helperText={errors.placa?.message || COPY.placaHelper}
+                disabled={isEdit}
+                error={!isEdit && !!errors.placa}
+                helperText={isEdit ? COPY.placaHelperEdit : errors.placa?.message || COPY.placaHelper}
                 fullWidth
                 required
                 InputProps={{ startAdornment: <InputAdornment position="start"><DirectionsCarFilledOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} /></InputAdornment> }}
@@ -304,7 +336,7 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
               minHeight: 48,
             }}
           >
-            {isSubmitting ? <CircularProgress size={18} sx={{ color: '#FFFFFF' }} /> : COPY.submitLabel}
+            {isSubmitting ? <CircularProgress size={18} sx={{ color: '#FFFFFF' }} /> : isEdit ? COPY.submitEditLabel : COPY.submitLabel}
           </Button>
         </Box>
       </Box>

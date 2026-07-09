@@ -23,9 +23,13 @@ import { InicioPage } from './pages/propietario/Inicio';
 import { MisVehiculosPage } from './pages/propietario/MisVehiculos';
 import { VehiculoDetallePage } from './pages/propietario/VehiculoDetallePage';
 import { PersonasAutorizadasPage } from './pages/propietario/PersonasAutorizadas';
+import { PersonaDetallePage } from './pages/propietario/PersonaDetallePage';
+import { BiometricCapturePersonaPage } from './pages/propietario/BiometricCapturePersonaPage';
 import { PermisosTemporalesPage } from './pages/propietario/PermisosTemporales';
 import { PasesRapidosPage } from './pages/propietario/PasesRapidos';
 import { AlertasPage } from './pages/propietario/Alertas';
+import { HistorialPage } from './pages/propietario/Historial';
+import { PerfilPage } from './pages/propietario/Perfil';
 
 // ─── Páginas: Guardia ─────────────────────────────────────────────────────
 import { GuardiaInicioPage } from './pages/guardia/Inicio';
@@ -130,9 +134,13 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/propietario/vehiculos" element={<ProtectedRoute><PageTransition><MisVehiculosPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/vehiculos/:placa" element={<ProtectedRoute><PageTransition><VehiculoDetallePage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/personas" element={<ProtectedRoute><PageTransition><PersonasAutorizadasPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/personas/:id" element={<ProtectedRoute><PageTransition><PersonaDetallePage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/personas/:id/biometria" element={<ProtectedRoute><PageTransition><BiometricCapturePersonaPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/permisos-temporales" element={<ProtectedRoute><PageTransition><PermisosTemporalesPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/pases-rapidos" element={<ProtectedRoute><PageTransition><PasesRapidosPage /></PageTransition></ProtectedRoute>} />
             <Route path="/propietario/alertas" element={<ProtectedRoute><PageTransition><AlertasPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/historial" element={<ProtectedRoute><PageTransition><HistorialPage /></PageTransition></ProtectedRoute>} />
+            <Route path="/propietario/perfil" element={<ProtectedRoute><PageTransition><PerfilPage /></PageTransition></ProtectedRoute>} />
 
             {/* ═══ Guardia ═══ */}
             <Route path="/guardia/inicio" element={<ProtectedRoute allowedRoles={['GUARD']}><PageTransition><GuardiaInicioPage /></PageTransition></ProtectedRoute>} />

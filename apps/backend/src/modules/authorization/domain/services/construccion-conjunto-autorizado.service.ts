@@ -1,6 +1,7 @@
 import { IAutorizacionPermanenteRepository } from '../repositories/autorizacion-permanente.repository';
 import { IPermisoTemporalRepository } from '../repositories/permiso-temporal.repository';
 import { TipoAutorizacion } from '../value-objects/tipo-autorizacion.vo';
+import { EvaluacionVigenciaService } from './evaluacion-vigencia.service';
 
 export interface MiembroConjuntoAutorizado {
   personaId: string;
@@ -23,6 +24,7 @@ export class ConstruccionConjuntoAutorizadoService {
   constructor(
     private readonly autorizacionPermanenteRepository: IAutorizacionPermanenteRepository,
     private readonly permisoTemporalRepository: IPermisoTemporalRepository,
+    private readonly evaluacionVigenciaService: EvaluacionVigenciaService = new EvaluacionVigenciaService(),
   ) {}
 
   async construir(
@@ -43,7 +45,8 @@ export class ConstruccionConjuntoAutorizadoService {
       vehiculoId,
     );
     for (const autorizacion of permanentes) {
-      if (!autorizacion.estaActiva()) continue;
+      const { vigente } = this.evaluacionVigenciaService.evaluarPermanente(autorizacion, instante);
+      if (!vigente) continue;
       autorizados.set(autorizacion.personaId, {
         personaId: autorizacion.personaId,
         tipo: TipoAutorizacion.PERMANENTE,
@@ -56,7 +59,8 @@ export class ConstruccionConjuntoAutorizadoService {
       instante,
     );
     for (const permiso of temporales) {
-      if (!permiso.estaVigente(instante)) continue;
+      const { vigente } = this.evaluacionVigenciaService.evaluarTemporal(permiso, instante);
+      if (!vigente) continue;
       autorizados.set(permiso.personaId, {
         personaId: permiso.personaId,
         tipo: TipoAutorizacion.TEMPORAL,

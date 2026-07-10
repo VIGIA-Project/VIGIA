@@ -8,7 +8,7 @@ export interface SchemaInitOptions {
   database: string;
 }
 
-const REQUIRED_SCHEMAS = ['auth', 'registry'];
+const REQUIRED_SCHEMAS = ['auth', 'registry', 'authorization'];
 
 export async function ensureSchemas(options: SchemaInitOptions): Promise<void> {
   const client = new Client({

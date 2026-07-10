@@ -1,17 +1,23 @@
 // src/pages/propietario/PasesRapidos.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
+import { addHours } from 'date-fns';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PasesGrid } from '../../components/organisms/propietario/PasesGrid';
-import { GenerarPaseDrawer } from '../../components/organisms/propietario/GenerarPaseDrawer';
+import { GenerarPaseDrawer, GenerarPaseData } from '../../components/organisms/propietario/GenerarPaseDrawer';
 import { RevokePaseModal } from '../../components/organisms/propietario/RevokePaseModal';
+import { ErrorState, LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
-import { vigiaRadius } from '../../theme/vigia-theme';
-import { MOCK_PASES, PaseRapido } from '../../config/propietario-pases.config';
+import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
+import { PaseRapido, mapPaseAViewModel } from '../../config/propietario-pases.config';
+import { usePropietarioVehiculo } from '../../hooks/useRegistry';
+import { useMisPases, useGenerarPase, useRevocarPase } from '../../hooks/useAuthorization';
+import { GenerarPaseResult } from '../../services/types/authorization.types';
 
 const PasesRapidosPage: React.FC = () => {
   const theme = useTheme();
@@ -20,22 +26,56 @@ const PasesRapidosPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [pases, setPases] = useState<PaseRapido[]>(MOCK_PASES);
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
+  const pasesQuery = useMisPases();
+  const generarPaseMutation = useGenerarPase();
+  const revocarPaseMutation = useRevocarPase();
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PaseRapido | null>(null);
   const [detailTarget, setDetailTarget] = useState<PaseRapido | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [ultimoCodigoGenerado, setUltimoCodigoGenerado] = useState<{ paseId: string; codigo: string } | null>(null);
+
+  const pasesApi = pasesQuery.data ?? [];
+  const pases: PaseRapido[] = useMemo(
+    () =>
+      pasesApi.map((p) =>
+        mapPaseAViewModel(p, vehiculo, ultimoCodigoGenerado?.paseId === p.id ? ultimoCodigoGenerado.codigo : undefined)
+      ),
+    [pasesApi, vehiculo, ultimoCodigoGenerado]
+  );
 
   useEffect(() => {
-    if ((location.state as { openGenerarPase?: boolean } | null)?.openGenerarPase) {
+    if ((location.state as { openGenerarPase?: boolean } | null)?.openGenerarPase && vehiculo) {
       setDrawerOpen(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, [location.state, vehiculo]);
 
-  const handleGenerated = (pase: PaseRapido) => {
-    setPases((prev) => [pase, ...prev]);
+  const extractErrorMessage = (err: unknown, fallback: string): string => {
+    const axiosErr = err as AxiosError<{ message?: string | string[] }>;
+    const message = axiosErr.response?.data?.message;
+    return (Array.isArray(message) ? message[0] : message) || fallback;
+  };
+
+  const handleConfirmed = async (data: GenerarPaseData): Promise<GenerarPaseResult> => {
+    const vigenciaInicio = new Date();
+    const vigenciaFin = addHours(vigenciaInicio, data.duracionHoras);
+
+    const result = await generarPaseMutation.mutateAsync({
+      vehiculoId: data.vehiculoId,
+      placa: data.placa,
+      nombreVisitante: data.nombre,
+      cedulaVisitante: data.cedula,
+      vigenciaInicio: vigenciaInicio.toISOString(),
+      vigenciaFin: vigenciaFin.toISOString(),
+      motivo: data.motivo,
+    });
+
+    setUltimoCodigoGenerado({ paseId: result.pase.id, codigo: result.codigoPlano });
+    return result;
   };
 
   const handleCopy = (codigo: string) => {
@@ -44,12 +84,56 @@ const PasesRapidosPage: React.FC = () => {
     setSnackbarOpen(true);
   };
 
-  const handleRevoke = (id: string, motivoRevocacion: string) => {
-    setPases((prev) => prev.map((p) => (p.id === id ? { ...p, estado: 'REVOCADO', motivoRevocacion: motivoRevocacion || undefined } : p)));
-    setRevokeTarget(null);
-    setSnackbarMessage('Pase revocado');
-    setSnackbarOpen(true);
+  const handleRevoke = async (id: string, _motivoRevocacion: string) => {
+    try {
+      await revocarPaseMutation.mutateAsync(id);
+      setRevokeTarget(null);
+      setSnackbarMessage('Pase revocado');
+      setSnackbarOpen(true);
+    } catch (err) {
+      setSnackbarMessage(extractErrorMessage(err, 'No se pudo revocar el pase.'));
+      setSnackbarOpen(true);
+    }
   };
+
+  if (isLoadingVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <LoadingSkeleton variant="cards" rows={3} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (isErrorVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (!vehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
+          <BoltOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
+          <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
+            Necesitas al menos un vehículo registrado
+          </Typography>
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 3 }}>
+            Registra tu primer vehículo para poder generar pases de acceso rápido.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/propietario/vehiculos')}
+            sx={{ background: vigiaColors.gradientIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, px: 3, minHeight: 44 }}
+          >
+            Registrar vehículo
+          </Button>
+        </Box>
+      </DashboardTemplate>
+    );
+  }
 
   return (
     <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
@@ -92,16 +176,22 @@ const PasesRapidosPage: React.FC = () => {
           </Box>
         </motion.div>
 
-        <PasesGrid
-          pases={pases}
-          onCopy={handleCopy}
-          onRevoke={(id) => setRevokeTarget(pases.find((p) => p.id === id) || null)}
-          onViewDetail={(id) => setDetailTarget(pases.find((p) => p.id === id) || null)}
-          onGenerateClick={() => setDrawerOpen(true)}
-        />
+        {pasesQuery.isLoading ? (
+          <LoadingSkeleton variant="cards" rows={3} />
+        ) : pasesQuery.isError ? (
+          <ErrorState mensaje="No se pudieron cargar los pases de acceso rápido." onRetry={() => pasesQuery.refetch()} />
+        ) : (
+          <PasesGrid
+            pases={pases}
+            onCopy={handleCopy}
+            onRevoke={(id) => setRevokeTarget(pases.find((p) => p.id === id) || null)}
+            onViewDetail={(id) => setDetailTarget(pases.find((p) => p.id === id) || null)}
+            onGenerateClick={() => setDrawerOpen(true)}
+          />
+        )}
       </Box>
 
-      <GenerarPaseDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onGenerated={handleGenerated} />
+      <GenerarPaseDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} vehiculo={vehiculo} onConfirmed={handleConfirmed} />
       <RevokePaseModal pase={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
 
       <Dialog open={!!detailTarget} onClose={() => setDetailTarget(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '16px' } }}>

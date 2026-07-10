@@ -15,14 +15,16 @@ import DirectionsCarFilledOutlinedIcon from '@mui/icons-material/DirectionsCarFi
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { RevokePersonaModal } from '../../components/organisms/propietario';
+import { ErrorState, LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../theme/vigia-theme';
+import { usePropietarioVehiculo, usePersona } from '../../hooks/useRegistry';
+import { useAutorizacionesPorVehiculo, useRevocarAutorizacion } from '../../hooks/useAuthorization';
 import {
   PersonaAutorizada,
-  loadPersonas,
-  savePersonas,
   PERSONA_DETALLE_COPY as COPY,
   buildMockActividadPersona,
+  mapAutorizacionAPersona,
 } from '../../config/propietario-personas.config';
 
 const maskCedula = (cedula: string) => cedula.replace(/X/g, '*');
@@ -39,17 +41,46 @@ const PersonaDetallePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const shouldReduceMotion = useReducedMotion();
 
-  const [personas, setPersonas] = useState<PersonaAutorizada[]>(loadPersonas);
+  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
+  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const revocarMutation = useRevocarAutorizacion(vehiculo?.vehiculoId);
+
+  const autorizacion = autorizacionesQuery.data?.find((a) => a.id === id);
+  const personaQuery = usePersona(autorizacion?.personaId);
+
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
 
-  const persona = personas.find((p) => p.id === id);
+  const isLoading = isLoadingVehiculo || autorizacionesQuery.isLoading || personaQuery.isLoading;
+  const isError = autorizacionesQuery.isError || personaQuery.isError;
 
-  const handleRevoke = (revokeId: string, _motivo: string) => {
-    const next = personas.map((p) => (p.id === revokeId ? { ...p, estado: 'REVOCADA' as const } : p));
-    setPersonas(next);
-    savePersonas(next);
-    setRevokeTarget(null);
+  const persona: PersonaAutorizada | undefined = autorizacion
+    ? mapAutorizacionAPersona(autorizacion, personaQuery.data)
+    : undefined;
+
+  const handleRevoke = async (revokeId: string) => {
+    try {
+      await revocarMutation.mutateAsync(revokeId);
+      setRevokeTarget(null);
+    } catch {
+      // El modal permanece abierto; el usuario puede reintentar.
+    }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Detalle de persona">
+        <LoadingSkeleton variant="detail" />
+      </DashboardTemplate>
+    );
+  }
+
+  if (isError) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Detalle de persona">
+        <ErrorState mensaje="No se pudo cargar la información de esta persona." onRetry={() => autorizacionesQuery.refetch()} />
+      </DashboardTemplate>
+    );
+  }
 
   if (!persona) {
     return (
@@ -228,7 +259,7 @@ const PersonaDetallePage: React.FC = () => {
           )}
         </Box>
 
-        {/* Actividad reciente */}
+        {/* Actividad reciente — TODO: Replace with real data when Access Control BC is implemented */}
         <Box sx={{ borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', boxShadow: vigiaShadows.sm, p: 3, backgroundColor: vigiaColors.bgCard }}>
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#0F172A', mb: 2 }}>
             {COPY.sectionActividad}

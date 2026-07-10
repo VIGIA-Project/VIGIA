@@ -23,7 +23,7 @@ export class PersonaController {
     constructor(private readonly personaUseCases: PersonaUseCases) {}
 
     @Post()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     @HttpCode(HttpStatus.CREATED)
     async crear(@Body() dto: CrearPersonaDto) {
         return this.personaUseCases.crear(dto);
@@ -36,7 +36,7 @@ export class PersonaController {
     }
 
     @Get(':id')
-    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
     async buscarPorId(@Param('id') id: string) {
         return this.personaUseCases.buscarPorId(id);
     }
@@ -58,7 +58,7 @@ export class PersonaController {
     }
 
     @Patch(':id/enrollment-completo')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     async marcarEnrollmentCompleto(@Param('id') id: string) {
         return this.personaUseCases.marcarEnrollmentCompleto(id);
     }

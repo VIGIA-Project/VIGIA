@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { actualizarOnboardingStatus } from '../services/auth.service';
 
 interface AuthUser {
   email: string;
@@ -7,7 +8,30 @@ interface AuthUser {
   must_change_password: boolean;
   biometric_registered?: boolean;
   vehicle_registered?: boolean;
+  /** ID de Persona en Registry — viene embebido en el JWT (claim `personaId`), no en el body del login. */
+  personaId?: string;
 }
+
+/**
+ * Decodifica el payload de un JWT sin verificar la firma (solo lectura de
+ * claims en el cliente — la verificación real ocurre en el backend).
+ */
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,8 +43,8 @@ interface AuthContextType {
   login: (user: AuthUser, authToken?: string) => void;
   logout: () => void;
   completePasswordChange: () => void;
-  completeBiometricOnboarding: () => void;
-  completeVehicleOnboarding: () => void;
+  completeBiometricOnboarding: () => Promise<void>;
+  completeVehicleOnboarding: () => Promise<void>;
   clearSessionExpired: () => void;
   setAuthNotice: (message: string | null) => void;
 }
@@ -36,6 +60,7 @@ const normalizeUser = (userData: Partial<AuthUser>): AuthUser => ({
   must_change_password: Boolean(userData.must_change_password),
   biometric_registered: userData.biometric_registered,
   vehicle_registered: userData.vehicle_registered,
+  personaId: userData.personaId,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -63,7 +88,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = (userData: AuthUser, authToken?: string) => {
-    const normalizedUser = normalizeUser(userData);
+    const claims = authToken ? decodeJwtPayload(authToken) : null;
+    const personaId = typeof claims?.personaId === 'string' ? claims.personaId : undefined;
+    const normalizedUser = normalizeUser({ ...userData, personaId });
     setUser(normalizedUser);
     setToken(authToken || null);
     setSessionExpired(false);
@@ -90,19 +117,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const completeBiometricOnboarding = () => {
-    if (user) {
-      const updated = { ...user, biometric_registered: true };
-      setUser(updated);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  const completeBiometricOnboarding = async () => {
+    if (!user) return;
+
+    const updated = { ...user, biometric_registered: true };
+    setUser(updated);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+
+    try {
+      await actualizarOnboardingStatus({ biometric_registered: true });
+    } catch (err) {
+      console.error('Failed to persist biometric status:', err);
     }
   };
 
-  const completeVehicleOnboarding = () => {
-    if (user) {
-      const updated = { ...user, vehicle_registered: true };
-      setUser(updated);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  const completeVehicleOnboarding = async () => {
+    if (!user) return;
+
+    const updated = { ...user, vehicle_registered: true };
+    setUser(updated);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+
+    try {
+      await actualizarOnboardingStatus({ vehicle_registered: true });
+    } catch (err) {
+      console.error('Failed to persist vehicle status:', err);
     }
   };
 

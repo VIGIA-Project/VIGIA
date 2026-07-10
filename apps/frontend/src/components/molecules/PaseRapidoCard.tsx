@@ -60,7 +60,7 @@ export const PaseRapidoCard: React.FC<PaseRapidoCardProps> = ({ pase, onCopy, on
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, mb: 1.5 }}>
-          {pase.estado === 'ACTIVO' ? (
+          {pase.codigo ? (
             <Box sx={{ px: 2, py: 1, borderRadius: vigiaRadius.md, backgroundColor: '#EFF6FF' }}>
               <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.25rem', color: '#0D5CCF' }}>
                 {pase.codigo}
@@ -120,14 +120,24 @@ export const PaseRapidoCard: React.FC<PaseRapidoCardProps> = ({ pase, onCopy, on
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid #F1F5F9' }}>
           {pase.estado === 'ACTIVO' ? (
             <>
-              <Box
-                component="button"
-                onClick={() => onCopy?.(pase.codigo)}
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, background: 'none', border: 'none', cursor: 'pointer', color: '#0D5CCF', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0 }}
-              >
-                <ContentCopyIcon sx={{ fontSize: 14 }} />
-                Copiar código
-              </Box>
+              {pase.codigo ? (
+                <Box
+                  component="button"
+                  onClick={() => onCopy?.(pase.codigo as string)}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, background: 'none', border: 'none', cursor: 'pointer', color: '#0D5CCF', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0 }}
+                >
+                  <ContentCopyIcon sx={{ fontSize: 14 }} />
+                  Copiar código
+                </Box>
+              ) : (
+                <Box
+                  component="button"
+                  onClick={() => onViewDetail?.(pase.id)}
+                  sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0D5CCF', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0 }}
+                >
+                  Ver detalle
+                </Box>
+              )}
               <Box
                 component="button"
                 className="pase-card-revoke"

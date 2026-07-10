@@ -39,7 +39,7 @@ export const RevokePaseModal: React.FC<RevokePaseModalProps> = ({ pase, onClose,
           <Box sx={{ borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', p: 2, mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
               <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B' }}>Código</Typography>
-              <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '0.9rem', color: '#0D5CCF' }}>{pase.codigo}</Typography>
+              <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '0.9rem', color: '#0D5CCF' }}>{pase.codigo ?? '••••••'}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderTop: '1px solid #F1F5F9' }}>
               <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B' }}>Persona</Typography>

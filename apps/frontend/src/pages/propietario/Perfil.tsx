@@ -15,10 +15,8 @@ import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { useAuth } from '../../context';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows, vigiaSpacing } from '../../theme/vigia-theme';
-import { MOCK_PERMISOS } from '../../config/propietario-permisos.config';
-import { MOCK_PASES } from '../../config/propietario-pases.config';
 import { usePropietarioVehiculo } from '../../hooks/useRegistry';
-import { useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
+import { useAutorizacionesPorVehiculo, usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
 
 const REGISTRO_MOCK = '15 May 2026';
 const ULTIMO_CAMBIO_PASSWORD_MOCK = 'hace 3 meses';
@@ -35,15 +33,17 @@ const PerfilPage: React.FC = () => {
 
   const { vehiculo } = usePropietarioVehiculo();
   const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
+  const pasesQuery = useMisPases();
 
   const resumen = useMemo(
     () => ({
       vehiculos: vehiculo ? 1 : 0,
       personas: (autorizacionesQuery.data ?? []).filter((a) => a.estado === 'ACTIVA').length,
-      permisos: MOCK_PERMISOS.filter((p) => p.estado === 'ACTIVO').length,
-      pases: MOCK_PASES.length,
+      permisos: (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length,
+      pases: (pasesQuery.data ?? []).filter((p) => p.estado === 'ACTIVO').length,
     }),
-    [vehiculo, autorizacionesQuery.data]
+    [vehiculo, autorizacionesQuery.data, permisosQuery.data, pasesQuery.data]
   );
 
   const handleConfirmLogout = () => {

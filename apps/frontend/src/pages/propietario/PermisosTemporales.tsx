@@ -24,7 +24,7 @@ const PermisosTemporalesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const crearPersonaMutation = useCrearPersona();
   const crearPermisoMutation = useCrearPermiso();
@@ -104,6 +104,14 @@ const PermisosTemporalesPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Permisos temporales">
         <LoadingSkeleton variant="cards" rows={3} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (isErrorVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Permisos temporales">
+        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
       </DashboardTemplate>
     );
   }

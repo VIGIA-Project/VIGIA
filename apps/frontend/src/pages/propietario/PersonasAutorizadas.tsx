@@ -28,7 +28,7 @@ const PersonasAutorizadasPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
   const tieneVehiculos = !!vehiculo;
 
   const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
@@ -117,6 +117,14 @@ const PersonasAutorizadasPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
         <LoadingSkeleton variant="cards" rows={3} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (isErrorVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
       </DashboardTemplate>
     );
   }

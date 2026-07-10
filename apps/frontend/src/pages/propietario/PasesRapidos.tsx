@@ -26,7 +26,7 @@ const PasesRapidosPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
   const pasesQuery = useMisPases();
   const generarPaseMutation = useGenerarPase();
   const revocarPaseMutation = useRevocarPase();
@@ -100,6 +100,14 @@ const PasesRapidosPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
         <LoadingSkeleton variant="cards" rows={3} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (isErrorVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
       </DashboardTemplate>
     );
   }

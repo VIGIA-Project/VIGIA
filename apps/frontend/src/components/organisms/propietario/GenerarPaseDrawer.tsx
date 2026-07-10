@@ -10,10 +10,12 @@ import ConfirmationNumberOutlinedIcon from '@mui/icons-material/ConfirmationNumb
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { addHours, differenceInSeconds, parseISO } from 'date-fns';
+import { differenceInSeconds, parseISO } from 'date-fns';
 import { vigiaColors, vigiaRadius } from '../../../theme/vigia-theme';
-import { MOTIVO_OPTIONS, MOCK_VEHICULOS_PROPIETARIO } from '../../../config/propietario-permisos.config';
-import { DURACION_OPTIONS, generarCodigo, PaseRapido } from '../../../config/propietario-pases.config';
+import { MOTIVO_OPTIONS } from '../../../config/propietario-permisos.config';
+import { DURACION_OPTIONS } from '../../../config/propietario-pases.config';
+import { Vehiculo } from '../../../services/types/registry.types';
+import { GenerarPaseResult } from '../../../services/types/authorization.types';
 
 const IA_GRADIENT = 'linear-gradient(135deg, #19D6C4, #0D5CCF)';
 
@@ -28,16 +30,14 @@ const generarPaseSchema = z.object({
 
 type GenerarPaseFormValues = z.infer<typeof generarPaseSchema>;
 
-const vehiculosActivos = MOCK_VEHICULOS_PROPIETARIO.filter((v) => v.estado === 'ACTIVO');
-
-const EMPTY_VALUES: GenerarPaseFormValues = {
-  nombre: '',
-  cedula: '',
-  relacion: '',
-  vehiculoId: vehiculosActivos.length === 1 ? vehiculosActivos[0].id : '',
-  duracionHoras: 1,
-  motivo: '',
-};
+export interface GenerarPaseData {
+  nombre: string;
+  cedula: string;
+  vehiculoId: string;
+  placa: string;
+  duracionHoras: number;
+  motivo: string;
+}
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
@@ -57,14 +57,28 @@ const formatCountdown = (seconds: number): string => {
 export interface GenerarPaseDrawerProps {
   open: boolean;
   onClose: () => void;
-  onGenerated: (pase: PaseRapido) => void;
+  vehiculo?: Vehiculo;
+  onConfirmed: (data: GenerarPaseData) => Promise<GenerarPaseResult>;
 }
 
-export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onClose, onGenerated }) => {
+export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onClose, vehiculo, onConfirmed }) => {
   const [phase, setPhase] = useState<'form' | 'generated'>('form');
-  const [generatedPase, setGeneratedPase] = useState<PaseRapido | null>(null);
+  const [generatedResult, setGeneratedResult] = useState<GenerarPaseResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const vehiculosActivos = vehiculo ? [vehiculo] : [];
+
+  const EMPTY_VALUES: GenerarPaseFormValues = {
+    nombre: '',
+    cedula: '',
+    relacion: '',
+    vehiculoId: vehiculo?.vehiculoId ?? '',
+    duracionHoras: 1,
+    motivo: '',
+  };
 
   const {
     control,
@@ -82,54 +96,61 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
     if (!open) {
       reset(EMPTY_VALUES);
       setPhase('form');
-      setGeneratedPase(null);
+      setGeneratedResult(null);
       setCopied(false);
+      setSubmitError(null);
     }
-  }, [open, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reset, vehiculo?.vehiculoId]);
 
   useEffect(() => {
-    if (phase !== 'generated' || !generatedPase) return;
-    const expiraEn = addHours(parseISO(generatedPase.generadoEn), generatedPase.duracionHoras);
+    if (phase !== 'generated' || !generatedResult) return;
+    const expiraEn = parseISO(generatedResult.pase.vigenciaFin);
     const tick = () => setRemainingSeconds(Math.max(0, differenceInSeconds(expiraEn, new Date())));
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [phase, generatedPase]);
+  }, [phase, generatedResult]);
 
   const values = watch();
-  const vehiculoSeleccionado = vehiculosActivos.find((v) => v.id === values.vehiculoId);
+  const vehiculoSeleccionado = vehiculosActivos.find((v) => v.vehiculoId === values.vehiculoId);
 
-  const handleGenerar = () => {
+  const handleGenerar = async () => {
     if (!vehiculoSeleccionado) return;
-    const nuevo: PaseRapido = {
-      id: `pr-${Date.now()}`,
-      codigo: generarCodigo(),
-      persona: values.nombre.trim(),
-      cedula: values.cedula,
-      relacion: values.relacion,
-      vehiculo: { marca: vehiculoSeleccionado.marca, modelo: vehiculoSeleccionado.modelo, placa: vehiculoSeleccionado.placa },
-      generadoEn: new Date().toISOString(),
-      duracionHoras: values.duracionHoras,
-      estado: 'ACTIVO',
-      motivo: values.motivo.trim(),
-    };
-    setGeneratedPase(nuevo);
-    setPhase('generated');
-    onGenerated(nuevo);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await onConfirmed({
+        nombre: values.nombre.trim(),
+        cedula: values.cedula,
+        vehiculoId: vehiculoSeleccionado.vehiculoId,
+        placa: vehiculoSeleccionado.placa,
+        duracionHoras: values.duracionHoras,
+        motivo: `${values.relacion} — ${values.motivo.trim()}`,
+      });
+      setGeneratedResult(result);
+      setPhase('generated');
+    } catch (err) {
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const message = axiosErr.response?.data?.message;
+      setSubmitError((Array.isArray(message) ? message[0] : message) || 'No se pudo generar el pase. Intente nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCopy = () => {
-    if (!generatedPase) return;
-    navigator.clipboard?.writeText(generatedPase.codigo);
+    if (!generatedResult) return;
+    navigator.clipboard?.writeText(generatedResult.codigoPlano);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = () => {
-    if (!generatedPase) return;
+    if (!generatedResult) return;
     navigator.share?.({
       title: 'Pase de acceso VIGIA',
-      text: `Código de acceso VIGIA: ${generatedPase.codigo} — válido para ${generatedPase.persona}.`,
+      text: `Código de acceso VIGIA: ${generatedResult.codigoPlano} — válido para ${values.nombre}.`,
     });
   };
 
@@ -235,7 +256,7 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
                   render={({ field }) => (
                     <TextField {...field} select label="Vehículo" error={!!errors.vehiculoId} helperText={errors.vehiculoId?.message} fullWidth required sx={inputSx}>
                       {vehiculosActivos.map((v) => (
-                        <MenuItem key={v.id} value={v.id}>{v.marca} {v.modelo} · {v.placa}</MenuItem>
+                        <MenuItem key={v.vehiculoId} value={v.vehiculoId}>{v.marca} {v.modelo} · {v.placa}</MenuItem>
                       ))}
                     </TextField>
                   )}
@@ -282,25 +303,31 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
                 />
               </Box>
 
+              {submitError && (
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#DC2626', mt: 1.5 }}>
+                  {submitError}
+                </Typography>
+              )}
+
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 3 }}>
                 <Button
                   fullWidth
                   variant="contained"
                   onClick={handleSubmit(handleGenerar)}
-                  disabled={!isValid}
+                  disabled={!isValid || submitting}
                   sx={{
-                    background: !isValid ? 'rgba(13,92,207,0.3)' : IA_GRADIENT,
+                    background: !isValid || submitting ? 'rgba(13,92,207,0.3)' : IA_GRADIENT,
                     fontFamily: '"Inter", sans-serif',
                     fontWeight: 600,
                     textTransform: 'none',
                     borderRadius: '12px',
                     height: 50,
-                    boxShadow: !isValid ? 'none' : '0 4px 14px rgba(13, 92, 207, 0.3)',
+                    boxShadow: !isValid || submitting ? 'none' : '0 4px 14px rgba(13, 92, 207, 0.3)',
                     transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                    '&:hover': { boxShadow: !isValid ? 'none' : '0 8px 22px rgba(13, 92, 207, 0.4)', transform: !isValid ? 'none' : 'translateY(-2px)' },
+                    '&:hover': { boxShadow: !isValid || submitting ? 'none' : '0 8px 22px rgba(13, 92, 207, 0.4)', transform: !isValid || submitting ? 'none' : 'translateY(-2px)' },
                   }}
                 >
-                  Generar pase
+                  {submitting ? 'Generando...' : 'Generar pase'}
                 </Button>
                 <Button fullWidth variant="text" onClick={onClose} sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', color: '#64748B' }}>
                   Cancelar
@@ -308,7 +335,7 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
               </Box>
             </motion.div>
           ) : (
-            generatedPase && (
+            generatedResult && (
               <motion.div
                 key="generated"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -325,7 +352,7 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
                       color: '#0A2F86',
                     }}
                   >
-                    {generatedPase.codigo}
+                    {generatedResult.codigoPlano}
                   </Typography>
 
                   <Box sx={{ px: 1.5, py: 0.4, borderRadius: vigiaRadius.full, backgroundColor: '#DCFCE7', color: '#166534', fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.75rem' }}>
@@ -339,12 +366,12 @@ export const GenerarPaseDrawer: React.FC<GenerarPaseDrawerProps> = ({ open, onCl
                   <Box sx={{ mt: 1, width: '100%', borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', p: 2, textAlign: 'left' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
                       <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B' }}>Persona</Typography>
-                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.82rem', color: '#0F172A' }}>{generatedPase.persona}</Typography>
+                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.82rem', color: '#0F172A' }}>{values.nombre}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderTop: '1px solid #F1F5F9' }}>
                       <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B' }}>Vehículo</Typography>
                       <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.82rem', color: '#0F172A' }}>
-                        {generatedPase.vehiculo.marca} {generatedPase.vehiculo.modelo} · {generatedPase.vehiculo.placa}
+                        {vehiculoSeleccionado ? `${vehiculoSeleccionado.marca} ${vehiculoSeleccionado.modelo} · ${vehiculoSeleccionado.placa}` : '—'}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderTop: '1px solid #F1F5F9' }}>

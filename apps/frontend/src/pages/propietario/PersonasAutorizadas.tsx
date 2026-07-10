@@ -4,19 +4,21 @@ import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import DirectionsCarFilledOutlinedIcon from '@mui/icons-material/DirectionsCarFilledOutlined';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PersonasGrid, AddPersonaDrawer, RevokePersonaModal } from '../../components/organisms/propietario';
+import { ErrorState, LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
-import { buildInitialVehiculos } from '../../config/propietario-vehiculos.config';
+import { usePropietarioVehiculo, useCrearPersona, usePersonasDelPropietario as usePersonasResolver } from '../../hooks/useRegistry';
+import { useAutorizacionesPorVehiculo, useCrearAutorizacion, useRevocarAutorizacion } from '../../hooks/useAuthorization';
 import {
   PersonaAutorizada,
   FAMILIA_MAX_MIEMBROS,
   PERSONAS_HEADER_COPY,
   ADD_PERSONA_DRAWER_COPY,
   REVOKE_PERSONA_MODAL_COPY,
-  loadPersonas,
-  savePersonas,
+  mapAutorizacionAPersona,
 } from '../../config/propietario-personas.config';
 
 const PersonasAutorizadasPage: React.FC = () => {
@@ -26,12 +28,28 @@ const PersonasAutorizadasPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tieneVehiculos = useMemo(() => buildInitialVehiculos().length > 0, []);
+  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
+  const tieneVehiculos = !!vehiculo;
 
-  const [personas, setPersonas] = useState<PersonaAutorizada[]>(loadPersonas);
+  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const crearPersonaMutation = useCrearPersona();
+  const crearAutorizacionMutation = useCrearAutorizacion();
+  const revocarAutorizacionMutation = useRevocarAutorizacion(vehiculo?.vehiculoId);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Las autorizaciones de Authorization solo traen personaId — se resuelven
+  // nombre/cédula/teléfono/biometría vía Registry en un solo lote.
+  const autorizaciones = autorizacionesQuery.data ?? [];
+  const personaIds = useMemo(() => autorizaciones.map((a) => a.personaId), [autorizaciones]);
+  const { personasById, isLoading: isLoadingPersonas } = usePersonasResolver(personaIds);
+
+  const personas: PersonaAutorizada[] = useMemo(
+    () => autorizaciones.map((a) => mapAutorizacionAPersona(a, personasById.get(a.personaId))),
+    [autorizaciones, personasById]
+  );
 
   useEffect(() => {
     if ((location.state as { openDrawer?: boolean } | null)?.openDrawer && tieneVehiculos) {
@@ -43,33 +61,65 @@ const PersonasAutorizadasPage: React.FC = () => {
   const activas = personas.filter((p) => p.estado === 'ACTIVA').length;
   const limitReached = activas >= FAMILIA_MAX_MIEMBROS;
 
-  const handleConfirmed = (nueva: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>, biometriaPresencial: boolean) => {
-    const persona: PersonaAutorizada = {
-      ...nueva,
-      id: `per-${Date.now()}`,
-      estado: 'ACTIVA',
-      autorizadoDesde: new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }),
-    };
-    const next = [persona, ...personas];
-    setPersonas(next);
-    savePersonas(next);
-    setDrawerOpen(false);
+  const extractErrorMessage = (err: unknown, fallback: string): string => {
+    const axiosErr = err as AxiosError<{ message?: string | string[] }>;
+    const message = axiosErr.response?.data?.message;
+    return (Array.isArray(message) ? message[0] : message) || fallback;
+  };
 
-    if (biometriaPresencial) {
-      setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPresencial);
-      setTimeout(() => navigate(`/propietario/personas/${persona.id}/biometria`), 1200);
-    } else {
-      setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPendiente);
+  const handleConfirmed = async (
+    nueva: Omit<PersonaAutorizada, 'id' | 'personaId' | 'estado' | 'autorizadoDesde'>,
+    biometriaPresencial: boolean
+  ) => {
+    if (!vehiculo) return;
+    const [nombres, ...resto] = nueva.nombre.trim().split(/\s+/);
+    const apellidos = resto.join(' ') || nombres;
+
+    try {
+      const persona = await crearPersonaMutation.mutateAsync({
+        identificacionTipo: 'CEDULA',
+        identificacionNumero: nueva.cedula,
+        nombres,
+        apellidos,
+        telefonoContacto: nueva.telefono,
+      });
+
+      const autorizacion = await crearAutorizacionMutation.mutateAsync({
+        personaId: persona.personaId,
+        vehiculoId: vehiculo.vehiculoId,
+        relacion: nueva.relacion,
+      });
+
+      setDrawerOpen(false);
+
+      if (biometriaPresencial) {
+        setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPresencial);
+        setTimeout(() => navigate(`/propietario/personas/${autorizacion.id}/biometria`), 1200);
+      } else {
+        setToastMessage(ADD_PERSONA_DRAWER_COPY.successToastPendiente);
+      }
+    } catch (err) {
+      setToastMessage(extractErrorMessage(err, 'No se pudo autorizar a la persona. Intente nuevamente.'));
     }
   };
 
-  const handleRevoke = (id: string, _motivo: string) => {
-    const next = personas.map((p) => (p.id === id ? { ...p, estado: 'REVOCADA' as const } : p));
-    setPersonas(next);
-    savePersonas(next);
-    setRevokeTarget(null);
-    setToastMessage(REVOKE_PERSONA_MODAL_COPY.successToast);
+  const handleRevoke = async (id: string, _motivo: string) => {
+    try {
+      await revocarAutorizacionMutation.mutateAsync(id);
+      setRevokeTarget(null);
+      setToastMessage(REVOKE_PERSONA_MODAL_COPY.successToast);
+    } catch (err) {
+      setToastMessage(extractErrorMessage(err, 'No se pudo revocar la autorización.'));
+    }
   };
+
+  if (isLoadingVehiculo) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+        <LoadingSkeleton variant="cards" rows={3} />
+      </DashboardTemplate>
+    );
+  }
 
   if (!tieneVehiculos) {
     return (
@@ -140,19 +190,25 @@ const PersonasAutorizadasPage: React.FC = () => {
           </Box>
         </motion.div>
 
-        <PersonasGrid
-          personas={personas}
-          onAdd={() => setDrawerOpen(true)}
-          onViewDetail={(id) => navigate(`/propietario/personas/${id}`)}
-          onRegisterBio={(id) => navigate(`/propietario/personas/${id}/biometria`)}
-          onRevoke={(persona) => setRevokeTarget(persona)}
-        />
+        {autorizacionesQuery.isLoading || isLoadingPersonas ? (
+          <LoadingSkeleton variant="cards" rows={3} />
+        ) : autorizacionesQuery.isError ? (
+          <ErrorState mensaje="No se pudieron cargar las personas autorizadas." onRetry={() => autorizacionesQuery.refetch()} />
+        ) : (
+          <PersonasGrid
+            personas={personas}
+            onAdd={() => setDrawerOpen(true)}
+            onViewDetail={(id) => navigate(`/propietario/personas/${id}`)}
+            onRegisterBio={(id) => navigate(`/propietario/personas/${id}/biometria`)}
+            onRevoke={(persona) => setRevokeTarget(persona)}
+          />
+        )}
       </Box>
 
       <AddPersonaDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onConfirmed={handleConfirmed} cuposUsados={activas} />
       <RevokePersonaModal persona={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
 
-      <Snackbar open={!!toastMessage} autoHideDuration={3500} onClose={() => setToastMessage(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+      <Snackbar open={!!toastMessage} autoHideDuration={4000} onClose={() => setToastMessage(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity="success" variant="filled" onClose={() => setToastMessage(null)} sx={{ borderRadius: vigiaRadius.sm }}>
           {toastMessage}
         </Alert>

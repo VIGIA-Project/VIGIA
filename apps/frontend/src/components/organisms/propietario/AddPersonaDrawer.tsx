@@ -30,7 +30,10 @@ const EMPTY_VALUES: AddPersonaFormValues = { nombre: '', cedula: '', relacion: '
 export interface AddPersonaDrawerProps {
   open: boolean;
   onClose: () => void;
-  onConfirmed: (persona: Omit<PersonaAutorizada, 'id' | 'estado' | 'autorizadoDesde'>, biometriaPresencial: boolean) => void;
+  onConfirmed: (
+    persona: Omit<PersonaAutorizada, 'id' | 'personaId' | 'estado' | 'autorizadoDesde'>,
+    biometriaPresencial: boolean
+  ) => void;
   cuposUsados: number;
 }
 

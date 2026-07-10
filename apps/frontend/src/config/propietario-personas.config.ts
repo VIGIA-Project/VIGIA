@@ -1,12 +1,21 @@
 // src/config/propietario-personas.config.ts
-// Mock data y contenido de "Personas autorizadas" — Dashboard PROPIETARIO v1.2 §13-14
+// Contenido y tipos de "Personas autorizadas" — Dashboard PROPIETARIO v1.2 §13-14
+// Los datos ahora vienen de Authorization + Registry (ver mapAutorizacionAPersona) —
+// este archivo conserva el "view model" que ya consumen PersonaCard/PersonasGrid/etc.
+
+import { format } from 'date-fns';
+import { AutorizacionPermanente } from '../services/types/authorization.types';
+import { Persona } from '../services/types/registry.types';
 
 export type PersonaTipo = 'familia' | 'frecuente';
 export type PersonaBiometria = 'COMPLETADA' | 'PENDIENTE';
 export type PersonaEstado = 'ACTIVA' | 'REVOCADA';
 
 export interface PersonaAutorizada {
+  /** id de la AutorizacionPermanente — usado para revocar */
   id: string;
+  /** id de la Persona en Registry — usado para resolver biometría/navegación secundaria */
+  personaId: string;
   nombre: string;
   cedula: string;
   relacion: string;
@@ -17,6 +26,29 @@ export interface PersonaAutorizada {
   autorizadoDesde: string;
 }
 
+/** Enmascara una cédula real al mismo formato que usaban los mocks (17XXXXXX45). */
+const enmascararCedula = (numero: string): string => {
+  if (numero.length <= 4) return numero;
+  return `${numero.slice(0, 2)}${'X'.repeat(numero.length - 4)}${numero.slice(-2)}`;
+};
+
+/** Combina una AutorizacionPermanente (Authorization) con su Persona (Registry). */
+export const mapAutorizacionAPersona = (
+  autorizacion: AutorizacionPermanente,
+  persona?: Persona
+): PersonaAutorizada => ({
+  id: autorizacion.id,
+  personaId: autorizacion.personaId,
+  nombre: persona?.nombreCompleto ?? 'Cargando…',
+  cedula: persona ? enmascararCedula(persona.identificacionNumero) : '—',
+  relacion: autorizacion.relacion,
+  tipo: tipoFromRelacion(autorizacion.relacion),
+  biometria: persona?.estadoBiometrico === 'COMPLETO' ? 'COMPLETADA' : 'PENDIENTE',
+  estado: autorizacion.estado === 'ACTIVA' ? 'ACTIVA' : 'REVOCADA',
+  telefono: persona?.telefonoContacto,
+  autorizadoDesde: format(new Date(autorizacion.fechaCreacion), "dd MMM yyyy"),
+});
+
 export const FAMILIA_MAX_MIEMBROS = 5;
 
 // Los grupos "familia" y "frecuente" derivan de la relación seleccionada — no hay un
@@ -24,43 +56,6 @@ export const FAMILIA_MAX_MIEMBROS = 5;
 export const RELACION_OPTIONS = ['Cónyuge', 'Hijo/a', 'Familiar', 'Chofer', 'Visitante frecuente', 'Otro'] as const;
 const RELACIONES_FRECUENTES = new Set(['Chofer', 'Visitante frecuente']);
 export const tipoFromRelacion = (relacion: string): PersonaTipo => (RELACIONES_FRECUENTES.has(relacion) ? 'frecuente' : 'familia');
-
-// Mismos datos que se muestran en la tab "Personas autorizadas" del detalle de vehículo.
-export const MOCK_PERSONAS: PersonaAutorizada[] = [
-  {
-    id: 'per-1',
-    nombre: 'Andrea Torres',
-    cedula: '17XXXXXX45',
-    relacion: 'Cónyuge',
-    tipo: 'familia',
-    biometria: 'COMPLETADA',
-    estado: 'ACTIVA',
-    telefono: '0991234567',
-    autorizadoDesde: '15 May 2026',
-  },
-  {
-    id: 'per-2',
-    nombre: 'Luis Pérez',
-    cedula: '17XXXXXX12',
-    relacion: 'Hijo',
-    tipo: 'familia',
-    biometria: 'PENDIENTE',
-    estado: 'ACTIVA',
-    telefono: '0987654321',
-    autorizadoDesde: '02 Jun 2026',
-  },
-  {
-    id: 'per-3',
-    nombre: 'Carlos Ruiz',
-    cedula: '10XXXXXX78',
-    relacion: 'Chofer',
-    tipo: 'frecuente',
-    biometria: 'COMPLETADA',
-    estado: 'ACTIVA',
-    telefono: '0998765432',
-    autorizadoDesde: '20 Jun 2026',
-  },
-];
 
 export const PERSONAS_HEADER_COPY = {
   title: 'Personas autorizadas',
@@ -162,28 +157,6 @@ export const REVOKE_PERSONA_MODAL_COPY = {
   confirmCta: 'Revocar autorización',
   successToast: 'Autorización revocada',
 } as const;
-
-// Persistencia mock en localStorage — permite que altas/ediciones sobrevivan la navegación
-// entre PersonasAutorizadas, PersonaDetallePage y BiometricCapturePersonaPage sin backend real.
-const PERSONAS_STORAGE_KEY = 'vigia_personas_autorizadas';
-
-export const loadPersonas = (): PersonaAutorizada[] => {
-  try {
-    const raw = localStorage.getItem(PERSONAS_STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as PersonaAutorizada[];
-  } catch {
-    // localStorage no disponible o dato corrupto — se recurre al mock
-  }
-  return MOCK_PERSONAS;
-};
-
-export const savePersonas = (personas: PersonaAutorizada[]): void => {
-  try {
-    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(personas));
-  } catch {
-    // Almacenamiento no disponible — la sesión continúa solo con estado en memoria
-  }
-};
 
 export const PERSONA_DETALLE_COPY = {
   backLabel: 'Volver a Personas autorizadas',

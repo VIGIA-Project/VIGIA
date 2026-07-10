@@ -1,49 +1,81 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
-import Grid from '@mui/material/Grid2';
-import Divider from '@mui/material/Divider';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import Chip from '@mui/material/Chip';
-import EditIcon from '@mui/icons-material/Edit';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PageHeader from '../../../components/admin-legacy/PageHeader';
-import StatusChip from '../../../components/admin-legacy/StatusChip';
-import DataTable, { type Column } from '../../../components/admin-legacy/DataTable';
-import EditPersonaModal from './EditPersonaModal';
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Box from "@mui/material/Box";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Avatar from "@mui/material/Avatar";
+import Grid from "@mui/material/Grid2";
+import Divider from "@mui/material/Divider";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import Chip from "@mui/material/Chip";
+import EditIcon from "@mui/icons-material/Edit";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import PageHeader from "../../../components/admin-legacy/PageHeader";
+import StatusChip from "../../../components/admin-legacy/StatusChip";
+import DataTable, {
+  type Column,
+} from "../../../components/admin-legacy/DataTable";
+import EditPersonaModal from "./EditPersonaModal";
+import { loadPersonas } from "../../../config/propietario-personas.config";
 
 interface VehiculoAsoc {
   id: number;
   placa: string;
   marca: string;
   modelo: string;
-  relacion: 'Propietario' | 'Conductor Autorizado';
+  relacion: "Propietario" | "Conductor Autorizado";
 }
 
 const vehiculos: VehiculoAsoc[] = [
-  { id: 1, placa: 'ABC-0123', marca: 'Toyota', modelo: 'Corolla 2022', relacion: 'Propietario' },
-  { id: 2, placa: 'PBC-1231', marca: 'Chevrolet', modelo: 'Spark 2021', relacion: 'Conductor Autorizado' },
+  {
+    id: 1,
+    placa: "ABC-0123",
+    marca: "Toyota",
+    modelo: "Corolla 2022",
+    relacion: "Propietario",
+  },
+  {
+    id: 2,
+    placa: "PBC-1231",
+    marca: "Chevrolet",
+    modelo: "Spark 2021",
+    relacion: "Conductor Autorizado",
+  },
 ];
 
 const rolesHistorial = [
-  { id: 1, rol: 'Docente Tiempo Completo', facultad: 'Ingeniería', desde: '2021-09-15', hasta: null, vigente: true },
-  { id: 2, rol: 'Docente Ocasional', facultad: 'Ingeniería', desde: '2019-03-01', hasta: '2021-09-14', vigente: false },
+  {
+    id: 1,
+    rol: "Docente Tiempo Completo",
+    facultad: "Ingeniería",
+    desde: "2021-09-15",
+    hasta: null,
+    vigente: true,
+  },
+  {
+    id: 2,
+    rol: "Docente Ocasional",
+    facultad: "Ingeniería",
+    desde: "2019-03-01",
+    hasta: "2021-09-14",
+    vigente: false,
+  },
 ];
 
 const biometriaInfo = [
-  { label: 'Estado de perfil', value: 'DISPONIBLE' },
-  { label: 'Última actualización', value: '2024-08-15 10:32' },
-  { label: 'Calidad de captura', value: 'Alta (0.92)' },
-  { label: 'Representaciones', value: '3 activas (frontal, izquierda, derecha)' },
+  { label: "Estado de perfil", value: "DISPONIBLE" },
+  { label: "Última actualización", value: "2024-08-15 10:32" },
+  { label: "Calidad de captura", value: "Alta (0.92)" },
+  {
+    label: "Representaciones",
+    value: "3 activas (frontal, izquierda, derecha)",
+  },
 ];
 
 export default function PersonaDetail() {
@@ -52,37 +84,86 @@ export default function PersonaDetail() {
   const [tab, setTab] = useState(0);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const currentPersonaData = {
-    identificacion: '1712345678',
-    tipoId: 'Cédula',
-    nombres: 'María Fernanda',
-    apellidos: 'López',
-    correo: 'mflopez@uce.edu.ec',
-    telefono: '0991234567',
-    facultad: 'Ingeniería',
-    carrera: 'Sistemas',
-    rol: 'Docente',
-    estado: 'PENDIENTE_BIOMETRIA',
-  };
+  const personas = loadPersonas();
+  const found = personas.find((pp) => String(pp.id) === String(id));
+
+  const currentPersonaData = found
+    ? {
+        identificacion: found.cedula,
+        tipoId: "Cédula",
+        nombres: found.nombre.split(" ").slice(0, -1).join(" ") || found.nombre,
+        apellidos: found.nombre.split(" ").slice(-1).join(" "),
+        correo: found.telefono ? `${found.telefono}@placeholder.local` : "",
+        telefono: found.telefono || "",
+        facultad: "",
+        carrera: "",
+        rol: found.relacion,
+        estado: found.estado === "ACTIVA" ? "PENDIENTE_BIOMETRIA" : "REVOCADA",
+      }
+    : {
+        identificacion: "1712345678",
+        tipoId: "Cédula",
+        nombres: "María Fernanda",
+        apellidos: "López",
+        correo: "mflopez@uce.edu.ec",
+        telefono: "0991234567",
+        facultad: "Ingeniería",
+        carrera: "Sistemas",
+        rol: "Docente",
+        estado: "PENDIENTE_BIOMETRIA",
+      };
 
   const vehiculoCols: Column<VehiculoAsoc>[] = [
-    { id: 'placa', label: 'Placa', render: (r) => <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>{r.placa}</Typography> },
-    { id: 'marca', label: 'Marca', render: (r) => r.marca },
-    { id: 'modelo', label: 'Modelo', render: (r) => r.modelo },
-    { id: 'relacion', label: 'Relación', render: (r) => <Chip label={r.relacion} size="small" color={r.relacion === 'Propietario' ? 'primary' : 'default'} /> },
+    {
+      id: "placa",
+      label: "Placa",
+      render: (r) => (
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, color: "primary.main" }}
+        >
+          {r.placa}
+        </Typography>
+      ),
+    },
+    { id: "marca", label: "Marca", render: (r) => r.marca },
+    { id: "modelo", label: "Modelo", render: (r) => r.modelo },
+    {
+      id: "relacion",
+      label: "Relación",
+      render: (r) => (
+        <Chip
+          label={r.relacion}
+          size="small"
+          color={r.relacion === "Propietario" ? "primary" : "default"}
+        />
+      ),
+    },
   ];
 
   return (
     <Box>
       <PageHeader
         title="Detalle de Persona"
-        breadcrumbs={[{ label: 'Registry', href: '#/admin/registry/personas' }, { label: 'Personas', href: '#/admin/registry/personas' }, { label: `ID ${id}` }]}
+        breadcrumbs={[
+          { label: "Registry", href: "#/admin/registry/personas" },
+          { label: "Personas", href: "#/admin/registry/personas" },
+          { label: `ID ${id}` },
+        ]}
         action={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/admin/registry/personas')}>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/admin/registry/personas")}
+            >
               Volver
             </Button>
-            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditModalOpen(true)}>
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => setEditModalOpen(true)}
+            >
               Editar
             </Button>
           </Box>
@@ -91,18 +172,53 @@ export default function PersonaDetail() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Avatar sx={{ width: 72, height: 72, fontSize: '1.8rem', bgcolor: 'primary.main' }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 3,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 72,
+                height: 72,
+                fontSize: "1.8rem",
+                bgcolor: "primary.main",
+              }}
+            >
               M
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 200 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>María Fernanda López</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>mflopez@uce.edu.ec · 1712345678</Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                María Fernanda López
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                mflopez@uce.edu.ec · 1712345678
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <StatusChip kind="cuenta" value="PENDIENTE_BIOMETRIA" />
-                <Chip label="Docente" size="small" color="primary" variant="outlined" />
-                <Chip label="Acceso al Sistema" size="small" color="primary" variant="outlined" sx={{ fontWeight: 600 }} />
-                <Chip label="Agregado" size="small" color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />
+                <Chip
+                  label="Docente"
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+                <Chip
+                  label="Acceso al Sistema"
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
+                <Chip
+                  label="Agregado"
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
               </Box>
             </Box>
           </Box>
@@ -110,8 +226,14 @@ export default function PersonaDetail() {
       </Card>
 
       <Card>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }} variant="scrollable" scrollButtons="auto">
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            sx={{ px: 2 }}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
             <Tab label="Resumen" />
             <Tab label="Acceso y Vinculación" />
             <Tab label="Roles" />
@@ -123,22 +245,28 @@ export default function PersonaDetail() {
           {tab === 0 && (
             <Grid container spacing={3}>
               {[
-                ['Identificación', '1712345678'],
-                ['Tipo de identificación', 'Cédula'],
-                ['Nombres', 'María Fernanda'],
-                ['Apellidos', 'López'],
-                ['Correo institucional', 'mflopez@uce.edu.ec'],
-                ['Teléfono', '0991234567'],
-                ['Facultad', 'Ingeniería'],
-                ['Carrera', 'Sistemas'],
-                ['Fecha de registro', '2021-09-15'],
-                ['Última modificación', '2024-08-15'],
+                ["Identificación", "1712345678"],
+                ["Tipo de identificación", "Cédula"],
+                ["Nombres", "María Fernanda"],
+                ["Apellidos", "López"],
+                ["Correo institucional", "mflopez@uce.edu.ec"],
+                ["Teléfono", "0991234567"],
+                ["Facultad", "Ingeniería"],
+                ["Carrera", "Sistemas"],
+                ["Fecha de registro", "2021-09-15"],
+                ["Última modificación", "2024-08-15"],
               ].map(([label, value]) => (
                 <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, display: "block" }}
+                  >
                     {label}
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{value}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {value}
+                  </Typography>
                 </Grid>
               ))}
             </Grid>
@@ -146,20 +274,52 @@ export default function PersonaDetail() {
           {tab === 1 && (
             <Grid container spacing={4}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>Estado de Cuenta</Typography>
-                 <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                   <Chip label="Acceso al Sistema" color="primary" size="small" />
-                   <Typography variant="body2" sx={{ fontWeight: 500 }}>Posee credenciales de acceso al sistema.</Typography>
-                 </Box>
-                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>Último inicio de sesión: 2024-08-19 14:32</Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, display: "block", mb: 1 }}
+                >
+                  Estado de Cuenta
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                  <Chip
+                    label="Acceso al Sistema"
+                    color="primary"
+                    size="small"
+                  />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Posee credenciales de acceso al sistema.
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1.5 }}
+                >
+                  Último inicio de sesión: 2024-08-19 14:32
+                </Typography>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>Vinculación Externa</Typography>
-                 <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                   <Chip label="Agregado" color="secondary" size="small" />
-                   <Typography variant="body2" sx={{ fontWeight: 500 }}>Forma parte de un grupo familiar o de invitados.</Typography>
-                 </Box>
-                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>Persona vinculante: Carlos Andrés Mendoza</Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, display: "block", mb: 1 }}
+                >
+                  Vinculación Externa
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                  <Chip label="Agregado" color="secondary" size="small" />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Forma parte de un grupo familiar o de invitados.
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1.5 }}
+                >
+                  Persona vinculante: Carlos Andrés Mendoza
+                </Typography>
               </Grid>
             </Grid>
           )}
@@ -170,14 +330,24 @@ export default function PersonaDetail() {
                   <ListItem sx={{ px: 0 }}>
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.rol}</Typography>
-                          {r.vigente && <Chip label="Vigente" size="small" color="success" />}
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {r.rol}
+                          </Typography>
+                          {r.vigente && (
+                            <Chip
+                              label="Vigente"
+                              size="small"
+                              color="success"
+                            />
+                          )}
                         </Box>
                       }
                       secondary={
                         <Typography variant="caption" color="text.secondary">
-                          {r.facultad} · {r.desde} → {r.hasta ?? 'actualidad'}
+                          {r.facultad} · {r.desde} → {r.hasta ?? "actualidad"}
                         </Typography>
                       }
                     />
@@ -188,23 +358,33 @@ export default function PersonaDetail() {
             </List>
           )}
           {tab === 3 && (
-            <DataTable columns={vehiculoCols} rows={vehiculos} searchKeys={(r) => `${r.placa} ${r.marca}`} />
+            <DataTable
+              columns={vehiculoCols}
+              rows={vehiculos}
+              searchKeys={(r) => `${r.placa} ${r.marca}`}
+            />
           )}
           {tab === 4 && (
             <Grid container spacing={2}>
               {biometriaInfo.map((item) => (
                 <Grid key={item.label} size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, display: "block" }}
+                  >
                     {item.label}
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{item.value}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {item.value}
+                  </Typography>
                 </Grid>
               ))}
             </Grid>
           )}
         </CardContent>
       </Card>
-      
+
       <EditPersonaModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}

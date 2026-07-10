@@ -66,6 +66,8 @@ export class UserRepositoryImpl implements IUserRepository {
             status: user.status,
             mustChangePassword: user.mustChangePassword,
             personaId: user.personaId ?? null,
+            biometricRegistered: user.biometricRegistered,
+            vehicleRegistered: user.vehicleRegistered,
         });
         const saved = await this.repo.save(orm);
         return this.toDomain(saved);
@@ -77,6 +79,8 @@ export class UserRepositoryImpl implements IUserRepository {
             passwordHash: string;
             status: string;
             mustChangePassword: boolean;
+            biometricRegistered: boolean;
+            vehicleRegistered: boolean;
             updatedBy: string;
         }>,
     ): Promise<User> {
@@ -84,6 +88,8 @@ export class UserRepositoryImpl implements IUserRepository {
         if (data.passwordHash !== undefined) updateData.passwordHash = data.passwordHash;
         if (data.status !== undefined) updateData.status = data.status;
         if (data.mustChangePassword !== undefined) updateData.mustChangePassword = data.mustChangePassword;
+        if (data.biometricRegistered !== undefined) updateData.biometricRegistered = data.biometricRegistered;
+        if (data.vehicleRegistered !== undefined) updateData.vehicleRegistered = data.vehicleRegistered;
         if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
 
         await this.repo
@@ -107,6 +113,8 @@ export class UserRepositoryImpl implements IUserRepository {
             status: orm.status as UserStatus,
             mustChangePassword: orm.mustChangePassword,
             personaId: orm.personaId ?? undefined,
+            biometricRegistered: orm.biometricRegistered,
+            vehicleRegistered: orm.vehicleRegistered,
             createdAt: orm.createdAt,
             updatedAt: orm.updatedAt,
         });

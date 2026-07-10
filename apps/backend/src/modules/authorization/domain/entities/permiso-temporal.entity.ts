@@ -64,6 +64,23 @@ export class PermisoTemporal {
     return this._fechaRevocacion;
   }
 
+  /** Serialización pública — evita filtrar los campos privados `_estado`/`_fechaRevocacion`. */
+  toJSON() {
+    return {
+      id: this.id,
+      personaId: this.personaId,
+      vehiculoId: this.vehiculoId,
+      propietarioId: this.propietarioId,
+      tipo: this.tipo,
+      estado: this.estado,
+      vigenciaInicio: this.vigencia.inicio,
+      vigenciaFin: this.vigencia.fin,
+      motivo: this.motivo,
+      fechaCreacion: this.fechaCreacion,
+      fechaRevocacion: this.fechaRevocacion,
+    };
+  }
+
   validarVigenciaMaxima(): void {
     if (this.vigencia.duracionEnDias() > VIGENCIA_MAXIMA_DIAS) {
       throw new BusinessRuleViolationException(

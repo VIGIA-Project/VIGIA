@@ -85,6 +85,29 @@ export class PaseAccesoRapido {
     return this._eventoConsumoId;
   }
 
+  /**
+   * Serialización pública — evita filtrar los campos privados
+   * (`_estado`, `_fechaConsumo`, `_eventoConsumoId`) y, crucialmente,
+   * el `codigoHash` (nunca debe viajar en una respuesta HTTP).
+   */
+  toJSON() {
+    return {
+      id: this.id,
+      vehiculoId: this.vehiculoId,
+      propietarioId: this.propietarioId,
+      placa: this.placa,
+      estado: this.estado,
+      vigenciaInicio: this.vigencia.inicio,
+      vigenciaFin: this.vigencia.fin,
+      nombreVisitante: this.nombreVisitante,
+      cedulaVisitante: this.cedulaVisitante,
+      motivo: this.motivo,
+      fechaCreacion: this.fechaCreacion,
+      fechaConsumo: this.fechaConsumo,
+      eventoConsumoId: this.eventoConsumoId,
+    };
+  }
+
   consumir(eventoId: string): void {
     if (!esTransicionPaseValida(this._estado, EstadoPase.CONSUMIDO)) {
       throw new BusinessRuleViolationException(

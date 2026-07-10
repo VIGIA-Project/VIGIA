@@ -56,6 +56,21 @@ export class AutorizacionPermanente {
     return this._fechaActualizacion;
   }
 
+  /** Serialización pública — evita filtrar los campos privados `_estado`/`_fechaActualizacion`. */
+  toJSON() {
+    return {
+      id: this.id,
+      personaId: this.personaId,
+      vehiculoId: this.vehiculoId,
+      propietarioId: this.propietarioId,
+      tipo: this.tipo,
+      estado: this.estado,
+      relacion: this.relacion,
+      fechaCreacion: this.fechaCreacion,
+      fechaActualizacion: this.fechaActualizacion,
+    };
+  }
+
   private transicionar(nuevoEstado: EstadoAutorizacion): void {
     if (!esTransicionValida(this._estado, nuevoEstado)) {
       throw new BusinessRuleViolationException(

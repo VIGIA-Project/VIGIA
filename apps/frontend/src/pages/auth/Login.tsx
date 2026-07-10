@@ -38,8 +38,8 @@ interface ApiEnvelope<T> {
 }
 
 const authenticate = async (email: string, password: string): Promise<AuthResponse> => {
-  const envelope = await apiPost<ApiEnvelope<AuthResponse>>('/auth/login', { email, password });
-  return envelope.data;
+  const response = await apiPost<AuthResponse>('/auth/login', { email, password });
+  return response;
 };
 
 // ═══════════════════════════════════════════════════════════════

@@ -17,4 +17,8 @@ export interface IAutorizacionPermanenteRepository {
   existeAutorizacionActiva(personaId: string, vehiculoId: string): Promise<boolean>;
 
   buscarPorPropietario(propietarioId: string): Promise<AutorizacionPermanente[]>;
+
+  buscarTodas(): Promise<AutorizacionPermanente[]>;
+
+  contarActivas(): Promise<number>;
 }

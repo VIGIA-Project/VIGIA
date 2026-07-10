@@ -31,10 +31,10 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
   ): Promise<PermisoTemporal[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.vehiculo_id = :vehiculoId', { vehiculoId })
+      .where('p.vehiculoId = :vehiculoId', { vehiculoId })
       .andWhere('p.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
-      .andWhere('p.vigencia_inicio <= :instante', { instante })
-      .andWhere('p.vigencia_fin >= :instante', { instante })
+      .andWhere('p.vigenciaInicio <= :instante', { instante })
+      .andWhere('p.vigenciaFin >= :instante', { instante })
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
@@ -45,9 +45,9 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
   ): Promise<PermisoTemporal[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.persona_id = :personaId', { personaId })
-      .andWhere('p.vehiculo_id = :vehiculoId', { vehiculoId })
-      .orderBy('p.created_at', 'DESC')
+      .where('p.personaId = :personaId', { personaId })
+      .andWhere('p.vehiculoId = :vehiculoId', { vehiculoId })
+      .orderBy('p.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
@@ -55,8 +55,8 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
   async buscarPorPersona(personaId: string): Promise<PermisoTemporal[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.persona_id = :personaId', { personaId })
-      .orderBy('p.created_at', 'DESC')
+      .where('p.personaId = :personaId', { personaId })
+      .orderBy('p.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
@@ -67,8 +67,8 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
     const orms = await this.repo
       .createQueryBuilder('p')
       .where('p.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
-      .andWhere('p.vigencia_fin >= :ahora', { ahora })
-      .andWhere('p.vigencia_fin <= :limite', { limite })
+      .andWhere('p.vigenciaFin >= :ahora', { ahora })
+      .andWhere('p.vigenciaFin <= :limite', { limite })
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
@@ -76,9 +76,24 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
   async buscarPorPropietario(propietarioId: string): Promise<PermisoTemporal[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.propietario_id = :propietarioId', { propietarioId })
-      .orderBy('p.created_at', 'DESC')
+      .where('p.propietarioId = :propietarioId', { propietarioId })
+      .orderBy('p.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
+  }
+
+  async buscarTodos(): Promise<PermisoTemporal[]> {
+    const orms = await this.repo
+      .createQueryBuilder('p')
+      .orderBy('p.createdAt', 'DESC')
+      .getMany();
+    return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
+  }
+
+  async contarActivos(): Promise<number> {
+    return this.repo
+      .createQueryBuilder('p')
+      .where('p.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .getCount();
   }
 }

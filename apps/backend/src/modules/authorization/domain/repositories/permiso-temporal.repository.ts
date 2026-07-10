@@ -20,4 +20,8 @@ export interface IPermisoTemporalRepository {
   buscarProximosAExpirar(diasVentana: number): Promise<PermisoTemporal[]>;
 
   buscarPorPropietario(propietarioId: string): Promise<PermisoTemporal[]>;
+
+  buscarTodos(): Promise<PermisoTemporal[]>;
+
+  contarActivos(): Promise<number>;
 }

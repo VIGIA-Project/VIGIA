@@ -51,6 +51,9 @@ export class PersonaOrmEntity {
     })
     estadoBiometrico: string;
 
+    @Column({ name: 'rol_institucional', length: 100, nullable: true })
+    rolInstitucional: string | null;
+
     @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
     createdAt: Date;
 

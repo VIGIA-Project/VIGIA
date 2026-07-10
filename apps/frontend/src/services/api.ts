@@ -104,32 +104,40 @@ export const apiGet = async <T>(
   url: string,
   params?: Record<string, unknown>
 ): Promise<T> => {
-  const response = await apiClient.get<T>(url, { params });
-  return response.data;
+  const response = await apiClient.get<any>(url, { params });
+  return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
 };
 
 /**
  * POST tipado
  */
 export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
-  const response = await apiClient.post<T>(url, data);
-  return response.data;
+  const response = await apiClient.post<any>(url, data);
+  return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
 };
 
 /**
  * PUT tipado
  */
 export const apiPut = async <T>(url: string, data?: unknown): Promise<T> => {
-  const response = await apiClient.put<T>(url, data);
-  return response.data;
+  const response = await apiClient.put<any>(url, data);
+  return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
+};
+
+/**
+ * PATCH tipado
+ */
+export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
+  const response = await apiClient.patch<any>(url, data);
+  return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
 };
 
 /**
  * DELETE tipado
  */
 export const apiDelete = async <T>(url: string): Promise<T> => {
-  const response = await apiClient.delete<T>(url);
-  return response.data;
+  const response = await apiClient.delete<any>(url);
+  return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
 };
 
 export default apiClient;

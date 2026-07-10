@@ -29,12 +29,7 @@ export class AutorizacionPermanente {
     fechaCreacion?: Date;
     fechaActualizacion?: Date;
   }): AutorizacionPermanente {
-    if (!props.relacion?.trim()) {
-      throw new BusinessRuleViolationException(
-        'AutorizacionPermanente.relacion',
-        'La relación no puede estar vacía',
-      );
-    }
+    const relacionStr = props.relacion?.trim() || 'No especificada';
     return new AutorizacionPermanente(
       props.id,
       props.personaId,
@@ -42,7 +37,7 @@ export class AutorizacionPermanente {
       props.propietarioId,
       TipoAutorizacion.PERMANENTE,
       props.estado ?? EstadoAutorizacion.ACTIVA,
-      props.relacion.trim(),
+      relacionStr,
       props.fechaCreacion ?? new Date(),
       props.fechaActualizacion ?? new Date(),
     );

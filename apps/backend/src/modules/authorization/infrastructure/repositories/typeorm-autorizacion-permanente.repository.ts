@@ -30,8 +30,8 @@ export class TypeOrmAutorizacionPermanenteRepository
   async buscarPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
     const orms = await this.repo
       .createQueryBuilder('a')
-      .where('a.vehiculo_id = :vehiculoId', { vehiculoId })
-      .orderBy('a.created_at', 'DESC')
+      .where('a.vehiculoId = :vehiculoId', { vehiculoId })
+      .orderBy('a.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
   }
@@ -39,7 +39,7 @@ export class TypeOrmAutorizacionPermanenteRepository
   async buscarActivasPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
     const orms = await this.repo
       .createQueryBuilder('a')
-      .where('a.vehiculo_id = :vehiculoId', { vehiculoId })
+      .where('a.vehiculoId = :vehiculoId', { vehiculoId })
       .andWhere('a.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
       .getMany();
     return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
@@ -51,8 +51,8 @@ export class TypeOrmAutorizacionPermanenteRepository
   ): Promise<AutorizacionPermanente | null> {
     const orm = await this.repo
       .createQueryBuilder('a')
-      .where('a.persona_id = :personaId', { personaId })
-      .andWhere('a.vehiculo_id = :vehiculoId', { vehiculoId })
+      .where('a.personaId = :personaId', { personaId })
+      .andWhere('a.vehiculoId = :vehiculoId', { vehiculoId })
       .getOne();
     return orm ? AutorizacionPermanenteMapper.toDomain(orm) : null;
   }
@@ -60,8 +60,8 @@ export class TypeOrmAutorizacionPermanenteRepository
   async existeAutorizacionActiva(personaId: string, vehiculoId: string): Promise<boolean> {
     const count = await this.repo
       .createQueryBuilder('a')
-      .where('a.persona_id = :personaId', { personaId })
-      .andWhere('a.vehiculo_id = :vehiculoId', { vehiculoId })
+      .where('a.personaId = :personaId', { personaId })
+      .andWhere('a.vehiculoId = :vehiculoId', { vehiculoId })
       .andWhere('a.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
       .getCount();
     return count > 0;
@@ -70,9 +70,24 @@ export class TypeOrmAutorizacionPermanenteRepository
   async buscarPorPropietario(propietarioId: string): Promise<AutorizacionPermanente[]> {
     const orms = await this.repo
       .createQueryBuilder('a')
-      .where('a.propietario_id = :propietarioId', { propietarioId })
-      .orderBy('a.created_at', 'DESC')
+      .where('a.propietarioId = :propietarioId', { propietarioId })
+      .orderBy('a.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
+  }
+
+  async buscarTodas(): Promise<AutorizacionPermanente[]> {
+    const orms = await this.repo
+      .createQueryBuilder('a')
+      .orderBy('a.createdAt', 'DESC')
+      .getMany();
+    return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
+  }
+
+  async contarActivas(): Promise<number> {
+    return this.repo
+      .createQueryBuilder('a')
+      .where('a.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .getCount();
   }
 }

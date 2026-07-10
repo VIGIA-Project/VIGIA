@@ -51,6 +51,10 @@ export class VehiculoRepositoryImpl implements IVehiculoRepository {
         return orms.map((orm) => this.toDomain(orm));
     }
 
+    async countAll(): Promise<number> {
+        return this.repo.count();
+    }
+
     async update(
         vehiculoId: string,
         data: Partial<{

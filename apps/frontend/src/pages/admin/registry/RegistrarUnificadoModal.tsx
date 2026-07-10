@@ -32,6 +32,9 @@ import KeyIcon from "@mui/icons-material/Key";
 import Avatar from "@mui/material/Avatar";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import SecurityIcon from "@mui/icons-material/Security";
+import CircularProgress from "@mui/material/CircularProgress";
+import { registryService } from "../../../services/registry.service";
+import { authService } from "../../../services/auth.service";
 
 interface RegistrarUnificadoModalProps {
   open: boolean;
@@ -108,13 +111,53 @@ export default function RegistrarUnificadoModal({
     setForm((f) => ({ ...f, password: generarPasswordTemporal() }));
   };
 
-  const handleNext = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleNext = async () => {
     if (activeStep < steps.length - 1) {
       setActiveStep((prev) => prev + 1);
     } else {
-      onSuccess({ tipoRegistro, ...form });
-      onClose();
-      setTimeout(() => setActiveStep(0), 300);
+      try {
+        setSaving(true);
+        let createdPersonaId: string | undefined = undefined;
+
+        // 1. Create Persona for both USUARIO and GUARDIA
+        let idTipo = "CEDULA";
+        if (form.tipoId === "Pasaporte") idTipo = "PASAPORTE";
+        else if (form.tipoId === "RUC") idTipo = "RUC";
+
+        const rolInstitucionalFinal = tipoRegistro === "GUARDIA" ? "Guardia de Seguridad" : form.rol;
+
+        const personaRes = await registryService.createPersona({
+          identificacionTipo: idTipo,
+          identificacionNumero: form.identificacion,
+          nombres: form.nombres,
+          apellidos: form.apellidos,
+          correoInstitucional: form.correo || undefined,
+          telefonoContacto: form.telefono || undefined,
+          rolInstitucional: rolInstitucionalFinal || undefined,
+        });
+        createdPersonaId = personaRes.personaId || personaRes.id;
+
+        // 2. Create User/Guard
+        const mappedRole = tipoRegistro === "GUARDIA" ? "GUARD" : "OWNER";
+
+        await authService.createUser({
+          email: form.correo,
+          role: mappedRole,
+          temporaryPassword: form.password,
+          personaId: createdPersonaId,
+        });
+
+        onSuccess({ tipoRegistro, ...form });
+        onClose();
+        setTimeout(() => setActiveStep(0), 300);
+      } catch (err) {
+        console.error("Error creating user:", err);
+        // Optionally handle errors with a toast or state
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -829,10 +872,13 @@ export default function RegistrarUnificadoModal({
               </Button>
               <Button
                 onClick={handleNext}
+                disabled={saving}
                 variant="contained"
                 color={isUsuario ? "primary" : "warning"}
                 endIcon={
-                  activeStep === steps.length - 1 ? (
+                  saving ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : activeStep === steps.length - 1 ? (
                     <SaveIcon />
                   ) : (
                     <NavigateNextIcon />
@@ -844,9 +890,11 @@ export default function RegistrarUnificadoModal({
                   color: !isUsuario ? "#fff" : undefined,
                 }}
               >
-                {activeStep === steps.length - 1
-                  ? "Finalizar Registro"
-                  : "Siguiente"}
+                {saving
+                  ? "Guardando..."
+                  : activeStep === steps.length - 1
+                    ? "Finalizar Registro"
+                    : "Siguiente"}
               </Button>
             </Box>
           </Box>

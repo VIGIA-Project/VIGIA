@@ -26,6 +26,7 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
             apellidos: persona.apellidos,
             correoInstitucional: persona.correoInstitucional ?? null,
             telefonoContacto: persona.telefonoContacto ?? null,
+            rolInstitucional: persona.rolInstitucional ?? null,
             estadoRegistro: persona.estadoRegistro,
             estadoBiometrico: persona.estadoBiometrico,
         });
@@ -59,6 +60,18 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
         return orms.map((orm) => this.toDomain(orm));
     }
 
+    async findSinBiometria(): Promise<Persona[]> {
+        const orms = await this.repo.find({
+            where: { estadoBiometrico: 'PENDIENTE' },
+            take: 150, // To avoid pulling thousands of rows if many exist
+        });
+        return orms.map((orm) => this.toDomain(orm));
+    }
+
+    async countAll(): Promise<number> {
+        return this.repo.count();
+    }
+
     async update(
         personaId: string,
         data: Partial<{
@@ -66,6 +79,7 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
             apellidos: string;
             correoInstitucional: string;
             telefonoContacto: string;
+            rolInstitucional: string;
             estadoRegistro: string;
             estadoBiometrico: string;
         }>,
@@ -99,6 +113,7 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
             apellidos: orm.apellidos,
             correoInstitucional: orm.correoInstitucional ?? undefined,
             telefonoContacto: orm.telefonoContacto ?? undefined,
+            rolInstitucional: orm.rolInstitucional ?? undefined,
             estadoRegistro: orm.estadoRegistro as EstadoRegistro,
             estadoBiometrico: orm.estadoBiometrico as EstadoBiometrico,
             createdAt: orm.createdAt,

@@ -11,6 +11,7 @@ import {
   HttpStatus,
   Inject,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
@@ -46,6 +47,19 @@ export class AuthorizationController {
 
   // ─── Autorizaciones permanentes ──────────────────────────────────────
 
+  @Get('permanentes')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async listarTodasPermanentes() {
+    return this.authorizationService.listarTodasPermanentes();
+  }
+
+  @Get('permanentes/count')
+  @Roles(UserRole.ADMIN)
+  async contarPermanentesActivas() {
+    const total = await this.authorizationService.contarPermanentesActivas();
+    return { count: total };
+  }
+
   @Post('permanentes')
   @Roles(UserRole.OWNER)
   @HttpCode(HttpStatus.CREATED)
@@ -78,6 +92,26 @@ export class AuthorizationController {
   }
 
   // ─── Permisos temporales ──────────────────────────────────────────────
+
+  @Get('temporales')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async listarTodosTemporales() {
+    return this.authorizationService.listarTodosTemporales();
+  }
+
+  @Get('temporales/count')
+  @Roles(UserRole.ADMIN)
+  async contarTemporalesActivos() {
+    const total = await this.authorizationService.contarTemporalesActivos();
+    return { count: total };
+  }
+
+  @Get('temporales/proximos-expirar')
+  @Roles(UserRole.ADMIN)
+  async listarTemporalesProximosAExpirar(@Query('dias') dias?: string) {
+    const d = dias ? parseInt(dias, 10) : 2;
+    return this.authorizationService.obtenerPermisosProximosAExpirar(d);
+  }
 
   @Post('temporales')
   @Roles(UserRole.OWNER)

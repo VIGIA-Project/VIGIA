@@ -8,7 +8,7 @@ import {
 
 @Entity({ name: 'permisos_temporales', schema: 'authorization' })
 export class PermisoTemporalOrmEntity {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryGeneratedColumn('uuid', { name: 'permiso_temporal_id' })
   id: string;
 
   @Column({ name: 'persona_id', type: 'uuid' })
@@ -17,10 +17,11 @@ export class PermisoTemporalOrmEntity {
   @Column({ name: 'vehiculo_id', type: 'uuid' })
   vehiculoId: string;
 
-  @Column({ name: 'propietario_id', type: 'uuid' })
+  @Column({ name: 'otorgado_por_persona_id', type: 'uuid' })
   propietarioId: string;
 
   @Column({
+    name: 'tipo_autorizacion',
     type: 'enum',
     enum: ['PERMANENTE', 'TEMPORAL'],
     enumName: 'tipo_autorizacion_enum',
@@ -29,10 +30,11 @@ export class PermisoTemporalOrmEntity {
   tipo: string;
 
   @Column({
+    name: 'estado_autorizacion',
     type: 'enum',
-    enum: ['ACTIVA', 'INACTIVA', 'REVOCADA', 'EXPIRADA'],
-    enumName: 'estado_autorizacion_enum',
-    default: 'ACTIVA',
+    enum: ['PROGRAMADO', 'ACTIVA', 'EXPIRADO', 'REVOCADO'],
+    enumName: 'estado_permiso_temporal_enum',
+    default: 'PROGRAMADO',
   })
   estado: string;
 
@@ -42,10 +44,10 @@ export class PermisoTemporalOrmEntity {
   @Column({ name: 'vigencia_fin', type: 'timestamptz' })
   vigenciaFin: Date;
 
-  @Column({ length: 255 })
+  @Column({ name: 'motivo_otorgamiento', type: 'text', nullable: true })
   motivo: string;
 
-  @Column({ name: 'fecha_revocacion', type: 'timestamptz', nullable: true })
+  @Column({ name: 'revocado_en', type: 'timestamptz', nullable: true })
   fechaRevocacion: Date | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

@@ -8,6 +8,8 @@ export interface IPersonaRepository {
         numero: string,
     ): Promise<Persona | null>;
     findAll(): Promise<Persona[]>;
+    findSinBiometria(): Promise<Persona[]>;
+    countAll(): Promise<number>;
     update(
         personaId: string,
         data: Partial<{
@@ -15,6 +17,7 @@ export interface IPersonaRepository {
             apellidos: string;
             correoInstitucional: string;
             telefonoContacto: string;
+            rolInstitucional: string;
             estadoRegistro: string;
             estadoBiometrico: string;
         }>,

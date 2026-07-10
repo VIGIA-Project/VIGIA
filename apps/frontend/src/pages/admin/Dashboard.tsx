@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
@@ -32,52 +34,17 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 
-const kpis = [
-  { title: 'Personas Activas', value: '1,248', subtitle: '+12 esta semana', icon: <PeopleIcon />, accent: 'primary' as const },
-  { title: 'Vehículos Activos', value: '386', subtitle: '342 con autorización vigente', icon: <DirectionsCarIcon />, accent: 'secondary' as const },
-  { title: 'Autorizaciones Activas', value: '421', subtitle: '9 revocadas hoy', icon: <VerifiedUserIcon />, accent: 'info' as const },
-  { title: 'Permisos Vigentes', value: '57', subtitle: '3 próximos a expirar', icon: <VpnKeyIcon />, accent: 'warning' as const },
-  { title: 'Perfiles Biométricos', value: '1,102', subtitle: '146 sin registrar', icon: <FaceRetouchingNaturalIcon />, accent: 'success' as const },
-  { title: 'Alertas Generadas', value: '23', subtitle: '5 ALTA severidad', icon: <WarningAmberIcon />, accent: 'error' as const },
-];
-
-const alertas = [
-  { id: 1, severidad: 'ALTA', descripcion: 'Acceso denegado: persona no autorizada en portón norte', referencia: 'Vehículo PBC-1231', tiempo: 'hace 5 min' },
-  { id: 2, severidad: 'ALTA', descripcion: 'Intento de acceso con biometría sin coincidencia suficiente', referencia: 'Persona ID 4521', tiempo: 'hace 12 min' },
-  { id: 3, severidad: 'MEDIA', descripcion: 'Permiso temporal próximo a expirar en menos de 1 hora', referencia: 'Vehículo GTR-8832', tiempo: 'hace 28 min' },
-  { id: 4, severidad: 'MEDIA', descripcion: 'Cuenta de usuario con cambio de contraseña pendiente', referencia: 'jperez@uce.edu.ec', tiempo: 'hace 1 h' },
-  { id: 5, severidad: 'INFORMATIVA', descripcion: 'Nueva autorización permanente registrada', referencia: 'Vehículo ABC-0123', tiempo: 'hace 2 h' },
-  { id: 6, severidad: 'INFORMATIVA', descripcion: 'Perfil biométrico actualizado correctamente', referencia: 'Persona ID 3389', tiempo: 'hace 3 h' },
-];
-
-const eventos = [
-  { id: 1, hora: '14:32', placa: 'PBC-1231', decision: 'DENIED', origen: 'AUTOMATICA' },
-  { id: 2, hora: '14:28', placa: 'ABC-0123', decision: 'SUCCESSFUL', origen: 'AUTOMATICA' },
-  { id: 3, hora: '14:15', placa: 'GTR-8832', decision: 'PENDING_VERIFY', origen: 'MANUAL' },
-  { id: 4, hora: '14:02', placa: 'XYZ-4567', decision: 'SUCCESSFUL', origen: 'AUTOMATICA' },
-  { id: 5, hora: '13:48', placa: 'MNL-7788', decision: 'DENIED', origen: 'CONTINGENCIA' },
-  { id: 6, hora: '13:35', placa: 'UCE-0001', decision: 'SUCCESSFUL', origen: 'AUTOMATICA' },
-  { id: 7, hora: '13:20', placa: 'TST-9921', decision: 'PENDING_VERIFY', origen: 'MANUAL' },
-];
-
-const sinBiometria = [
-  { id: 1, nombre: 'María Fernanda López', identificacion: '1712345678', rol: 'Docente' },
-  { id: 2, nombre: 'Carlos Andrés Mendoza', identificacion: '1718901234', rol: 'Estudiante' },
-  { id: 3, nombre: 'Patricia Salazar Naranjo', identificacion: '1709876543', rol: 'Administrativo' },
-  { id: 4, nombre: 'Jorge Luis Velasteguí', identificacion: '1714567890', rol: 'Docente' },
-];
-
-const permisosExpirar = [
-  { id: 1, persona: 'Diego Ramírez', vehiculo: 'KJH-3344', expira: 'En 2 horas' },
-  { id: 2, persona: 'Ana Lucía Paredes', vehiculo: 'LPM-5566', expira: 'En 5 horas' },
-  { id: 3, persona: 'Fernando Cevallos', vehiculo: 'QWE-7788', expira: 'En 1 día' },
-];
+import { registryService } from '../../services/registry.service';
+import { authorizationService } from '../../services/authorization.service';
+import { biometricService } from '../../services/biometric.service';
+import { alertingService } from '../../services/alerting.service';
+import { accessControlService } from '../../services/access-control.service';
 
 const accionesRapidas = [
-  { label: 'Nueva Persona', icon: <PersonAddIcon />, color: '#0D5CCF' },
-  { label: 'Nueva Autorización', icon: <AssignmentIndIcon />, color: '#11A9D6' },
-  { label: 'Permiso Temporal', icon: <ScheduleIcon />, color: '#E0A82E' },
-  { label: 'Ver Alertas', icon: <NotificationsActiveIcon />, color: '#C0524A' },
+  { label: 'Nueva Persona', icon: <PersonAddIcon />, color: '#0D5CCF', href: '#/admin/registro/personas' },
+  { label: 'Nueva Autorización', icon: <AssignmentIndIcon />, color: '#11A9D6', href: '#/admin/authorization/permanentes' },
+  { label: 'Permiso Temporal', icon: <ScheduleIcon />, color: '#E0A82E', href: '#/admin/authorization/temporales' },
+  { label: 'Ver Alertas', icon: <NotificationsActiveIcon />, color: '#C0524A', href: '#/admin/alerting/alertas' },
 ];
 
 const severityIcon = (sev: string) => {
@@ -93,6 +60,86 @@ const decisionIcon = (decision: string) => {
 };
 
 export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState({
+    personas: 0,
+    vehiculos: 0,
+    permanentes: 0,
+    temporales: 0,
+    biometricos: 0,
+    alertas: 0,
+  });
+  const [alertas, setAlertas] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [sinBiometria, setSinBiometria] = useState<any[]>([]);
+  const [permisosExpirar, setPermisosExpirar] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [
+          cntPersonas,
+          cntVehiculos,
+          cntPermanentes,
+          cntTemporales,
+          cntBiometricos,
+          cntAlertas,
+          dataAlertas,
+          dataEventos,
+          dataSinBiometria,
+          dataPermisosExpirar,
+        ] = await Promise.all([
+          registryService.countPersonas().catch(() => 0),
+          registryService.countVehiculos().catch(() => 0),
+          authorizationService.countPermanentes().catch(() => 0),
+          authorizationService.countTemporales().catch(() => 0),
+          biometricService.contarPerfiles().catch(() => 0),
+          alertingService.contarAlertas().catch(() => 0),
+          alertingService.obtenerAlertasRecientes(6).catch(() => []),
+          accessControlService.obtenerEventosRecientes(7).catch(() => []),
+          registryService.getPersonasSinBiometria().catch(() => []),
+          authorizationService.getTemporalesProximosAExpirar().catch(() => []),
+        ]);
+
+        setCounts({
+          personas: cntPersonas,
+          vehiculos: cntVehiculos,
+          permanentes: cntPermanentes,
+          temporales: cntTemporales,
+          biometricos: cntBiometricos,
+          alertas: cntAlertas,
+        });
+        setAlertas(dataAlertas || []);
+        setEventos(dataEventos || []);
+        setSinBiometria(dataSinBiometria || []);
+        setPermisosExpirar(dataPermisosExpirar || []);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const kpis = [
+    { title: 'Personas Registradas', value: counts.personas.toString(), subtitle: 'En el sistema', icon: <PeopleIcon />, accent: 'primary' as const },
+    { title: 'Vehículos Registrados', value: counts.vehiculos.toString(), subtitle: 'En el sistema', icon: <DirectionsCarIcon />, accent: 'secondary' as const },
+    { title: 'Autorizaciones Activas', value: counts.permanentes.toString(), subtitle: 'Permanentes', icon: <VerifiedUserIcon />, accent: 'info' as const },
+    { title: 'Permisos Vigentes', value: counts.temporales.toString(), subtitle: 'Temporales', icon: <VpnKeyIcon />, accent: 'warning' as const },
+    { title: 'Perfiles Biométricos', value: counts.biometricos.toString(), subtitle: 'Activos', icon: <FaceRetouchingNaturalIcon />, accent: 'success' as const },
+    { title: 'Alertas Generadas', value: counts.alertas.toString(), subtitle: 'Totales históricas', icon: <WarningAmberIcon />, accent: 'error' as const },
+  ];
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'flex-end' }, mb: 3, gap: 2 }}>
@@ -112,6 +159,7 @@ export default function Dashboard() {
               variant="outlined"
               startIcon={accion.icon}
               size="small"
+              href={accion.href}
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
@@ -151,7 +199,10 @@ export default function Dashboard() {
                 </Button>
               </Box>
               <List disablePadding>
-                {alertas.map((alerta, i) => (
+                {alertas.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No hay alertas recientes.</Typography>
+                )}
+                {alertas.map((alerta: any, i: number) => (
                   <Box key={alerta.id}>
                     <ListItem sx={{ px: 0, py: 1.25, alignItems: 'flex-start' }}>
                       <ListItemIcon sx={{ minWidth: 36, mt: 0.3 }}>
@@ -161,7 +212,7 @@ export default function Dashboard() {
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
                             <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', flex: 1 }}>
-                              {alerta.descripcion}
+                              {alerta.mensajeResumen}
                             </Typography>
                             <Box sx={{ flexShrink: 0 }}>
                               <StatusChip kind="severity" value={alerta.severidad} />
@@ -171,10 +222,10 @@ export default function Dashboard() {
                         secondary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
                             <Typography variant="body2" color="text.secondary">
-                              {alerta.referencia}
+                              {alerta.causaOrigen}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                              <AccessTimeIcon sx={{ fontSize: 14 }} /> {alerta.tiempo}
+                              <AccessTimeIcon sx={{ fontSize: 14 }} /> {new Date(alerta.generadaEn).toLocaleString()}
                             </Typography>
                           </Box>
                         }
@@ -203,18 +254,21 @@ export default function Dashboard() {
                 </Button>
               </Box>
               <Box sx={{ overflow: 'hidden' }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 1, px: 1, py: 1, borderBottom: '2px solid', borderColor: 'primary.main' }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 1fr', gap: 1, px: 1, py: 1, borderBottom: '2px solid', borderColor: 'primary.main' }}>
                   <Typography variant="overline" sx={{ fontWeight: 700 }}>Hora</Typography>
                   <Typography variant="overline" sx={{ fontWeight: 700 }}>Placa</Typography>
                   <Typography variant="overline" sx={{ fontWeight: 700 }}>Decisión</Typography>
                   <Typography variant="overline" sx={{ fontWeight: 700 }}>Origen</Typography>
                 </Box>
-                {eventos.map((evento, i) => (
+                {eventos.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, px: 1 }}>No hay eventos recientes.</Typography>
+                )}
+                {eventos.map((evento: any, i: number) => (
                   <Box
                     key={evento.id}
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: '60px 1fr 1fr 1fr',
+                      gridTemplateColumns: '80px 1fr 1fr 1fr',
                       gap: 1,
                       px: 1,
                       py: 1.25,
@@ -225,10 +279,10 @@ export default function Dashboard() {
                     }}
                   >
                     <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      {evento.hora}
+                      {new Date(evento.timestampEvento).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      {evento.placa}
+                      {evento.placaCapturada || 'S/N'}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       {decisionIcon(evento.decision)}
@@ -237,7 +291,7 @@ export default function Dashboard() {
                       </Typography>
                     </Box>
                     <Typography variant="body2" color="text.secondary">
-                      {evento.origen}
+                      {evento.origenResolucion}
                     </Typography>
                   </Box>
                 ))}
@@ -255,32 +309,35 @@ export default function Dashboard() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Sin Perfil Biométrico
                 </Typography>
-                <Tooltip title="146 personas pendientes">
+                <Tooltip title={`${sinBiometria.length} personas pendientes`}>
                   <Box sx={{ bgcolor: 'warning.main', color: '#0A2F86', borderRadius: 10, px: 1, fontSize: '0.7rem', fontWeight: 700 }}>
-                    146
+                    {sinBiometria.length}
                   </Box>
                 </Tooltip>
               </Box>
               <List disablePadding>
-                {sinBiometria.map((persona, i) => (
-                  <Box key={persona.id}>
+                {sinBiometria.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>Todas las personas tienen biometría.</Typography>
+                )}
+                {sinBiometria.slice(0, 5).map((persona: any, i: number) => (
+                  <Box key={persona.personaId}>
                     <ListItem sx={{ px: 0, py: 1 }}>
                       <ListItemIcon sx={{ minWidth: 40 }}>
                         <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: 'rgba(242, 181, 31, 0.15)', color: 'warning.dark' }}>
-                          {persona.nombre.charAt(0)}
+                          {persona.nombres?.charAt(0) || persona.nombreCompleto?.charAt(0)}
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText
-                        primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{persona.nombre}</Typography>}
+                        primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{persona.nombreCompleto || `${persona.nombres} ${persona.apellidos}`}</Typography>}
                         secondary={
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Typography variant="caption" color="text.secondary">{persona.identificacion}</Typography>
+                            <Typography variant="caption" color="text.secondary">{persona.identificacionNumero}</Typography>
                             <StatusChip kind="disponibilidad" value="PENDIENTE" />
                           </Box>
                         }
                       />
                     </ListItem>
-                    {i < sinBiometria.length - 1 && <Divider />}
+                    {i < Math.min(sinBiometria.length, 5) - 1 && <Divider />}
                   </Box>
                 ))}
               </List>
@@ -293,16 +350,19 @@ export default function Dashboard() {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Permisos por Expirar
+                  Permisos por Expirar (48h)
                 </Typography>
-                <Tooltip title="3 permisos próximos">
+                <Tooltip title={`${permisosExpirar.length} permisos próximos`}>
                   <Box sx={{ bgcolor: 'warning.main', color: '#0A2F86', borderRadius: 10, px: 1, fontSize: '0.7rem', fontWeight: 700 }}>
-                    3
+                    {permisosExpirar.length}
                   </Box>
                 </Tooltip>
               </Box>
               <List disablePadding>
-                {permisosExpirar.map((permiso, i) => (
+                {permisosExpirar.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No hay permisos próximos a expirar.</Typography>
+                )}
+                {permisosExpirar.map((permiso: any, i: number) => (
                   <Box key={permiso.id}>
                     <ListItem sx={{ px: 0, py: 1 }}>
                       <ListItemIcon sx={{ minWidth: 36 }}>
@@ -311,11 +371,13 @@ export default function Dashboard() {
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{permiso.persona}</Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.dark' }}>{permiso.expira}</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{permiso.motivo}</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                              {new Date(permiso.vigencia?.fin || permiso.vigenciaFin).toLocaleDateString()}
+                            </Typography>
                           </Box>
                         }
-                        secondary={<Typography variant="caption" color="text.secondary">Vehículo: {permiso.vehiculo}</Typography>}
+                        secondary={<Typography variant="caption" color="text.secondary">ID Permiso: {permiso.id.slice(0, 8)}</Typography>}
                       />
                     </ListItem>
                     {i < permisosExpirar.length - 1 && <Divider />}

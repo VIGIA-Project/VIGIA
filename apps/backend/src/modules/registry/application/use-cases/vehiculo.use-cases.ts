@@ -75,6 +75,10 @@ export class VehiculoUseCases {
         return vehiculos.map((v) => this.toResponse(v));
     }
 
+    async contarVehiculos(): Promise<number> {
+        return this.vehiculoRepo.countAll();
+    }
+
     async listarPorPropietario(propietarioPersonaId: string): Promise<VehiculoResponseDto[]> {
         const vehiculos = await this.vehiculoRepo.findByPropietario(propietarioPersonaId);
         return vehiculos.map((v) => this.toResponse(v));

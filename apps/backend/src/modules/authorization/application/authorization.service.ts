@@ -64,6 +64,10 @@ export class AuthorizationService {
     return this.autorizacionPermanenteRepository.buscarActivasPorVehiculo(vehiculoId);
   }
 
+  async listarTodasPermanentes(): Promise<AutorizacionPermanente[]> {
+    return this.autorizacionPermanenteRepository.buscarTodas();
+  }
+
   async revocarAutorizacion(id: string): Promise<AutorizacionPermanente> {
     const autorizacion = await this.autorizacionPermanenteRepository.buscarPorId(id);
     if (!autorizacion) {
@@ -97,6 +101,22 @@ export class AuthorizationService {
 
   async listarPorPersona(personaId: string): Promise<PermisoTemporal[]> {
     return this.permisoTemporalRepository.buscarPorPersona(personaId);
+  }
+
+  async listarTodosTemporales(): Promise<PermisoTemporal[]> {
+    return this.permisoTemporalRepository.buscarTodos();
+  }
+
+  async contarPermanentesActivas(): Promise<number> {
+    return this.autorizacionPermanenteRepository.contarActivas();
+  }
+
+  async contarTemporalesActivos(): Promise<number> {
+    return this.permisoTemporalRepository.contarActivos();
+  }
+
+  async obtenerPermisosProximosAExpirar(diasVentana = 2): Promise<PermisoTemporal[]> {
+    return this.permisoTemporalRepository.buscarProximosAExpirar(diasVentana);
   }
 
   async revocarPermiso(id: string): Promise<PermisoTemporal> {

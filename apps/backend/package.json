@@ -17,9 +17,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:generate": "typeorm migration:generate -d dist/core/database/data-source.js",
-    "migration:run": "typeorm migration:run -d dist/core/database/data-source.js",
-    "migration:revert": "typeorm migration:revert -d dist/core/database/data-source.js",
+    "migration:generate": "typeorm migration:generate -d dist/src/core/database/data-source.js",
+    "migration:run": "typeorm migration:run -d dist/src/core/database/data-source.js",
+    "migration:revert": "typeorm migration:revert -d dist/src/core/database/data-source.js",
     "seed": "ts-node -r tsconfig-paths/register src/core/database/seeds/run-seed.ts"
   },
   "dependencies": {

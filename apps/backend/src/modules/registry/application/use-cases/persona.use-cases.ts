@@ -42,6 +42,7 @@ export class PersonaUseCases {
             apellidos: dto.apellidos,
             correoInstitucional: dto.correoInstitucional,
             telefonoContacto: dto.telefonoContacto,
+            rolInstitucional: dto.rolInstitucional,
         });
 
         const saved = await this.personaRepo.save(persona);
@@ -59,6 +60,15 @@ export class PersonaUseCases {
         return personas.map((p) => this.toResponse(p));
     }
 
+    async listarSinBiometria(): Promise<PersonaResponseDto[]> {
+        const personas = await this.personaRepo.findSinBiometria();
+        return personas.map((p) => this.toResponse(p));
+    }
+
+    async contarPersonas(): Promise<number> {
+        return this.personaRepo.countAll();
+    }
+
     async actualizar(
         personaId: string,
         dto: ActualizarPersonaDto,
@@ -71,6 +81,7 @@ export class PersonaUseCases {
             apellidos: dto.apellidos,
             correoInstitucional: dto.correoInstitucional,
             telefonoContacto: dto.telefonoContacto,
+            rolInstitucional: dto.rolInstitucional,
         });
         return this.toResponse(updated);
     }
@@ -100,6 +111,7 @@ export class PersonaUseCases {
             nombreCompleto: persona.getNombreCompleto(),
             correoInstitucional: persona.correoInstitucional,
             telefonoContacto: persona.telefonoContacto,
+            rolInstitucional: persona.rolInstitucional,
             estadoRegistro: persona.estadoRegistro,
             estadoBiometrico: persona.estadoBiometrico,
             createdAt: persona.createdAt,

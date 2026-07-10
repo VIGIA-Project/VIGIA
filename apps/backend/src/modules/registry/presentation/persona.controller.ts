@@ -35,6 +35,19 @@ export class PersonaController {
         return this.personaUseCases.listar();
     }
 
+    @Get('sin-biometria')
+    @Roles(UserRole.ADMIN)
+    async listarSinBiometria() {
+        return this.personaUseCases.listarSinBiometria();
+    }
+
+    @Get('count')
+    @Roles(UserRole.ADMIN)
+    async contar() {
+        const total = await this.personaUseCases.contarPersonas();
+        return { count: total };
+    }
+
     @Get(':id')
     @Roles(UserRole.ADMIN, UserRole.GUARD)
     async buscarPorId(@Param('id') id: string) {

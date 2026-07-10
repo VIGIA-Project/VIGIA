@@ -30,6 +30,10 @@ export class CrearPersonaDto {
     @IsOptional()
     @IsString()
     telefonoContacto?: string;
+
+    @IsOptional()
+    @IsString()
+    rolInstitucional?: string;
 }
 
 export class ActualizarPersonaDto {
@@ -50,6 +54,10 @@ export class ActualizarPersonaDto {
     @IsOptional()
     @IsString()
     telefonoContacto?: string;
+
+    @IsOptional()
+    @IsString()
+    rolInstitucional?: string;
 }
 
 export class PersonaResponseDto {
@@ -61,6 +69,7 @@ export class PersonaResponseDto {
     nombreCompleto: string;
     correoInstitucional?: string;
     telefonoContacto?: string;
+    rolInstitucional?: string;
     estadoRegistro: string;
     estadoBiometrico: string;
     createdAt: Date;

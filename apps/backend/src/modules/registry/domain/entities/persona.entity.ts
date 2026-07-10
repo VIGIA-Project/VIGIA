@@ -23,6 +23,7 @@ export class Persona {
         public readonly apellidos: string,
         public readonly correoInstitucional: string | undefined,
         public readonly telefonoContacto: string | undefined,
+        public readonly rolInstitucional: string | undefined,
         public readonly estadoRegistro: EstadoRegistro,
         public readonly estadoBiometrico: EstadoBiometrico,
         public readonly createdAt: Date,
@@ -37,6 +38,7 @@ export class Persona {
         apellidos: string;
         correoInstitucional?: string;
         telefonoContacto?: string;
+        rolInstitucional?: string;
         estadoRegistro?: EstadoRegistro;
         estadoBiometrico?: EstadoBiometrico;
         createdAt?: Date;
@@ -60,6 +62,7 @@ export class Persona {
             props.apellidos.trim(),
             props.correoInstitucional,
             props.telefonoContacto,
+            props.rolInstitucional,
             props.estadoRegistro ?? EstadoRegistro.ACTIVO,
             props.estadoBiometrico ?? EstadoBiometrico.PENDIENTE,
             props.createdAt ?? new Date(),

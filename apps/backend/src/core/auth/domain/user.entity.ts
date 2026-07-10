@@ -19,6 +19,8 @@ export class User {
         public readonly status: UserStatus,
         public readonly mustChangePassword: boolean,
         public readonly personaId: string | undefined,
+        public readonly biometricRegistered: boolean,
+        public readonly vehicleRegistered: boolean,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
     ) {}
@@ -31,6 +33,8 @@ export class User {
         status?: UserStatus;
         mustChangePassword?: boolean;
         personaId?: string;
+        biometricRegistered?: boolean;
+        vehicleRegistered?: boolean;
         createdAt?: Date;
         updatedAt?: Date;
     }): User {
@@ -45,6 +49,8 @@ export class User {
             props.status ?? UserStatus.PENDING_PASSWORD_CHANGE,
             props.mustChangePassword ?? true,
             props.personaId,
+            props.biometricRegistered ?? false,
+            props.vehicleRegistered ?? false,
             props.createdAt ?? new Date(),
             props.updatedAt ?? new Date(),
         );

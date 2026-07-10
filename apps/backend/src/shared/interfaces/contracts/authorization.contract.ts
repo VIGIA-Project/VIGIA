@@ -1,34 +1,48 @@
-import { AuthorizationStatus } from '@shared/enums';
-
 /**
  * Contrato para el BC de Authorization.
+ * Otros BCs (Access Control, Biometric) SOLO deben consumir este contrato —
+ * nunca importar módulos/servicios internos de `modules/authorization` directamente.
  */
 export interface IAuthorizationContract {
   /**
-   * Verifica si un vehículo está autorizado a ingresar.
+   * Construye el conjunto de personas autorizadas a acceder con un vehículo
+   * en un instante dado (propietario + autorizaciones permanentes activas +
+   * permisos temporales vigentes). Excluye pases de acceso rápido.
    */
-  isVehicleAuthorized(
-    licensePlate: string,
-    accessPointId: string,
-    at?: Date,
-  ): Promise<AuthorizationCheckResult>;
+  obtenerConjuntoAutorizado(
+    vehiculoId: string,
+    propietarioId: string,
+    instante?: Date,
+  ): Promise<ConjuntoAutorizadoDTO>;
 
   /**
-   * Verifica si una persona está autorizada.
+   * Valida un código de pase de acceso rápido contra una placa. NO marca el
+   * pase como consumido.
    */
-  isPersonAuthorized(
-    personId: string,
-    accessPointId: string,
-    at?: Date,
-  ): Promise<AuthorizationCheckResult>;
+  validarPaseRapido(
+    codigo: string,
+    placa: string,
+    instante?: Date,
+  ): Promise<ResultadoValidacionPaseDTO>;
+
+  /**
+   * Marca un pase como consumido, asociándolo al evento de acceso que lo usó.
+   */
+  consumirPase(paseId: string, eventoId: string): Promise<void>;
 }
 
-export interface AuthorizationCheckResult {
-  authorized: boolean;
-  status: AuthorizationStatus;
-  reason?: string;
-  authorizationId?: string;
-  validUntil?: Date;
+export interface ConjuntoAutorizadoDTO {
+  vehiculoId: string;
+  propietarioId: string;
+  autorizados: Array<{
+    personaId: string;
+    tipo: 'PERMANENTE' | 'TEMPORAL';
+    vigenciaFin?: Date;
+  }>;
 }
 
-export const AUTHORIZATION_CONTRACT = Symbol('AUTHORIZATION_CONTRACT');
+export interface ResultadoValidacionPaseDTO {
+  valido: boolean;
+  paseId?: string;
+  motivo: string;
+}

@@ -52,6 +52,8 @@ export class SeedService implements OnModuleInit {
         role: seed.role,
         status: 'ACTIVE',
         mustChangePassword: false,
+        biometricRegistered: false,
+        vehicleRegistered: false,
       });
       await this.userRepo.save(user);
     }

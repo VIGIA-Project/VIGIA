@@ -58,7 +58,7 @@ export class PersonaController {
     }
 
     @Patch(':id/enrollment-completo')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     async marcarEnrollmentCompleto(@Param('id') id: string) {
         return this.personaUseCases.marcarEnrollmentCompleto(id);
     }

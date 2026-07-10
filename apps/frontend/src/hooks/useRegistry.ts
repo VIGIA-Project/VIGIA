@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import * as registryService from '../services/registry.service';
 import { CrearPersonaDto, Persona } from '../services/types/registry.types';
+import { useAuth } from '../context/AuthContext';
 
 export const registryKeys = {
   persona: (personaId?: string) => ['registry', 'persona', personaId] as const,
@@ -63,4 +64,30 @@ export const useCrearPersona = () => {
       queryClient.setQueryData(registryKeys.persona(persona.personaId), persona);
     },
   });
+};
+
+export const useMarcarEnrollmentCompleto = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (personaId: string) => registryService.marcarEnrollmentCompleto(personaId),
+    onSuccess: (persona) => {
+      queryClient.setQueryData(registryKeys.persona(persona.personaId), persona);
+    },
+  });
+};
+
+/**
+ * Vehículo principal del propietario autenticado — hoy el dashboard opera
+ * sobre un único vehículo (el sembrado por el seed de desarrollo).
+ */
+export const usePropietarioVehiculo = () => {
+  const { user } = useAuth();
+  const query = useVehiculosDelPropietario(user?.personaId);
+  return {
+    vehiculo: query.data?.[0],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
 };

@@ -15,6 +15,8 @@ export interface IPermisoTemporalRepository {
     vehiculoId: string,
   ): Promise<PermisoTemporal[]>;
 
+  buscarPorPersona(personaId: string): Promise<PermisoTemporal[]>;
+
   buscarProximosAExpirar(diasVentana: number): Promise<PermisoTemporal[]>;
 
   buscarPorPropietario(propietarioId: string): Promise<PermisoTemporal[]>;

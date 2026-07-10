@@ -52,6 +52,15 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
 
+  async buscarPorPersona(personaId: string): Promise<PermisoTemporal[]> {
+    const orms = await this.repo
+      .createQueryBuilder('p')
+      .where('p.persona_id = :personaId', { personaId })
+      .orderBy('p.created_at', 'DESC')
+      .getMany();
+    return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
+  }
+
   async buscarProximosAExpirar(diasVentana: number): Promise<PermisoTemporal[]> {
     const ahora = new Date();
     const limite = new Date(ahora.getTime() + diasVentana * 24 * 60 * 60 * 1000);

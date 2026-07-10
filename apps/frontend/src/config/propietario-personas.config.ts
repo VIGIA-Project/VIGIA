@@ -27,7 +27,7 @@ export interface PersonaAutorizada {
 }
 
 /** Enmascara una cédula real al mismo formato que usaban los mocks (17XXXXXX45). */
-const enmascararCedula = (numero: string): string => {
+export const enmascararCedula = (numero: string): string => {
   if (numero.length <= 4) return numero;
   return `${numero.slice(0, 2)}${'X'.repeat(numero.length - 4)}${numero.slice(-2)}`;
 };

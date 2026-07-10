@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context';
+import { alertingService } from '../../services/alerting.service';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import AppBar from '@mui/material/AppBar';
@@ -21,9 +22,7 @@ import ListItem from '@mui/material/ListItem';
 import GroupIcon from '@mui/icons-material/Group';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccountCircle from '@mui/icons-material/AccountCircle';
 import Logout from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import SecurityIcon from '@mui/icons-material/Security';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -87,14 +86,6 @@ const navSections: NavSection[] = [
   },
 ];
 
-const recentNotifications = [
-  { id: 1, type: 'error', summary: 'Salida denegada repetida', reference: 'PCB-1234', location: 'Garita Norte', time: 'hace 10 min' },
-  { id: 2, type: 'warning', summary: 'Invitado con permanencia expirada', reference: 'Acceso Sur', location: '', time: 'hace 25 min' },
-  { id: 3, type: 'info', summary: 'Cuenta pendiente de contraseña', reference: 'guardia@uce.edu.ec', location: '', time: 'hace 1h' },
-  { id: 4, type: 'error', summary: 'Intento de acceso biométrico fallido', reference: 'Persona ID 9921', location: 'Torniquete 1', time: 'hace 2h' },
-  { id: 5, type: 'info', summary: 'Nueva actualización de permisos', reference: 'Lote 442', location: '', time: 'hace 5h' },
-];
-
 const getNotificationColor = (type: string) => {
   if (type === 'error') return '#C0524A';
   if (type === 'warning') return '#E0A82E';
@@ -108,6 +99,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const { logout } = useAuth();
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await alertingService.obtenerAlertasRecientes(5);
+        setRecentNotifications(res.map((a: any) => ({
+          id: a.alertaId || a.id,
+          type: a.severidad === 'ALTA' ? 'error' : a.severidad === 'MEDIA' ? 'warning' : 'info',
+          summary: a.descripcion,
+          reference: a.referenciaExterna || "Sistema",
+          time: new Date(a.createdAt || a.fechaCreacion).toLocaleTimeString(),
+          location: ''
+        })));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchAlerts();
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -379,11 +390,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 ))}
               </List>
             </Popover>
-            <Tooltip title="Configuración">
-              <IconButton color="inherit">
-                <SettingsIcon sx={{ color: 'text.secondary' }} />
-              </IconButton>
-            </Tooltip>
             <Tooltip title="Cuenta">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
                 <Avatar sx={{ width: 34, height: 34, bgcolor: '#0f3194', fontSize: '0.8rem', fontWeight: 700 }}>
@@ -392,10 +398,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </IconButton>
             </Tooltip>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} transformOrigin={{ horizontal: 'right', vertical: 'top' }} anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
-              <MenuItem onClick={() => setAnchorEl(null)}>
-                <Box sx={{ mr: 1.5, display: 'flex', alignItems: 'center' }}><AccountCircle fontSize="small" /></Box>
-                Mi perfil
-              </MenuItem>
               <MenuItem onClick={() => { setAnchorEl(null); logout(); }}>
                 <Box sx={{ mr: 1.5, display: 'flex', alignItems: 'center' }}><Logout fontSize="small" /></Box>
                 Cerrar sesión

@@ -10,57 +10,82 @@ import Autocomplete from "@mui/material/Autocomplete";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
-import { loadPersonas } from "../../../config/propietario-personas.config";
-import {
-  getVehiculoById,
-  upsertVehiculo,
-} from "../../../config/propietario-vehiculos.config";
-import { PropietarioVehiculo } from "../../../config/propietario-vehiculos.config";
+import { registryService, Vehiculo, Persona } from "../../../services/registry.service";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useEffect, useState } from "react";
-
-const personas = loadPersonas().map((p) => p.nombre);
 
 export default function VehiculoForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
-  const [form, setForm] = useState<Partial<PropietarioVehiculo>>({
+  const [form, setForm] = useState<Partial<Vehiculo>>({
     placa: "",
     marca: "",
     modelo: "",
-    anio: undefined,
+    anio: undefined as any,
     color: "",
-    tipo: "",
   });
-  const [owner, setOwner] = useState<string | undefined>(undefined);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit && id) {
-      const v = getVehiculoById(id as string);
-      if (v) setForm(v);
-    }
+    const initForm = async () => {
+      try {
+        setLoading(true);
+        const pList = await registryService.getPersonas().catch(() => []);
+        setPersonas(pList);
+
+        if (isEdit && id) {
+          const v = await registryService.getVehiculoById(id).catch(() => null);
+          if (v) {
+            setForm(v);
+            if (v.propietarioPersonaId) {
+              setOwnerId(v.propietarioPersonaId);
+            }
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    initForm();
   }, [isEdit, id]);
 
-  const handleChange = (field: keyof PropietarioVehiculo, value: any) =>
+  const handleChange = (field: keyof Vehiculo, value: any) =>
     setForm((f) => ({ ...f, [field]: value }));
 
-  const handleSubmit = () => {
-    const veh: PropietarioVehiculo = {
-      id: form.id ?? `veh-${Date.now()}`,
-      placa: form.placa ?? "",
-      marca: form.marca ?? "",
-      modelo: form.modelo ?? "",
-      anio: Number(form.anio) || new Date().getFullYear(),
-      color: form.color ?? "",
-      tipo: form.tipo ?? "Sedán",
-      estado: form.estado ?? "ACTIVO",
-      permisosActivos: form.permisosActivos ?? 0,
-      alertas: form.alertas ?? 0,
-      personasAsignadas: form.personasAsignadas ?? 0,
-      personasSinBiometria: form.personasSinBiometria ?? 0,
-    };
-    upsertVehiculo(veh);
-    navigate("/admin/registry/vehiculos");
+  const handleSubmit = async () => {
+    if (!ownerId && !isEdit) {
+      alert("Por favor selecciona un propietario.");
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const data = {
+        placa: form.placa,
+        marca: form.marca || undefined,
+        modelo: form.modelo || undefined,
+        color: form.color || undefined,
+        anio: Number(form.anio) || undefined,
+      };
+
+      if (isEdit && id) {
+        await registryService.updateVehiculo(id, data);
+      } else {
+        await registryService.createVehiculo({
+          ...data,
+          propietarioPersonaId: ownerId,
+        });
+      }
+      navigate("/admin/registry/vehiculos");
+    } catch (err) {
+      console.error("Error saving vehiculo", err);
+      alert("Error al guardar el vehículo");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,8 +93,8 @@ export default function VehiculoForm() {
       <PageHeader
         title={isEdit ? "Editar Vehículo" : "Nuevo Vehículo"}
         breadcrumbs={[
-          { label: "Registry", href: "#/admin/registry/vehiculos" },
-          { label: "Vehículos", href: "#/admin/registry/vehiculos" },
+          { label: "Registry", href: "/admin/registry/vehiculos" },
+          { label: "Vehículos", href: "/admin/registry/vehiculos" },
           { label: isEdit ? "Editar" : "Nuevo" },
         ]}
         action={
@@ -136,15 +161,6 @@ export default function VehiculoForm() {
                     onChange={(e) => handleChange("color", e.target.value)}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <TextField
-                    fullWidth
-                    label="Tipo"
-                    placeholder="Sedan, SUV, etc."
-                    value={form.tipo}
-                    onChange={(e) => handleChange("tipo", e.target.value)}
-                  />
-                </Grid>
               </Grid>
             </Box>
             <Box>
@@ -155,10 +171,12 @@ export default function VehiculoForm() {
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Autocomplete
                     options={personas}
-                    value={owner ?? ""}
-                    onChange={(_e, val) => setOwner(val ?? undefined)}
+                    getOptionLabel={(option) => `${option.identificacionNumero} - ${option.nombres} ${option.apellidos}`}
+                    value={personas.find(p => p.personaId === ownerId) || null}
+                    onChange={(_e, val) => setOwnerId(val ? val.personaId : null)}
+                    disabled={isEdit}
                     renderInput={(params) => (
-                      <TextField {...params} label="Persona propietaria" />
+                      <TextField {...params} label="Persona propietaria" helperText={isEdit ? "El propietario no puede cambiarse" : ""} />
                     )}
                   />
                 </Grid>
@@ -173,8 +191,9 @@ export default function VehiculoForm() {
               </Button>
               <Button
                 variant="contained"
-                startIcon={<SaveIcon />}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                 onClick={handleSubmit}
+                disabled={loading}
               >
                 {isEdit ? "Guardar Cambios" : "Crear Vehículo"}
               </Button>

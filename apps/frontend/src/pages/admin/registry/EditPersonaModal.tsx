@@ -19,13 +19,17 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 
+import { registryService } from '../../../services/registry.service';
+
 interface EditPersonaModalProps {
   open: boolean;
   onClose: () => void;
   initialData?: any;
+  onSuccess?: () => void;
 }
 
-export default function EditPersonaModal({ open, onClose, initialData }: EditPersonaModalProps) {
+export default function EditPersonaModal({ open, onClose, initialData, onSuccess }: EditPersonaModalProps) {
+  const [, setLoading] = useState(false);
   const [form, setForm] = useState({
     identificacion: '',
     tipoId: 'Cédula',
@@ -33,8 +37,6 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
     apellidos: '',
     correo: '',
     telefono: '',
-    facultad: '',
-    carrera: '',
     rol: '',
     estado: 'ACTIVO',
   });
@@ -50,9 +52,25 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
 
   const handleChange = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
 
-  const handleSubmit = () => {
-    // Aquí iría la lógica para enviar al backend
-    onClose();
+  const handleSubmit = async () => {
+    if (!initialData?.id) return;
+    try {
+      setLoading(true);
+      await registryService.updatePersona(initialData.id, {
+        nombres: form.nombres,
+        apellidos: form.apellidos,
+        correoInstitucional: form.correo,
+        telefonoContacto: form.telefono,
+        rolInstitucional: form.rol,
+      });
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('Error updating persona', err);
+      alert('Error al actualizar la persona');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,7 +105,7 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <Divider />
 
       <DialogContent sx={{ p: 3 }}>
@@ -102,20 +120,20 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
             </Box>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="small" disabled>
                   <InputLabel>Tipo de identificación</InputLabel>
                   <Select value={form.tipoId} label="Tipo de identificación" onChange={(e) => handleChange('tipoId', e.target.value)}>
-                    <MenuItem value="Cédula">Cédula</MenuItem>
-                    <MenuItem value="Pasaporte">Pasaporte</MenuItem>
+                    <MenuItem value="CEDULA">Cédula</MenuItem>
+                    <MenuItem value="PASAPORTE">Pasaporte</MenuItem>
                     <MenuItem value="RUC">RUC</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField size="small" fullWidth label="Identificación" value={form.identificacion} onChange={(e) => handleChange('identificacion', e.target.value)} />
+                <TextField size="small" fullWidth label="Identificación" value={form.identificacion} disabled />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="small" disabled>
                   <InputLabel>Estado de la Cuenta</InputLabel>
                   <Select value={form.estado} label="Estado de la Cuenta" onChange={(e) => handleChange('estado', e.target.value)}>
                     <MenuItem value="ACTIVO">HABILITADO</MenuItem>
@@ -161,33 +179,20 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <CorporateFareIcon color="primary" />
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Asignación Institucional
+                Rol Institucional
               </Typography>
             </Box>
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Facultad</InputLabel>
-                  <Select value={form.facultad} label="Facultad" onChange={(e) => handleChange('facultad', e.target.value)}>
-                    <MenuItem value="Ingeniería">Ingeniería</MenuItem>
-                    <MenuItem value="Ciencias">Ciencias</MenuItem>
-                    <MenuItem value="Administración">Administración</MenuItem>
-                    <MenuItem value="Arquitectura">Arquitectura</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField size="small" fullWidth label="Carrera" value={form.carrera} onChange={(e) => handleChange('carrera', e.target.value)} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Rol</InputLabel>
                   <Select value={form.rol} label="Rol" onChange={(e) => handleChange('rol', e.target.value)}>
                     <MenuItem value="Docente">Docente</MenuItem>
                     <MenuItem value="Estudiante">Estudiante</MenuItem>
                     <MenuItem value="Administrativo">Administrativo</MenuItem>
-                    <MenuItem value="Guardia">Guardia</MenuItem>
-                    <MenuItem value="Agregado">Agregado</MenuItem>
+                    <MenuItem value="Guardia de Seguridad">Guardia de Seguridad</MenuItem>
+                    <MenuItem value="Autoridad">Autoridad</MenuItem>
+                    <MenuItem value="Invitado">Invitado</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -195,7 +200,7 @@ export default function EditPersonaModal({ open, onClose, initialData }: EditPer
           </Box>
         </Box>
       </DialogContent>
-      
+
       <DialogActions sx={{ p: 2.5, bgcolor: 'rgba(0,0,0,0.02)' }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
           Cancelar

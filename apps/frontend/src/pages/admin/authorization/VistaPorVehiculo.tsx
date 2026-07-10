@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -12,28 +12,114 @@ import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
+import CircularProgress from '@mui/material/CircularProgress';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import PageHeader from '../../../components/admin-legacy/PageHeader';
 import StatusChip from '../../../components/admin-legacy/StatusChip';
+import { registryService, Vehiculo, Persona } from '../../../services/registry.service';
+import { authorizationService } from '../../../services/authorization.service';
 
 interface Conductor {
-  id: number;
+  id: string;
   persona: string;
   tipo: 'Permanente' | 'Temporal';
-  estado: 'ACTIVA' | 'INACTIVA' | 'EXPIRADO';
+  estado: string;
   vigencia: string;
 }
 
-const vehiculos = ['ABC-0123', 'PBC-1231', 'GTR-8832', 'XYZ-4567', 'MNL-7788'];
-
-const conductores: Conductor[] = [
-  { id: 1, persona: 'María Fernanda López', tipo: 'Permanente', estado: 'ACTIVA', vigencia: 'Indefinida' },
-  { id: 2, persona: 'Carlos Andrés Mendoza', tipo: 'Temporal', estado: 'ACTIVA', vigencia: 'Hasta 2024-08-20 18:00' },
-  { id: 3, persona: 'Diego Fernando Ramírez', tipo: 'Permanente', estado: 'INACTIVA', vigencia: 'Inactiva desde 2024-06-01' },
-];
-
 export default function VistaPorVehiculo() {
-  const [vehiculo, setVehiculo] = useState<string | null>('ABC-0123');
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState<Vehiculo | null>(null);
+  const [conductores, setConductores] = useState<Conductor[]>([]);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingAuths, setLoadingAuths] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setLoadingInitial(true);
+        const [vehRes, persRes] = await Promise.all([
+          registryService.getVehiculos().catch(() => []),
+          registryService.getPersonas().catch(() => [])
+        ]);
+        setVehiculos(vehRes);
+        setPersonas(persRes);
+      } catch (err) {
+        console.error("Error fetching vehicles/personas", err);
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (!vehiculoSeleccionado) {
+      setConductores([]);
+      return;
+    }
+    const fetchAuths = async () => {
+      try {
+        setLoadingAuths(true);
+        const auths = await authorizationService.getConjuntoAutorizado(vehiculoSeleccionado.vehiculoId);
+        
+        // Map the backend response to the Conductor interface
+        // The backend response format for getConjuntoAutorizado is expected to be an array of objects
+        // with properties describing the permission/authorization.
+        const mappedAuths: Conductor[] = [];
+        
+        if (auths.propietario) {
+           const p = personas.find(x => x.personaId === auths.propietario.personaId);
+           mappedAuths.push({
+             id: 'prop',
+             persona: p ? `${p.nombres} ${p.apellidos}` : 'Propietario',
+             tipo: 'Permanente',
+             estado: 'ACTIVA',
+             vigencia: 'Propietario'
+           });
+        }
+        
+        if (Array.isArray(auths.permanentes)) {
+           auths.permanentes.forEach((auth: any) => {
+             const p = personas.find(x => x.personaId === auth.personaId);
+             mappedAuths.push({
+               id: auth.id,
+               persona: p ? `${p.nombres} ${p.apellidos}` : auth.personaId,
+               tipo: 'Permanente',
+               estado: auth.estado,
+               vigencia: 'Indefinida'
+             });
+           });
+        }
+
+        if (Array.isArray(auths.temporales)) {
+           auths.temporales.forEach((auth: any) => {
+             const p = personas.find(x => x.personaId === auth.personaId);
+             mappedAuths.push({
+               id: auth.id,
+               persona: p ? `${p.nombres} ${p.apellidos}` : auth.personaId,
+               tipo: 'Temporal',
+               estado: auth.estado,
+               vigencia: `Hasta ${new Date(auth.vigencia?.fin || auth.fechaActualizacion).toLocaleString()}`
+             });
+           });
+        }
+
+        setConductores(mappedAuths);
+      } catch (err) {
+        console.error("Error fetching auths", err);
+      } finally {
+        setLoadingAuths(false);
+      }
+    };
+    fetchAuths();
+  }, [vehiculoSeleccionado, personas]);
+
+  const propietarioName = vehiculoSeleccionado ? (() => {
+    const p = personas.find(x => x.personaId === vehiculoSeleccionado.propietarioPersonaId);
+    return p ? `${p.nombres} ${p.apellidos}` : 'Desconocido';
+  })() : '';
 
   return (
     <Box>
@@ -45,16 +131,21 @@ export default function VistaPorVehiculo() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Seleccionar Vehículo</Typography>
-          <Autocomplete
-            options={vehiculos}
-            value={vehiculo}
-            onChange={(_, v) => setVehiculo(v)}
-            sx={{ maxWidth: 400 }}
-            renderInput={(params) => <TextField {...params} label="Placa del vehículo" />}
-          />
+          {loadingInitial ? (
+             <CircularProgress />
+          ) : (
+            <Autocomplete
+              options={vehiculos}
+              getOptionLabel={(option) => `${option.placa} ${option.marca || ''} ${option.modelo || ''}`}
+              value={vehiculoSeleccionado}
+              onChange={(_, v) => setVehiculoSeleccionado(v)}
+              sx={{ maxWidth: 400 }}
+              renderInput={(params) => <TextField {...params} label="Placa del vehículo" />}
+            />
+          )}
         </CardContent>
       </Card>
-      {vehiculo && (
+      {vehiculoSeleccionado && (
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -62,37 +153,42 @@ export default function VistaPorVehiculo() {
                 <DirectionsCarIcon sx={{ color: '#fff' }} />
               </Box>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>{vehiculo}</Typography>
-                <Typography variant="caption" color="text.secondary">Toyota Corolla 2022 · Propietario: María Fernanda López</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>{vehiculoSeleccionado.placa}</Typography>
+                <Typography variant="caption" color="text.secondary">{vehiculoSeleccionado.marca || ''} {vehiculoSeleccionado.modelo || ''} · Propietario: {propietarioName}</Typography>
               </Box>
             </Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
               Conductores autorizados actualmente
             </Typography>
-            <List>
-              {conductores.map((c, i) => (
-                <Box key={c.id}>
-                  <ListItem sx={{ px: 0, gap: 2 }}>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: c.estado === 'ACTIVA' ? 'success.main' : 'grey.400' }}>
-                        {c.persona.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.persona}</Typography>
-                          <Chip label={c.tipo} size="small" variant="outlined" />
-                          <StatusChip kind="autorizacion" value={c.estado} />
-                        </Box>
-                      }
-                      secondary={<Typography variant="caption" color="text.secondary">{c.vigencia}</Typography>}
-                    />
-                  </ListItem>
-                  {i < conductores.length - 1 && <Divider />}
-                </Box>
-              ))}
-            </List>
+            {loadingAuths ? (
+              <CircularProgress />
+            ) : (
+              <List>
+                {conductores.length === 0 && <Typography color="text.secondary">No hay conductores autorizados</Typography>}
+                {conductores.map((c, i) => (
+                  <Box key={c.id}>
+                    <ListItem sx={{ px: 0, gap: 2 }}>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: c.estado === 'ACTIVA' ? 'success.main' : 'grey.400' }}>
+                          {c.persona.charAt(0)}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.persona}</Typography>
+                            <Chip label={c.tipo} size="small" variant="outlined" />
+                            <StatusChip kind="autorizacion" value={c.estado} />
+                          </Box>
+                        }
+                        secondary={<Typography variant="caption" color="text.secondary">{c.vigencia}</Typography>}
+                      />
+                    </ListItem>
+                    {i < conductores.length - 1 && <Divider />}
+                  </Box>
+                ))}
+              </List>
+            )}
           </CardContent>
         </Card>
       )}

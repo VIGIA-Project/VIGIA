@@ -313,7 +313,7 @@ export default function PersonasList() {
               </FormControl>
             </Box>
           }
-          // onRowClick={(row) => navigate(`/admin/registry/personas/${row.personaId || row.userId}`)}
+          onRowClick={(row) => navigate(`/admin/registry/personas/${row.personaId || row.userId || row.id}`)}
           rowActions={(row) => {
             const actions: any[] = [];
 

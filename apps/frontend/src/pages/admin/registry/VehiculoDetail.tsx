@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -8,15 +8,14 @@ import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid2";
+import CircularProgress from "@mui/material/CircularProgress";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import EditIcon from "@mui/icons-material/Edit";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
 import StatusChip from "../../../components/admin-legacy/StatusChip";
-import DataTable, {
-  type Column,
-} from "../../../components/admin-legacy/DataTable";
-import { buildInitialVehiculos } from "../../../config/propietario-vehiculos.config";
+import DataTable, { type Column } from "../../../components/admin-legacy/DataTable";
+import { registryService, Vehiculo, Persona } from "../../../services/registry.service";
 
 interface Autorizacion {
   id: number;
@@ -26,32 +25,35 @@ interface Autorizacion {
   vigencia: string;
 }
 
-const autorizaciones: Autorizacion[] = [
-  {
-    id: 1,
-    persona: "María Fernanda López",
-    tipo: "Permanente",
-    estado: "ACTIVA",
-    vigencia: "Indefinida",
-  },
-  {
-    id: 2,
-    persona: "Carlos Andrés Mendoza",
-    tipo: "Temporal",
-    estado: "ACTIVA",
-    vigencia: "Hasta 2024-12-31",
-  },
-];
+const autorizaciones: Autorizacion[] = [];
 
 export default function VehiculoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
+  const [owner, setOwner] = useState<Persona | null>(null);
 
-  const vehiculos = buildInitialVehiculos();
-  const found = vehiculos.find(
-    (v) => String(v.id) === String(id) || String(v.placa) === String(id),
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const v = await registryService.getVehiculoById(id);
+        setVehiculo(v);
+        if (v.propietarioPersonaId) {
+          const p = await registryService.getPersonaById(v.propietarioPersonaId).catch(() => null);
+          setOwner(p);
+        }
+      } catch (err) {
+        console.error("Error loading vehiculo details", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
 
   const authCols: Column<Autorizacion>[] = [
     {
@@ -77,9 +79,9 @@ export default function VehiculoDetail() {
       <PageHeader
         title="Detalle de Vehículo"
         breadcrumbs={[
-          { label: "Registry", href: "#/admin/registry/vehiculos" },
-          { label: "Vehículos", href: "#/admin/registry/vehiculos" },
-          { label: `ID ${id}` },
+          { label: "Registry", href: "/admin/registry/vehiculos" },
+          { label: "Vehículos", href: "/admin/registry/vehiculos" },
+          { label: vehiculo ? vehiculo.placa : `ID ${id}` },
         ]}
         action={
           <Box sx={{ display: "flex", gap: 1 }}>
@@ -124,13 +126,21 @@ export default function VehiculoDetail() {
               <DirectionsCarIcon sx={{ fontSize: 36, color: "#fff" }} />
             </Box>
             <Box sx={{ flex: 1, minWidth: 200 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                ABC-0123
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Toyota Corolla 2022 · Blanco
-              </Typography>
-              <StatusChip kind="cuenta" value="ACTIVO" />
+              {loading ? (
+                <CircularProgress size={24} />
+              ) : vehiculo ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    {vehiculo.placa}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {vehiculo.marca || 'Sin marca'} {vehiculo.modelo || ''} {vehiculo.color ? `· ${vehiculo.color}` : ''}
+                  </Typography>
+                  <StatusChip kind="cuenta" value={vehiculo.estadoRegistro || "ACTIVO"} />
+                </>
+              ) : (
+                <Typography color="error">Vehículo no encontrado</Typography>
+              )}
             </Box>
           </Box>
         </CardContent>
@@ -143,17 +153,16 @@ export default function VehiculoDetail() {
           </Tabs>
         </Box>
         <CardContent>
-          {tab === 0 && (
+          {tab === 0 && vehiculo && (
             <Grid container spacing={3}>
               {[
-                ["Placa", found?.placa ?? "ABC-0123"],
-                ["Marca", found?.marca ?? "Toyota"],
-                ["Modelo", found?.modelo ?? "Corolla"],
-                ["Año", String(found?.anio ?? "2022")],
-                ["Color", found?.color ?? "Blanco"],
-                ["Propietario", found?.placa ? "—" : "María Fernanda López"],
-                ["Fecha de registro", "2022-03-15"],
-                ["Última modificación", "2024-08-10"],
+                ["Placa", vehiculo.placa],
+                ["Marca", vehiculo.marca || "-"],
+                ["Modelo", vehiculo.modelo || "-"],
+                ["Año", vehiculo.anio ? String(vehiculo.anio) : "-"],
+                ["Color", vehiculo.color || "-"],
+                ["Propietario", owner ? `${owner.nombres} ${owner.apellidos}` : "No asignado / Desconocido"],
+                ["Estado", vehiculo.estadoRegistro || "ACTIVO"],
               ].map(([label, value]) => (
                 <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}>
                   <Typography

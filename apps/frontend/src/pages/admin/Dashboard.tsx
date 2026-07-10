@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -41,10 +42,10 @@ import { alertingService } from '../../services/alerting.service';
 import { accessControlService } from '../../services/access-control.service';
 
 const accionesRapidas = [
-  { label: 'Nueva Persona', icon: <PersonAddIcon />, color: '#0D5CCF', href: '#/admin/registro/personas' },
-  { label: 'Nueva Autorización', icon: <AssignmentIndIcon />, color: '#11A9D6', href: '#/admin/authorization/permanentes' },
-  { label: 'Permiso Temporal', icon: <ScheduleIcon />, color: '#E0A82E', href: '#/admin/authorization/temporales' },
-  { label: 'Ver Alertas', icon: <NotificationsActiveIcon />, color: '#C0524A', href: '#/admin/alerting/alertas' },
+  { label: 'Nueva Persona', icon: <PersonAddIcon />, color: '#0D5CCF', href: '/admin/registry/personas' },
+  { label: 'Nueva Autorización', icon: <AssignmentIndIcon />, color: '#11A9D6', href: '/admin/authorization/permanentes' },
+  { label: 'Permiso Temporal', icon: <ScheduleIcon />, color: '#E0A82E', href: '/admin/authorization/temporales' },
+  { label: 'Ver Alertas', icon: <NotificationsActiveIcon />, color: '#C0524A', href: '/admin/alerting/alertas' },
 ];
 
 const severityIcon = (sev: string) => {
@@ -159,7 +160,8 @@ export default function Dashboard() {
               variant="outlined"
               startIcon={accion.icon}
               size="small"
-              href={accion.href}
+              component={RouterLink}
+              to={accion.href}
               sx={{
                 borderRadius: 2,
                 textTransform: 'none',
@@ -194,7 +196,7 @@ export default function Dashboard() {
                     Alertas Recientes
                   </Typography>
                 </Box>
-                <Button size="small" endIcon={<ArrowForwardIcon />} href="#/admin/alerting/alertas">
+                <Button size="small" endIcon={<ArrowForwardIcon />} component={RouterLink} to="/admin/alerting/alertas">
                   Ver todas
                 </Button>
               </Box>
@@ -209,6 +211,8 @@ export default function Dashboard() {
                         {severityIcon(alerta.severidad)}
                       </ListItemIcon>
                       <ListItemText
+                        primaryTypographyProps={{ component: 'div' } as any}
+                        secondaryTypographyProps={{ component: 'div' } as any}
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
                             <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', flex: 1 }}>
@@ -249,7 +253,7 @@ export default function Dashboard() {
                     Eventos de Acceso Recientes
                   </Typography>
                 </Box>
-                <Button size="small" endIcon={<ArrowForwardIcon />} href="#/admin/auditoria/eventos">
+                <Button size="small" endIcon={<ArrowForwardIcon />} component={RouterLink} to="/admin/auditoria/eventos">
                   Ver historial
                 </Button>
               </Box>
@@ -328,6 +332,8 @@ export default function Dashboard() {
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText
+                        primaryTypographyProps={{ component: 'div' } as any}
+                        secondaryTypographyProps={{ component: 'div' } as any}
                         primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{persona.nombreCompleto || `${persona.nombres} ${persona.apellidos}`}</Typography>}
                         secondary={
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -369,6 +375,8 @@ export default function Dashboard() {
                         <ScheduleIcon sx={{ color: 'warning.main' }} />
                       </ListItemIcon>
                       <ListItemText
+                        primaryTypographyProps={{ component: 'div' } as any}
+                        secondaryTypographyProps={{ component: 'div' } as any}
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{permiso.motivo}</Typography>

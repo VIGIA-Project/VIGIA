@@ -38,24 +38,24 @@ export default function PermisosTemporal() {
     fetchData();
   }, []);
 
-  const getPersona = (id: string) => personas.find((p) => p.id === id);
-  const getVehiculo = (id: string) => vehiculos.find((v) => v.id === id);
+  const getPersona = (id: string) => personas.find((p) => p.personaId === id);
+  const getVehiculo = (id: string) => vehiculos.find((v) => v.vehiculoId === id);
 
-  const permisosUI: PermisoTemporalUI[] = permisosBackend.map((p) => {
+  const permisosUI: PermisoTemporalUI[] = permisosBackend.map((p: any) => {
     const persona = getPersona(p.personaId);
     const vehiculo = getVehiculo(p.vehiculoId);
     return {
       id: p.id,
       persona: persona ? `${persona.nombres} ${persona.apellidos}` : p.personaId,
-      cedula: persona?.cedula || "",
+      cedula: persona?.identificacionNumero || "",
       relacion: "Permiso Temporal",
       vehiculo: {
         marca: vehiculo?.marca || "Desconocida",
         modelo: vehiculo?.modelo || "Desconocido",
         placa: vehiculo?.placa || p.vehiculoId,
       },
-      fechaInicio: p.vigencia.inicio,
-      fechaFin: p.vigencia.fin,
+      fechaInicio: p?.vigenciaInicio || p?.vigencia?.inicio || new Date().toISOString(),
+      fechaFin: p?.vigenciaFin || p?.vigencia?.fin || new Date().toISOString(),
       estado: p.estado as 'ACTIVO' | 'EXPIRADO' | 'REVOCADO',
       motivo: p.motivo,
     };
@@ -124,7 +124,10 @@ export default function PermisosTemporal() {
       <PermisosGrid
         permisos={permisosUI}
         onViewDetail={(id) => {
-          console.log("Admin ver permiso", id);
+          const permisoBackend = permisosBackend.find((p: any) => p.id === id);
+          if (permisoBackend?.vehiculoId) {
+            navigate(`/admin/authorization/vehiculos/${permisoBackend.vehiculoId}`);
+          }
         }}
         onRevoke={(id) => {
           console.log("Admin revocar permiso", id);

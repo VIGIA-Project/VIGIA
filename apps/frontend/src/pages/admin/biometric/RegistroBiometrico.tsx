@@ -29,7 +29,7 @@ export default function RegistroBiometrico() {
     <Box>
       <PageHeader
         title="Registrar Biometría"
-        breadcrumbs={[{ label: 'Biometric', href: '#/admin/biometric/perfiles' }, { label: 'Perfiles', href: '#/admin/biometric/perfiles' }, { label: 'Registrar' }]}
+        breadcrumbs={[{ label: 'Biometric', href: '/admin/biometric/perfiles' }, { label: 'Perfiles', href: '/admin/biometric/perfiles' }, { label: 'Registrar' }]}
         action={<Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/admin/biometric/perfiles')}>Volver</Button>}
       />
       <Card sx={{ mb: 3 }}>
@@ -54,6 +54,7 @@ export default function RegistroBiometrico() {
             {capturas.map((c) => (
               <Grid key={c.id} size={{ xs: 12, sm: 4 }}>
                 <Box
+                  component="label"
                   sx={{
                     border: '2px dashed',
                     borderColor: 'rgba(13, 92, 207, 0.2)',
@@ -61,10 +62,12 @@ export default function RegistroBiometrico() {
                     p: 3,
                     textAlign: 'center',
                     cursor: 'pointer',
+                    display: 'block',
                     transition: 'all 0.15s',
                     '&:hover': { borderColor: 'primary.main', backgroundColor: 'rgba(13, 92, 207, 0.02)' },
                   }}
                 >
+                  <input type="file" accept="image/*" hidden onChange={() => alert('Imagen seleccionada para ' + c.label)} />
                   <Box sx={{ width: '100%', aspectRatio: '1', borderRadius: 2, bgcolor: '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, p: 3 }}>
                     <Box component="img" src={c.img} alt={c.label} sx={{ width: '80%', height: '80%', objectFit: 'contain' }} />
                   </Box>

@@ -12,7 +12,6 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import CircularProgress from '@mui/material/CircularProgress';
-import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../../../components/admin-legacy/PageHeader';
 import DataTable, { type Column } from '../../../components/admin-legacy/DataTable';
 import StatusChip from '../../../components/admin-legacy/StatusChip';
@@ -69,12 +68,12 @@ export default function AutorizacionesPermanentes() {
   }, []);
 
   const getPersonaName = (id: string) => {
-    const p = personas.find(p => p.id === id);
+    const p = personas.find(p => p.personaId === id);
     return p ? `${p.nombres} ${p.apellidos}` : id;
   };
 
   const getVehiculoPlaca = (id: string) => {
-    const v = vehiculos.find(v => v.id === id);
+    const v = vehiculos.find(v => v.vehiculoId === id);
     return v ? v.placa : id;
   };
 
@@ -102,7 +101,6 @@ export default function AutorizacionesPermanentes() {
         title="Autorizaciones Permanentes"
         subtitle="Gestión de autorizaciones permanentes de personas sobre vehículos"
         breadcrumbs={[{ label: 'Authorization' }, { label: 'Permanentes' }]}
-        action={<Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>Nueva Autorización</Button>}
       />
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {[
@@ -135,15 +133,15 @@ export default function AutorizacionesPermanentes() {
         <DialogTitle>Nueva Autorización Permanente</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <Autocomplete 
-              options={personas} 
+            <Autocomplete
+              options={personas}
               getOptionLabel={(p) => `${p.nombres} ${p.apellidos}`}
-              renderInput={(p) => <TextField {...p} label="Persona" required />} 
+              renderInput={(p) => <TextField {...p} label="Persona" required />}
             />
-            <Autocomplete 
-              options={vehiculos} 
+            <Autocomplete
+              options={vehiculos}
               getOptionLabel={(v) => v.placa}
-              renderInput={(p) => <TextField {...p} label="Vehículo" required />} 
+              renderInput={(p) => <TextField {...p} label="Vehículo" required />}
             />
             <TextField label="Motivo" multiline rows={2} required />
           </Box>

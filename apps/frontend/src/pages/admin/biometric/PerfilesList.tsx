@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -6,30 +7,23 @@ import Avatar from '@mui/material/Avatar';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import CircularProgress from '@mui/material/CircularProgress';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import FaceRetouchingNaturalIcon from '@mui/icons-material/FaceRetouchingNatural';
 import PageHeader from '../../../components/admin-legacy/PageHeader';
 import DataTable, { type Column } from '../../../components/admin-legacy/DataTable';
 import StatusChip from '../../../components/admin-legacy/StatusChip';
+import { registryService } from '../../../services/registry.service';
 
 interface Perfil {
-  id: number;
+  id: string;
   persona: string;
   identificacion: string;
   estado: 'DISPONIBLE' | 'PENDIENTE' | 'NO_DISPONIBLE';
   ultimaActualizacion: string;
   representaciones: number;
 }
-
-const rows: Perfil[] = [
-  { id: 1, persona: 'Carlos Andrés Mendoza', identificacion: '1718901234', estado: 'DISPONIBLE', ultimaActualizacion: '2024-08-15 10:32', representaciones: 3 },
-  { id: 2, persona: 'Patricia Salazar Naranjo', identificacion: '1709876543', estado: 'DISPONIBLE', ultimaActualizacion: '2024-07-20 14:15', representaciones: 3 },
-  { id: 3, persona: 'María Fernanda López', identificacion: '1712345678', estado: 'PENDIENTE', ultimaActualizacion: 'Nunca', representaciones: 0 },
-  { id: 4, persona: 'Jorge Luis Velasteguí', identificacion: '1714567890', estado: 'PENDIENTE', ultimaActualizacion: 'Nunca', representaciones: 0 },
-  { id: 5, persona: 'Diego Fernando Ramírez', identificacion: '1716789012', estado: 'DISPONIBLE', ultimaActualizacion: '2024-08-18 09:00', representaciones: 3 },
-  { id: 6, persona: 'Ana Lucía Paredes', identificacion: '1723456789', estado: 'NO_DISPONIBLE', ultimaActualizacion: '2024-06-01 11:20', representaciones: 0 },
-];
 
 const columns: Column<Perfil>[] = [
   {
@@ -52,6 +46,32 @@ const columns: Column<Perfil>[] = [
 
 export default function PerfilesList() {
   const navigate = useNavigate();
+  const [rows, setRows] = useState<Perfil[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPerfiles = async () => {
+      try {
+        setLoading(true);
+        const personas = await registryService.getPersonas();
+        // Since backend biometric module doesn't exist yet, we map all personas as PENDIENTE
+        setRows(personas.map(p => ({
+          id: p.personaId,
+          persona: `${p.nombres} ${p.apellidos}`,
+          identificacion: p.identificacionNumero || 'N/A',
+          estado: 'PENDIENTE',
+          ultimaActualizacion: 'Nunca',
+          representaciones: 0,
+        })));
+      } catch (err) {
+        console.error("Error fetching personas for perfiles", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPerfiles();
+  }, []);
+
   return (
     <Box>
       <PageHeader
@@ -62,9 +82,9 @@ export default function PerfilesList() {
       />
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {[
-          { label: 'Perfiles Disponibles', value: '1,102', color: '#5B9C5F' },
-          { label: 'Pendientes de Captura', value: '146', color: '#E0A82E' },
-          { label: 'No Disponibles', value: '23', color: '#C0524A' },
+          { label: 'Perfiles Disponibles', value: '0', color: '#5B9C5F' },
+          { label: 'Pendientes de Captura', value: rows.length.toString(), color: '#E0A82E' },
+          { label: 'No Disponibles', value: '0', color: '#C0524A' },
         ].map((s) => (
           <Grid key={s.label} size={{ xs: 12, sm: 4 }}>
             <Card><CardContent>
@@ -77,16 +97,20 @@ export default function PerfilesList() {
           </Grid>
         ))}
       </Grid>
-      <DataTable
-        columns={columns}
-        rows={rows}
-        searchPlaceholder="Buscar por persona o identificación..."
-        searchKeys={(r) => `${r.persona} ${r.identificacion}`}
-        onRowClick={(row) => navigate(`/admin/biometric/perfiles/${row.id}`)}
-        rowActions={(row) => [
-          { icon: <VisibilityIcon fontSize="small" />, label: 'Ver detalle', onClick: () => navigate(`/admin/biometric/perfiles/${row.id}`), color: 'primary' },
-        ]}
-      />
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={rows}
+          searchPlaceholder="Buscar por persona o identificación..."
+          searchKeys={(r) => `${r.persona} ${r.identificacion}`}
+          onRowClick={(row) => navigate(`/admin/biometric/perfiles/${row.id}`)}
+          rowActions={(row) => [
+            { icon: <VisibilityIcon fontSize="small" />, label: 'Ver detalle', onClick: () => navigate(`/admin/biometric/perfiles/${row.id}`), color: 'primary' },
+          ]}
+        />
+      )}
     </Box>
   );
 }

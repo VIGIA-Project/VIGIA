@@ -10,8 +10,9 @@ import { staggerItem } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
 import { PermisoTemporal } from '../../config/propietario-permisos.config';
 
-const ESTADO_BADGE: Record<PermisoTemporal['estado'], { bg: string; text: string; label: string }> = {
+const ESTADO_BADGE: Record<string, { bg: string; text: string; label: string }> = {
   ACTIVO: { bg: '#DCFCE7', text: '#166534', label: 'Activo' },
+  ACTIVA: { bg: '#DCFCE7', text: '#166534', label: 'Activo' },
   EXPIRADO: { bg: '#F1F5F9', text: '#64748B', label: 'Expirado' },
   REVOCADO: { bg: '#FEE2E2', text: '#991B1B', label: 'Revocado' },
 };
@@ -32,8 +33,8 @@ export interface PermisoTemporalCardProps {
 
 export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permiso, onViewDetail, onRevoke }) => {
   const shouldReduceMotion = useReducedMotion();
-  const badge = ESTADO_BADGE[permiso.estado];
-  const diasParaExpirar = permiso.estado === 'ACTIVO' ? differenceInCalendarDays(parseISO(permiso.fechaFin), new Date()) : null;
+  const badge = ESTADO_BADGE[permiso.estado] || { bg: '#E2E8F0', text: '#475569', label: permiso.estado || 'Desconocido' };
+  const diasParaExpirar = (permiso.estado === 'ACTIVO' || permiso.estado === 'ACTIVA') ? differenceInCalendarDays(parseISO(permiso.fechaFin), new Date()) : null;
   const proximoAExpirar = diasParaExpirar !== null && diasParaExpirar >= 0 && diasParaExpirar <= 3;
 
   return (
@@ -90,14 +91,7 @@ export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permis
           </Typography>
         )}
 
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid #F1F5F9' }}>
-          <Box
-            component="button"
-            onClick={() => onViewDetail?.(permiso.id)}
-            sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0D5CCF', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0, '&:hover': { textDecoration: 'underline' } }}
-          >
-            Ver detalle
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', pt: 1.5, borderTop: '1px solid #F1F5F9' }}>
           {permiso.estado === 'ACTIVO' && (
             <Box
               component="button"

@@ -49,13 +49,13 @@ export class VehiculoController {
     }
 
     @Get(':id')
-    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
     async buscarPorId(@Param('id') id: string) {
         return this.vehiculoUseCases.buscarPorId(id);
     }
 
     @Get('propietario/:propietarioId')
-    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
     async listarPorPropietario(@Param('propietarioId') propietarioId: string) {
         return this.vehiculoUseCases.listarPorPropietario(propietarioId);
     }

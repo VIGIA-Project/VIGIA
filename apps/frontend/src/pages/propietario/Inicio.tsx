@@ -18,16 +18,16 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../context';
+import { usePropietarioVehiculo } from '../../hooks/useRegistry';
+import { usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
 
 // === MOCK DATA ===
-const MOCK_KPIS = [
-  { value: 3, label: 'Vehículos', indicator: '🟢 Todos activos', indicatorColor: '#2E7D32', accentColor: '#0D5CCF', route: '/propietario/vehiculos' },
-  { value: 1, label: 'Permiso Activo', indicator: '⏰ Expira en 3 días', indicatorColor: '#EDB200', accentColor: '#19D6C4', route: '/propietario/permisos-temporales' },
-  { value: 5, label: 'Pases Disponibles', indicator: '2 consumidos hoy', indicatorColor: '#6B7280', accentColor: '#F2B51F', route: '/propietario/pases-rapidos' },
-  { value: 2, label: 'Alertas Pendientes', indicator: '🔴 1 alta prioridad', indicatorColor: '#C62828', accentColor: '#C62828', route: '/propietario/alertas' },
-  { value: 1, label: 'Biom. Pendiente', indicator: '🔶 1 persona sin biometría', indicatorColor: '#F59E0B', accentColor: '#F59E0B', route: '/propietario/personas' },
-];
+// TODO: Replace with real data when Alerting BC is implemented
+const MOCK_KPI_ALERTAS = { value: 2, label: 'Alertas Pendientes', indicator: '🔴 1 alta prioridad', indicatorColor: '#C62828', accentColor: '#C62828', route: '/propietario/alertas' };
+// TODO: Replace with real data when Biometric BC is implemented
+const MOCK_KPI_BIOMETRIA = { value: 1, label: 'Biom. Pendiente', indicator: '🔶 1 persona sin biometría', indicatorColor: '#F59E0B', accentColor: '#F59E0B', route: '/propietario/personas' };
 
+// TODO: Replace with real data when Access Control BC is implemented
 const MOCK_ACTIVIDAD = [
   { icon: <CheckCircleIcon sx={{ color: '#2E7D32' }} />, title: 'Acceso autorizado · PBW-1234 · Acceso Norte', subtitle: 'Validación biométrica exitosa', timestamp: 'hace 2h', severity: 'success' as const },
   { icon: <WarningAmberIcon sx={{ color: '#EDB200' }} />, title: 'Permiso próximo a expirar · PBB-3456', subtitle: 'Permiso de Jorge Mendoza vence en 4 horas', timestamp: 'hace 3h', severity: 'warning' as const },
@@ -55,6 +55,42 @@ const InicioPage: React.FC = () => {
 
   const displayName = user?.email?.split('@')[0] || 'Propietario';
   const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+
+  const { vehiculo } = usePropietarioVehiculo();
+  const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
+  const pasesQuery = useMisPases();
+
+  const permisosActivos = (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length;
+  const pasesActivos = (pasesQuery.data ?? []).filter((p) => p.estado === 'ACTIVO').length;
+
+  const kpis = [
+    {
+      value: vehiculo ? 1 : 0,
+      label: 'Vehículos',
+      indicator: vehiculo ? '🟢 Activo' : 'Registra tu vehículo',
+      indicatorColor: vehiculo ? '#2E7D32' : '#6B7280',
+      accentColor: '#0D5CCF',
+      route: '/propietario/vehiculos',
+    },
+    {
+      value: permisosActivos,
+      label: 'Permisos Activos',
+      indicator: permisosActivos > 0 ? `⏰ ${permisosActivos} vigente${permisosActivos === 1 ? '' : 's'}` : 'Sin permisos activos',
+      indicatorColor: permisosActivos > 0 ? '#EDB200' : '#6B7280',
+      accentColor: '#19D6C4',
+      route: '/propietario/permisos-temporales',
+    },
+    {
+      value: pasesActivos,
+      label: 'Pases Activos',
+      indicator: pasesActivos > 0 ? `🟢 ${pasesActivos} disponible${pasesActivos === 1 ? '' : 's'}` : 'Genera un pase cuando lo necesites',
+      indicatorColor: pasesActivos > 0 ? '#2E7D32' : '#6B7280',
+      accentColor: '#F2B51F',
+      route: '/propietario/pases-rapidos',
+    },
+    MOCK_KPI_ALERTAS,
+    MOCK_KPI_BIOMETRIA,
+  ];
 
   return (
     <DashboardTemplate rol="OWNER" pageTitle="Inicio">
@@ -94,7 +130,7 @@ const InicioPage: React.FC = () => {
               gap: `${vigiaSpacing.cardGap}px`,
             }}
           >
-            {MOCK_KPIS.map((kpi) => (
+            {kpis.map((kpi) => (
               <KpiCard
                 key={kpi.label}
                 value={kpi.value}

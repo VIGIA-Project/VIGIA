@@ -8,7 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
-import { MOTIVO_OPTIONS, MOCK_VEHICULOS_PROPIETARIO, PermisoTemporal } from '../../../config/propietario-permisos.config';
+import { MOTIVO_OPTIONS } from '../../../config/propietario-permisos.config';
+import { Vehiculo } from '../../../services/types/registry.types';
 
 const today = () => format(new Date(), 'yyyy-MM-dd');
 const addDays = (dateStr: string, days: number) => {
@@ -33,27 +34,37 @@ const createPermisoSchema = z
 
 type CreatePermisoFormValues = z.infer<typeof createPermisoSchema>;
 
-const vehiculosActivos = MOCK_VEHICULOS_PROPIETARIO.filter((v) => v.estado === 'ACTIVO');
-
-const EMPTY_VALUES: CreatePermisoFormValues = {
-  nombre: '',
-  cedula: '',
-  relacion: '',
-  telefono: '',
-  vehiculoId: vehiculosActivos.length === 1 ? vehiculosActivos[0].id : '',
-  fechaInicio: today(),
-  fechaFin: addDays(today(), 30),
-  motivo: '',
-};
+export interface CreatePermisoData {
+  nombre: string;
+  cedula: string;
+  telefono?: string;
+  vehiculoId: string;
+  fechaInicio: string;
+  fechaFin: string;
+  motivo: string;
+}
 
 export interface CreatePermisoDrawerProps {
   open: boolean;
   onClose: () => void;
-  onCreated: (permiso: PermisoTemporal) => void;
+  vehiculo?: Vehiculo;
+  onConfirmed: (data: CreatePermisoData) => void;
 }
 
-export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, onClose, onCreated }) => {
+export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, onClose, vehiculo, onConfirmed }) => {
   const [phase, setPhase] = useState<'form' | 'confirm'>('form');
+  const vehiculosActivos = vehiculo ? [vehiculo] : [];
+
+  const EMPTY_VALUES: CreatePermisoFormValues = {
+    nombre: '',
+    cedula: '',
+    relacion: '',
+    telefono: '',
+    vehiculoId: vehiculo?.vehiculoId ?? '',
+    fechaInicio: today(),
+    fechaFin: addDays(today(), 30),
+    motivo: '',
+  };
 
   const {
     control,
@@ -73,27 +84,25 @@ export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, 
       reset(EMPTY_VALUES);
       setPhase('form');
     }
-  }, [open, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reset, vehiculo?.vehiculoId]);
 
   const values = watch();
-  const vehiculoSeleccionado = vehiculosActivos.find((v) => v.id === values.vehiculoId);
+  const vehiculoSeleccionado = vehiculosActivos.find((v) => v.vehiculoId === values.vehiculoId);
 
   const goToConfirm = () => setPhase('confirm');
   const goBackToForm = () => setPhase('form');
 
   const handleConfirm = () => {
     if (!vehiculoSeleccionado) return;
-    onCreated({
-      id: `pt-${Date.now()}`,
-      persona: values.nombre.trim(),
+    onConfirmed({
+      nombre: values.nombre.trim(),
       cedula: values.cedula,
-      relacion: values.relacion,
       telefono: values.telefono || undefined,
-      vehiculo: { marca: vehiculoSeleccionado.marca, modelo: vehiculoSeleccionado.modelo, placa: vehiculoSeleccionado.placa },
+      vehiculoId: vehiculoSeleccionado.vehiculoId,
       fechaInicio: values.fechaInicio,
       fechaFin: values.fechaFin,
-      estado: 'ACTIVO',
-      motivo: values.motivo.trim(),
+      motivo: `${values.relacion} — ${values.motivo.trim()}`,
     });
   };
 
@@ -174,7 +183,7 @@ export const CreatePermisoDrawer: React.FC<CreatePermisoDrawerProps> = ({ open, 
                     render={({ field }) => (
                       <TextField {...field} select label="Vehículo" error={!!errors.vehiculoId} helperText={errors.vehiculoId?.message} fullWidth required>
                         {vehiculosActivos.map((v) => (
-                          <MenuItem key={v.id} value={v.id}>{v.marca} {v.modelo} · {v.placa}</MenuItem>
+                          <MenuItem key={v.vehiculoId} value={v.vehiculoId}>{v.marca} {v.modelo} · {v.placa}</MenuItem>
                         ))}
                       </TextField>
                     )}

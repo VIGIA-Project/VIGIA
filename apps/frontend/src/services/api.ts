@@ -133,11 +133,48 @@ export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
 };
 
 /**
+ * PATCH tipado
+ */
+export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
+  const response = await apiClient.patch<T>(url, data);
+  return response.data;
+};
+
+/**
  * DELETE tipado
  */
 export const apiDelete = async <T>(url: string): Promise<T> => {
   const response = await apiClient.delete<any>(url);
   return response.data?.success && response.data?.data !== undefined ? response.data.data : response.data;
+};
+
+// ══════════════════════════════════════════════════════════════
+// ENVOLTORIO DE RESPUESTA — ResponseInterceptor del backend
+// ══════════════════════════════════════════════════════════════
+// Todas las respuestas del backend NestJS vienen envueltas como
+// { success, data, timestamp, path }. Los helpers *Data desenvuelven
+// automáticamente y retornan únicamente el payload.
+
+export interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+  timestamp: string;
+  path: string;
+}
+
+export const apiGetData = async <T>(url: string, params?: Record<string, unknown>): Promise<T> => {
+  const envelope = await apiGet<ApiEnvelope<T>>(url, params);
+  return envelope.data;
+};
+
+export const apiPostData = async <T>(url: string, data?: unknown): Promise<T> => {
+  const envelope = await apiPost<ApiEnvelope<T>>(url, data);
+  return envelope.data;
+};
+
+export const apiPatchData = async <T>(url: string, data?: unknown): Promise<T> => {
+  const envelope = await apiPatch<ApiEnvelope<T>>(url, data);
+  return envelope.data;
 };
 
 export default apiClient;

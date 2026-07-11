@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch } from './api';
+import { apiGet, apiPost, apiPatch, apiPatchData } from './api';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -23,6 +23,7 @@ export interface UserResponseDto {
   personaId?: string;
   biometricRegistered: boolean;
   vehicleRegistered: boolean;
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,23 @@ export interface PaginatedUsersResponseDto {
   limit: number;
   totalPages: number;
 }
+
+export interface OnboardingStatusDto {
+  biometric_registered?: boolean;
+  vehicle_registered?: boolean;
+}
+
+export interface OnboardingStatusResponse {
+  id: string;
+  email: string;
+  role: string;
+  biometricRegistered: boolean;
+  vehicleRegistered: boolean;
+}
+
+export const actualizarOnboardingStatus = (
+  dto: OnboardingStatusDto
+): Promise<OnboardingStatusResponse> => apiPatchData('/auth/users/me/onboarding-status', dto);
 
 export const authService = {
   getUsers: async (page = 1, limit = 100) => {

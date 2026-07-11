@@ -11,7 +11,8 @@ import { ErrorState, LoadingSkeleton, PerfilIncompletoState } from '../../compon
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 import { usePropietarioVehiculo, useCrearPersona, usePersonasDelPropietario as usePersonasResolver } from '../../hooks/useRegistry';
-import { useAutorizacionesPorVehiculo, useCrearAutorizacion, useRevocarAutorizacion } from '../../hooks/useAuthorization';
+import { useMiembrosGrupoFamiliar, useCrearMiembroGrupoFamiliar, useRevocarMiembroGrupoFamiliar } from '../../hooks/useAuthorization';
+import { useAuth } from '../../context';
 import {
   PersonaAutorizada,
   FAMILIA_MAX_MIEMBROS,
@@ -28,13 +29,14 @@ const PersonasAutorizadasPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { user } = useAuth();
   const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo, perfilIncompleto } = usePropietarioVehiculo();
   const tieneVehiculos = !!vehiculo;
 
-  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
   const crearPersonaMutation = useCrearPersona();
-  const crearAutorizacionMutation = useCrearAutorizacion();
-  const revocarAutorizacionMutation = useRevocarAutorizacion(vehiculo?.vehiculoId);
+  const crearAutorizacionMutation = useCrearMiembroGrupoFamiliar();
+  const revocarAutorizacionMutation = useRevocarMiembroGrupoFamiliar(user?.personaId);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
@@ -86,7 +88,6 @@ const PersonasAutorizadasPage: React.FC = () => {
 
       const autorizacion = await crearAutorizacionMutation.mutateAsync({
         personaId: persona.personaId,
-        vehiculoId: vehiculo.vehiculoId,
         relacion: nueva.relacion,
       });
 

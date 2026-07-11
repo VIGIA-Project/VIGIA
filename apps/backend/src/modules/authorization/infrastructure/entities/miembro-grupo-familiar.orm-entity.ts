@@ -6,27 +6,16 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity({ name: 'autorizaciones_permanentes', schema: 'authorization' })
-export class AutorizacionPermanenteOrmEntity {
+@Entity({ name: 'miembros_grupo_familiar', schema: 'authorization' })
+export class MiembroGrupoFamiliarOrmEntity {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
   @Column({ name: 'persona_id', type: 'uuid' })
   personaId: string;
 
-  @Column({ name: 'vehiculo_id', type: 'uuid' })
-  vehiculoId: string;
-
   @Column({ name: 'propietario_id', type: 'uuid' })
   propietarioId: string;
-
-  @Column({
-    type: 'enum',
-    enum: ['PERMANENTE', 'TEMPORAL'],
-    enumName: 'tipo_autorizacion_enum',
-    default: 'PERMANENTE',
-  })
-  tipo: string;
 
   @Column({
     type: 'enum',

@@ -16,7 +16,7 @@ import { useAuth } from '../../context';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows, vigiaSpacing } from '../../theme/vigia-theme';
 import { usePropietarioVehiculo } from '../../hooks/useRegistry';
-import { useAutorizacionesPorVehiculo, usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
+import { useMiembrosGrupoFamiliar, usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
 
 const REGISTRO_MOCK = '15 May 2026';
 const ULTIMO_CAMBIO_PASSWORD_MOCK = 'hace 3 meses';
@@ -32,7 +32,7 @@ const PerfilPage: React.FC = () => {
   const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'PR';
 
   const { vehiculo } = usePropietarioVehiculo();
-  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const pasesQuery = useMisPases();
 

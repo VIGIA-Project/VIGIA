@@ -1,5 +1,5 @@
 /**
- * Estado de una AutorizacionPermanente o PermisoTemporal.
+ * Estado de un MiembroGrupoFamiliar o PermisoTemporal.
  * NO incluye PROGRAMADO — fuera del dominio actual.
  */
 export enum EstadoAutorizacion {

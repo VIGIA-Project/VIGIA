@@ -8,12 +8,10 @@ export type EstadoAutorizacion = 'ACTIVA' | 'INACTIVA' | 'REVOCADA' | 'EXPIRADA'
 
 export type EstadoPase = 'ACTIVO' | 'CONSUMIDO' | 'EXPIRADO' | 'REVOCADO';
 
-export interface AutorizacionPermanente {
+export interface MiembroGrupoFamiliar {
   id: string;
   personaId: string;
-  vehiculoId: string;
   propietarioId: string;
-  tipo: TipoAutorizacion;
   estado: EstadoAutorizacion;
   relacion: string;
   fechaCreacion: string;
@@ -75,9 +73,8 @@ export interface ResultadoValidacionPase {
 
 // ─── DTOs de entrada ────────────────────────────────────────────────────
 
-export interface CrearAutorizacionPermanenteDto {
+export interface CrearMiembroGrupoFamiliarDto {
   personaId: string;
-  vehiculoId: string;
   relacion: string;
 }
 

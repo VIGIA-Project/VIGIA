@@ -18,8 +18,9 @@ import { RevokePersonaModal } from '../../components/organisms/propietario';
 import { ErrorState, LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../theme/vigia-theme';
-import { usePropietarioVehiculo, usePersona } from '../../hooks/useRegistry';
-import { useAutorizacionesPorVehiculo, useRevocarAutorizacion } from '../../hooks/useAuthorization';
+import { usePersona } from '../../hooks/useRegistry';
+import { useMiembrosGrupoFamiliar, useRevocarMiembroGrupoFamiliar } from '../../hooks/useAuthorization';
+import { useAuth } from '../../context';
 import {
   PersonaAutorizada,
   PERSONA_DETALLE_COPY as COPY,
@@ -41,16 +42,16 @@ const PersonaDetallePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const shouldReduceMotion = useReducedMotion();
 
-  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
-  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
-  const revocarMutation = useRevocarAutorizacion(vehiculo?.vehiculoId);
+  const { user } = useAuth();
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
+  const revocarMutation = useRevocarMiembroGrupoFamiliar(user?.personaId);
 
   const autorizacion = autorizacionesQuery.data?.find((a) => a.id === id);
   const personaQuery = usePersona(autorizacion?.personaId);
 
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
 
-  const isLoading = isLoadingVehiculo || autorizacionesQuery.isLoading || personaQuery.isLoading;
+  const isLoading = autorizacionesQuery.isLoading || personaQuery.isLoading;
   const isError = autorizacionesQuery.isError || personaQuery.isError;
 
   const persona: PersonaAutorizada | undefined = autorizacion

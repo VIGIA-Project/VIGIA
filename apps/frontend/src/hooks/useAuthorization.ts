@@ -4,20 +4,19 @@
 import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import * as authorizationService from '../services/authorization.service';
 import {
-  AutorizacionPermanente,
+  MiembroGrupoFamiliar,
   PermisoTemporal,
   PaseAccesoRapido,
   ConjuntoAutorizado,
-  CrearAutorizacionPermanenteDto,
+  CrearMiembroGrupoFamiliarDto,
   CrearPermisoTemporalDto,
   CrearPaseRapidoDto,
 } from '../services/types/authorization.types';
 
 export const authorizationKeys = {
   all: ['authorization'] as const,
-  permanentesPorVehiculo: (vehiculoId?: string) => ['authorization', 'permanentes', vehiculoId] as const,
-  permanentesActivasPorVehiculo: (vehiculoId?: string) =>
-    ['authorization', 'permanentes-activas', vehiculoId] as const,
+  miembrosActivosDelPropietario: (propietarioId?: string) =>
+    ['authorization', 'miembros-activos', propietarioId] as const,
   temporalesPorVehiculo: (vehiculoId?: string) => ['authorization', 'temporales-vehiculo', vehiculoId] as const,
   temporalesPorPersona: (personaId?: string) => ['authorization', 'temporales-persona', personaId] as const,
   misPases: () => ['authorization', 'mis-pases'] as const,
@@ -28,33 +27,30 @@ type QueryOpts<T> = Pick<UseQueryOptions<T>, 'enabled'>;
 
 // ─── Autorizaciones permanentes ──────────────────────────────────────────
 
-export const useAutorizacionesPorVehiculo = (vehiculoId?: string, opts?: QueryOpts<AutorizacionPermanente[]>) =>
+export const useMiembrosGrupoFamiliar = (propietarioId?: string, opts?: QueryOpts<MiembroGrupoFamiliar[]>) =>
   useQuery({
-    queryKey: authorizationKeys.permanentesActivasPorVehiculo(vehiculoId),
-    queryFn: () => authorizationService.listarActivasPorVehiculo(vehiculoId as string),
-    enabled: !!vehiculoId && (opts?.enabled ?? true),
+    queryKey: authorizationKeys.miembrosActivosDelPropietario(propietarioId),
+    queryFn: () => authorizationService.listarMiembrosActivosDelPropietario(propietarioId as string),
+    enabled: !!propietarioId && (opts?.enabled ?? true),
   });
 
-export const useCrearAutorizacion = () => {
+export const useCrearMiembroGrupoFamiliar = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CrearAutorizacionPermanenteDto) => authorizationService.crearAutorizacionPermanente(dto),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.permanentesActivasPorVehiculo(variables.vehiculoId) });
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.permanentesPorVehiculo(variables.vehiculoId) });
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.conjuntoAutorizado(variables.vehiculoId) });
+    mutationFn: (dto: CrearMiembroGrupoFamiliarDto) => authorizationService.crearMiembroGrupoFamiliar(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['authorization', 'miembros-activos'] });
+      queryClient.invalidateQueries({ queryKey: ['authorization', 'conjunto-autorizado'] });
     },
   });
 };
 
-export const useRevocarAutorizacion = (vehiculoId?: string) => {
+export const useRevocarMiembroGrupoFamiliar = (propietarioId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => authorizationService.revocarAutorizacion(id),
+    mutationFn: (id: string) => authorizationService.revocarMiembroGrupoFamiliar(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.permanentesActivasPorVehiculo(vehiculoId) });
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.permanentesPorVehiculo(vehiculoId) });
-      queryClient.invalidateQueries({ queryKey: authorizationKeys.conjuntoAutorizado(vehiculoId) });
+      queryClient.invalidateQueries({ queryKey: authorizationKeys.miembrosActivosDelPropietario(propietarioId) });
     },
   });
 };

@@ -1,18 +1,18 @@
 import { BusinessRuleViolationException } from '@core/exceptions/domain-exception';
 import { EstadoAutorizacion, esTransicionValida } from '../value-objects/estado-autorizacion.vo';
-import { TipoAutorizacion } from '../value-objects/tipo-autorizacion.vo';
 
 /**
- * Aggregate Root — Autorización Permanente.
- * Invariante: exactamente una persona ↔ un vehículo, nunca redefinible como temporal.
+ * Aggregate Root — Miembro del Grupo Familiar.
+ * Invariante: vincula una persona con un propietario.
+ * Efecto operativo: acceso a todos los vehículos activos del propietario.
  */
-export class AutorizacionPermanente {
+export class MiembroGrupoFamiliar {
+  static readonly LIMITE_MAXIMO = 5;
+
   private constructor(
     public readonly id: string,
     public readonly personaId: string,
-    public readonly vehiculoId: string,
     public readonly propietarioId: string,
-    public readonly tipo: TipoAutorizacion,
     private _estado: EstadoAutorizacion,
     public readonly relacion: string,
     public readonly fechaCreacion: Date,
@@ -22,25 +22,22 @@ export class AutorizacionPermanente {
   static crear(props: {
     id: string;
     personaId: string;
-    vehiculoId: string;
     propietarioId: string;
     relacion: string;
     estado?: EstadoAutorizacion;
     fechaCreacion?: Date;
     fechaActualizacion?: Date;
-  }): AutorizacionPermanente {
+  }): MiembroGrupoFamiliar {
     if (!props.relacion?.trim()) {
       throw new BusinessRuleViolationException(
-        'AutorizacionPermanente.relacion',
+        'MiembroGrupoFamiliar.relacion',
         'La relación no puede estar vacía',
       );
     }
-    return new AutorizacionPermanente(
+    return new MiembroGrupoFamiliar(
       props.id,
       props.personaId,
-      props.vehiculoId,
       props.propietarioId,
-      TipoAutorizacion.PERMANENTE,
       props.estado ?? EstadoAutorizacion.ACTIVA,
       props.relacion.trim(),
       props.fechaCreacion ?? new Date(),
@@ -61,9 +58,7 @@ export class AutorizacionPermanente {
     return {
       id: this.id,
       personaId: this.personaId,
-      vehiculoId: this.vehiculoId,
       propietarioId: this.propietarioId,
-      tipo: this.tipo,
       estado: this.estado,
       relacion: this.relacion,
       fechaCreacion: this.fechaCreacion,
@@ -74,7 +69,7 @@ export class AutorizacionPermanente {
   private transicionar(nuevoEstado: EstadoAutorizacion): void {
     if (!esTransicionValida(this._estado, nuevoEstado)) {
       throw new BusinessRuleViolationException(
-        'AutorizacionPermanente.transicionEstado',
+        'MiembroGrupoFamiliar.transicionEstado',
         `No se puede pasar de ${this._estado} a ${nuevoEstado}`,
       );
     }

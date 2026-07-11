@@ -19,7 +19,10 @@ import { UserRole } from '@core/auth/domain/user.entity';
 import { REGISTRY_PORT } from '../../registry/application/ports/registry.port';
 import type { IRegistryPort } from '../../registry/application/ports/registry.port';
 import { AuthorizationService } from '../application/authorization.service';
-import { CrearAutorizacionPermanenteDto } from '../application/dto/crear-autorizacion-permanente.dto';
+import {
+  CrearMiembroGrupoFamiliarDto,
+  CrearAutorizacionPermanenteLegacyDto,
+} from '../application/dto/crear-miembro-grupo-familiar.dto';
 import { CrearPermisoTemporalDto } from '../application/dto/crear-permiso-temporal.dto';
 import { CrearPaseRapidoDto } from '../application/dto/crear-pase-rapido.dto';
 import { ValidarPaseDto } from '../application/dto/validar-pase.dto';
@@ -44,16 +47,53 @@ export class AuthorizationController {
     return propietarioId;
   }
 
-  // ─── Autorizaciones permanentes ──────────────────────────────────────
+  // ─── Grupo familiar ─────────────────────────────────────────────────
+
+  @Post('grupo-familiar')
+  @Roles(UserRole.OWNER)
+  @HttpCode(HttpStatus.CREATED)
+  async crearMiembroGrupoFamiliar(
+    @Request() req: any,
+    @Body() dto: CrearMiembroGrupoFamiliarDto,
+  ) {
+    return this.authorizationService.crearMiembroGrupoFamiliar(
+      dto,
+      this.propietarioIdDesdeJwt(req),
+    );
+  }
+
+  @Get('grupo-familiar/propietario/:propietarioId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async listarGrupoFamiliarPorPropietario(@Param('propietarioId') propietarioId: string) {
+    return this.authorizationService.listarGrupoFamiliarPorPropietario(propietarioId);
+  }
+
+  @Get('grupo-familiar/propietario/:propietarioId/activos')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.GUARD)
+  async listarGrupoFamiliarActivoPorPropietario(@Param('propietarioId') propietarioId: string) {
+    return this.authorizationService.listarGrupoFamiliarActivoPorPropietario(propietarioId);
+  }
+
+  @Patch('grupo-familiar/:id/revocar')
+  @Roles(UserRole.OWNER)
+  async revocarMiembroGrupoFamiliar(@Param('id') id: string) {
+    return this.authorizationService.revocarMiembroGrupoFamiliar(id);
+  }
+
+  // ─── Autorizaciones permanentes (legacy aliases) ───────────────────────
+  // TODO: eliminar alias legacy después de actualizar frontend
+  // El grupo familiar ahora se vincula al propietario, no a un vehículo.
+  // Estos endpoints se mantienen temporalmente resolviendo el propietario
+  // dueño del vehículo recibido, para no romper al frontend actual.
 
   @Post('permanentes')
   @Roles(UserRole.OWNER)
   @HttpCode(HttpStatus.CREATED)
-  async crearAutorizacionPermanente(
+  async crearAutorizacionPermanenteLegacy(
     @Request() req: any,
-    @Body() dto: CrearAutorizacionPermanenteDto,
+    @Body() dto: CrearAutorizacionPermanenteLegacyDto,
   ) {
-    return this.authorizationService.crearAutorizacionPermanente(
+    return this.authorizationService.crearMiembroGrupoFamiliar(
       dto,
       this.propietarioIdDesdeJwt(req),
     );
@@ -62,19 +102,29 @@ export class AuthorizationController {
   @Get('permanentes/vehiculo/:vehiculoId')
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   async listarPermanentesPorVehiculo(@Param('vehiculoId') vehiculoId: string) {
-    return this.authorizationService.listarPorVehiculo(vehiculoId);
+    const propietarioId = await this.propietarioIdDesdeVehiculo(vehiculoId);
+    return this.authorizationService.listarGrupoFamiliarPorPropietario(propietarioId);
   }
 
   @Get('permanentes/vehiculo/:vehiculoId/activas')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.GUARD)
   async listarPermanentesActivasPorVehiculo(@Param('vehiculoId') vehiculoId: string) {
-    return this.authorizationService.listarActivasPorVehiculo(vehiculoId);
+    const propietarioId = await this.propietarioIdDesdeVehiculo(vehiculoId);
+    return this.authorizationService.listarGrupoFamiliarActivoPorPropietario(propietarioId);
   }
 
   @Patch('permanentes/:id/revocar')
   @Roles(UserRole.OWNER)
-  async revocarAutorizacionPermanente(@Param('id') id: string) {
-    return this.authorizationService.revocarAutorizacion(id);
+  async revocarAutorizacionPermanenteLegacy(@Param('id') id: string) {
+    return this.authorizationService.revocarMiembroGrupoFamiliar(id);
+  }
+
+  private async propietarioIdDesdeVehiculo(vehiculoId: string): Promise<string> {
+    const vehiculo = await this.registryPort.findVehiculoById(vehiculoId);
+    if (!vehiculo) {
+      throw new BadRequestException(`Vehículo '${vehiculoId}' no encontrado`);
+    }
+    return vehiculo.propietarioPersonaId;
   }
 
   // ─── Permisos temporales ──────────────────────────────────────────────

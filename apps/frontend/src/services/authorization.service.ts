@@ -3,31 +3,28 @@
 
 import { apiGetData, apiPostData, apiPatchData } from './api';
 import {
-  AutorizacionPermanente,
+  MiembroGrupoFamiliar,
   PermisoTemporal,
   PaseAccesoRapido,
   ConjuntoAutorizado,
   ResultadoValidacionPase,
   GenerarPaseResult,
-  CrearAutorizacionPermanenteDto,
+  CrearMiembroGrupoFamiliarDto,
   CrearPermisoTemporalDto,
   CrearPaseRapidoDto,
 } from './types/authorization.types';
 
 // ─── Autorizaciones permanentes ──────────────────────────────────────────
 
-export const crearAutorizacionPermanente = (
-  dto: CrearAutorizacionPermanenteDto
-): Promise<AutorizacionPermanente> => apiPostData('/authorization/permanentes', dto);
+export const crearMiembroGrupoFamiliar = (
+  dto: CrearMiembroGrupoFamiliarDto
+): Promise<MiembroGrupoFamiliar> => apiPostData('/authorization/grupo-familiar', dto);
 
-export const listarPorVehiculo = (vehiculoId: string): Promise<AutorizacionPermanente[]> =>
-  apiGetData(`/authorization/permanentes/vehiculo/${vehiculoId}`);
+export const listarMiembrosActivosDelPropietario = (propietarioId: string): Promise<MiembroGrupoFamiliar[]> =>
+  apiGetData(`/authorization/grupo-familiar/propietario/${propietarioId}/activos`);
 
-export const listarActivasPorVehiculo = (vehiculoId: string): Promise<AutorizacionPermanente[]> =>
-  apiGetData(`/authorization/permanentes/vehiculo/${vehiculoId}/activas`);
-
-export const revocarAutorizacion = (id: string): Promise<AutorizacionPermanente> =>
-  apiPatchData(`/authorization/permanentes/${id}/revocar`);
+export const revocarMiembroGrupoFamiliar = (id: string): Promise<MiembroGrupoFamiliar> =>
+  apiPatchData(`/authorization/grupo-familiar/${id}/revocar`);
 
 // ─── Permisos temporales ──────────────────────────────────────────────────
 

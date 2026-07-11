@@ -1,4 +1,4 @@
-import { AutorizacionPermanente } from '../entities/autorizacion-permanente.entity';
+import { MiembroGrupoFamiliar } from '../entities/miembro-grupo-familiar.entity';
 import { PermisoTemporal } from '../entities/permiso-temporal.entity';
 import { EstadoAutorizacion } from '../value-objects/estado-autorizacion.vo';
 
@@ -8,21 +8,21 @@ export interface ResultadoEvaluacionVigencia {
 }
 
 /**
- * Servicio de dominio — evalúa si una autorización (permanente o temporal)
- * está vigente en un instante dado.
+ * Servicio de dominio — evalúa si una autorización (miembro del grupo
+ * familiar o permiso temporal) está vigente en un instante dado.
  */
 export class EvaluacionVigenciaService {
-  evaluarPermanente(
-    autorizacion: AutorizacionPermanente,
+  evaluarMiembroGrupoFamiliar(
+    miembro: MiembroGrupoFamiliar,
     instante: Date = new Date(),
   ): ResultadoEvaluacionVigencia {
     void instante;
-    if (autorizacion.estaActiva()) {
-      return { vigente: true, motivo: 'Autorización permanente activa' };
+    if (miembro.estaActiva()) {
+      return { vigente: true, motivo: 'Miembro del grupo familiar activo' };
     }
     return {
       vigente: false,
-      motivo: `Autorización permanente en estado ${autorizacion.estado}`,
+      motivo: `Miembro del grupo familiar en estado ${miembro.estado}`,
     };
   }
 

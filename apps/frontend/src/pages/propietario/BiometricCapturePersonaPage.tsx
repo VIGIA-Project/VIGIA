@@ -10,8 +10,9 @@ import { BiometricCapture } from '../../components/organisms/onboarding';
 import { LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
-import { usePropietarioVehiculo, usePersona, useMarcarEnrollmentCompleto } from '../../hooks/useRegistry';
-import { useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
+import { usePersona, useMarcarEnrollmentCompleto } from '../../hooks/useRegistry';
+import { useMiembrosGrupoFamiliar } from '../../hooks/useAuthorization';
+import { useAuth } from '../../context';
 import { PERSONA_BIOMETRIC_CAPTURE_COPY as COPY } from '../../config/propietario-personas.config';
 
 const BiometricCapturePersonaPage: React.FC = () => {
@@ -19,13 +20,13 @@ const BiometricCapturePersonaPage: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
   const { id } = useParams<{ id: string }>();
 
-  const { vehiculo, isLoading: isLoadingVehiculo } = usePropietarioVehiculo();
-  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const { user } = useAuth();
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
   const autorizacion = autorizacionesQuery.data?.find((a) => a.id === id);
   const personaQuery = usePersona(autorizacion?.personaId);
   const marcarEnrollmentMutation = useMarcarEnrollmentCompleto();
 
-  const isLoading = isLoadingVehiculo || autorizacionesQuery.isLoading || personaQuery.isLoading;
+  const isLoading = autorizacionesQuery.isLoading || personaQuery.isLoading;
   const persona = personaQuery.data;
 
   const backToPersonas = () => navigate('/propietario/personas');

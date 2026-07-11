@@ -1,511 +1,264 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
-  FormControl,
-  LinearProgress,
-  Tabs,
-  Tab,
-} from '@mui/material';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { fadeInUp, staggerContainer } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
 
-// Icons
-import TimerIcon from '@mui/icons-material/Timer';
-import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import GavelIcon from '@mui/icons-material/Gavel';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+const CHIPS = [
+  'Conductor presenta autorización física',
+  'Propietario confirma autorización',
+  'Fallo de cámara',
+  'Coincidencia visual verificada',
+  'Datos insuficientes',
+];
 
 export const RevisionManualPage: React.FC = () => {
   const navigate = useNavigate();
+  const [chipSel, setChipSel] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [obs, setObs] = useState('');
+  const [modalDecision, setModalDecision] = useState<'DENEGAR'|'AUTORIZAR'|null>(null);
+  const [resuelto, setResuelto] = useState(false);
 
-  const [actionTab, setActionTab] = useState(0);
-
-  // Flow 1: Resolución
-  const [estadoFinal, setEstadoFinal] = useState('');
-  const [justificacion, setJustificacion] = useState('');
-
-  // Flow 2: Pase Visitante
-  const [visitanteTipo, setVisitanteTipo] = useState('');
-  const [visitanteNombre, setVisitanteNombre] = useState('');
-  const [visitanteDoc, setVisitanteDoc] = useState('');
-  const [visitanteDestino, setVisitanteDestino] = useState('');
-  const [paseDuracion, setPaseDuracion] = useState('');
-  const [visitanteDescripcion, setVisitanteDescripcion] = useState('');
-
-  const [timeLeft, setTimeLeft] = useState(262); // 04:22 in seconds
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const validarFormulario = () => {
+    if (!chipSel && motivo.length < 20) {
+      alert('Seleccione un motivo sugerido o escriba al menos 20 caracteres en el detalle.');
+      return false;
+    }
+    return true;
   };
 
-  const handleConfirmar = () => {
-    if (!estadoFinal || !justificacion) return;
-    navigate('/guardia/cola-eventos');
+  const confirmarDecision = () => {
+    // TODO: PATCH /api/v1/eventos/:id/resolver { decision: modalDecision, motivo, obs }
+    setResuelto(true);
+    setModalDecision(null);
   };
 
-  const handleContingencia = () => {
-    navigate('/guardia/contingencia');
-  };
+  if (resuelto) {
+    return (
+      <DashboardTemplate rol="GUARD" pageTitle="Detalle de evento">
+        <Box sx={{ fontFamily:'Inter,sans-serif' }}>
+          <div style={{ padding:60, textAlign:'center' }}>
+            <div style={{ fontSize:48, marginBottom:16 }}>{modalDecision === 'DENEGAR' ? '🚫' : '✅'}</div>
+            <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:22, fontWeight:700, color:'#1F2A44', marginBottom:8 }}>
+              Evento resuelto
+            </div>
+            <div style={{ fontSize:14, color:'#6B7280', marginBottom:24 }}>
+              La decisión fue registrada correctamente con tu nombre y timestamp.
+            </div>
+            <button onClick={() => navigate('/guardia/cola-eventos')} style={{ padding:'12px 28px', borderRadius:10, background:'#0D5CCF', color:'#fff', fontSize:14, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+              Volver a la cola
+            </button>
+          </div>
+        </Box>
+      </DashboardTemplate>
+    );
+  }
 
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Revisión Manual">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1000, margin: '0 auto' }}>
-        
-        {/* Header Section */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography variant="h4" sx={{ color: vigiaColors.textBody, mb: 1, fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                Resolución Manual
-              </Typography>
-              <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                Analice la evidencia y determine el estado final de acceso.
-              </Typography>
-            </Box>
-            
-            {/* Timer Pill */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 1,
-                borderRadius: vigiaRadius.full,
-                backgroundColor: '#FFFBEB',
-                border: '1px solid #FDE68A',
-                color: '#D97706',
-              }}
-            >
-              <TimerIcon sx={{ fontSize: '1.2rem' }} />
-              <Typography sx={{ fontSize: '1rem', fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                {formatTime(timeLeft)}
-              </Typography>
-            </Box>
-          </Box>
-        </motion.div>
+    <DashboardTemplate rol="GUARD" pageTitle="Detalle de evento">
+      <Box sx={{ fontFamily:'Inter,sans-serif' }}>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <Grid container spacing={3}>
-            
-            {/* LEFT COLUMN: DETAILS */}
-            <Grid item xs={12} md={7}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                
-                {/* Placa y Movimiento */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={8}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        PLACA DETECTADA
-                      </Typography>
-                      <Box sx={{ backgroundColor: '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center' }}>
-                        <Typography sx={{ fontSize: '2rem', fontWeight: 800, fontFamily: '"Exo 2", sans-serif', color: '#1F2937', letterSpacing: 2 }}>
-                          ABC-1234
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        MOVIMIENTO
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          justifyContent: 'center',
-                          backgroundColor: '#1E3A8A', // Dark blue background for ENTRADA
-                          color: '#FFFFFF',
-                          p: 2,
-                          borderRadius: vigiaRadius.sm,
-                          height: '100%',
-                          maxHeight: '75px', // Match the height of the plate box
-                        }}
-                      >
-                        <ArrowRightAltIcon />
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: 1 }}>
-                          ENTRADA
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Paper>
+        {/* BACK */}
+        <div onClick={() => navigate('/guardia/cola-eventos')} style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:13, color:'#0D5CCF', fontWeight:500, cursor:'pointer', padding:'5px 12px', borderRadius:8, border:'1px solid #C7D2FE', background:'#EEF2FF', marginBottom:18 }}>
+          ← Cola de pendientes
+        </div>
 
-                {/* Alerta y Match */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid #FDE68A', backgroundColor: '#FFFBEB' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <WarningAmberIcon sx={{ color: '#D97706', fontSize: '1.5rem' }} />
-                      <Typography sx={{ fontWeight: 700, color: '#B45309', fontFamily: '"Inter", sans-serif' }}>
-                        EVIDENCIA_INSUFICIENTE
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontWeight: 800, color: '#D97706', fontFamily: '"Exo 2", sans-serif' }}>
-                      65% MATCH
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ position: 'relative', pt: 1, pb: 2 }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={65} 
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4, 
-                        backgroundColor: '#FDE68A',
-                        '& .MuiLinearProgress-bar': { backgroundColor: '#D97706', borderRadius: 4 }
-                      }} 
-                    />
-                    {/* Umbral Indicator */}
-                    <Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        left: '85%', 
-                        top: 4, 
-                        bottom: 0, 
-                        width: 2, 
-                        backgroundColor: '#DC2626',
-                        zIndex: 1
-                      }} 
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#B45309', fontWeight: 600 }}>0%</Typography>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: 700, position: 'absolute', left: '85%', transform: 'translateX(-50%)' }}>
-                        UMBRAL 85%
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#B45309', fontWeight: 600 }}>100%</Typography>
-                    </Box>
-                  </Box>
-                </Paper>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:18, alignItems:'start' }}>
+          {/* COL IZQUIERDA */}
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
-                {/* Contexto Registrado */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <PersonOutlineIcon sx={{ color: vigiaColors.textSecondary }} />
-                    <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.1rem' }}>
-                      Contexto Registrado
-                    </Typography>
-                  </Box>
+            {/* EVENTO */}
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>⚠ Evento detectado</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'#EDE7F6', color:'#4527A0' }}>SALIDA</span>
+                  <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'#FEE2E2', color:'#991B1B' }}>ALTA CRITICIDAD</span>
+                </div>
+              </div>
+              <div style={{ padding:'14px 20px', display:'flex', alignItems:'center', gap:16 }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:28, fontWeight:800, color:'#0A2F86', background:'#EEF2FF', padding:'8px 18px', borderRadius:8, border:'1px solid #C7D2FE', letterSpacing:2 }}>PCB-1234</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:500, color:'#333' }}>Toyota Corolla Blanco · Acceso Norte · Carril SALIDA</div>
+                  <div style={{ fontSize:12, color:'#888', marginTop:3 }}>Capturado: 13:24:15 · hace 1 min · Evento: EVT-20260708-1842</div>
+                </div>
+              </div>
+            </div>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* Vehiculo */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(0,0,0,0.05)', borderRadius: vigiaRadius.sm, backgroundColor: '#FAFBFC' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E0E7FF', borderRadius: vigiaRadius.sm, color: '#4F46E5', display: 'flex' }}>
-                        <DirectionsCarIcon />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Toyota Corolla
-                        </Typography>
-                        <Typography sx={{ color: vigiaColors.textSecondary, fontSize: '0.8rem' }}>
-                          Blanco • 2020
-                        </Typography>
-                      </Box>
-                    </Box>
+            {/* BIOMETRÍA */}
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>👁 Validación biométrica</div>
+                <span style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'#FEE2E2', color:'#C62828' }}>NO COINCIDE</span>
+              </div>
+              <div style={{ padding:'16px 20px' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:14 }}>
+                  {[{v:'0.42',l:'Mejor puntaje',c:'#C62828',bg:'#FFF8F8'},{v:'0.75',l:'Umbral requerido',c:'#0D5CCF',bg:'#F8F9FF'},{v:'6',l:'Vectores evaluados',c:'#374151',bg:'#F8F9FF'}].map(x=>(
+                    <div key={x.l} style={{ textAlign:'center', padding:10, background:x.bg, borderRadius:8 }}>
+                      <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:22, fontWeight:700, color:x.c }}>{x.v}</div>
+                      <div style={{ fontSize:11, color:'#888', marginTop:2 }}>{x.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ height:12, background:'#F0F0F0', borderRadius:6, position:'relative', marginBottom:8 }}>
+                  <div style={{ width:'42%', height:'100%', background:'#C62828', borderRadius:6 }} />
+                  <div style={{ position:'absolute', top:-4, left:'75%', width:2, height:20, background:'#0D5CCF', borderRadius:1 }} />
+                </div>
+                <div style={{ fontSize:12, color:'#C62828', background:'#FEF2F2', padding:'8px 12px', borderRadius:8, border:'1px solid #FECACA' }}>
+                  Puntaje obtenido (0.42) muy por debajo del umbral requerido (0.75). Persona no reconocida.
+                </div>
+              </div>
+            </div>
 
-                    {/* Propietario */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(46,125,50,0.2)', borderRadius: vigiaRadius.sm, backgroundColor: '#F6FBF6' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E8F5E9', borderRadius: vigiaRadius.sm, color: '#2E7D32', display: 'flex' }}>
-                        <PersonOutlineIcon />
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Lenin David
-                        </Typography>
-                        <Typography sx={{ color: '#2E7D32', fontSize: '0.75rem', fontWeight: 700 }}>
-                          PROPIETARIO
-                        </Typography>
-                      </Box>
-                      <CheckCircleIcon sx={{ color: '#2E7D32' }} />
-                    </Box>
-                  </Box>
-                </Paper>
-              </Box>
-            </Grid>
+            {/* EVIDENCIA */}
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>📷 Evidencia visual</div>
+              <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                {['Foto del conductor','Foto de la placa'].map(l=>(
+                  <div key={l} style={{ background:'#F8F9FF', borderRadius:10, border:'2px dashed #C7D2FE', height:140, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6 }}>
+                    <div style={{ fontSize:28, opacity:.4 }}>📷</div>
+                    <span style={{ fontSize:11, color:'#94A3B8' }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            {/* RIGHT COLUMN: ACTION */}
-            <Grid item xs={12} md={5}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  borderRadius: vigiaRadius.md, 
-                  border: '1px solid rgba(0,0,0,0.08)', 
-                  backgroundColor: '#F8FAFC',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden'
-                }}
-              >
-                <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: vigiaColors.white }}>
-                  <Tabs
-                    value={actionTab}
-                    onChange={(_e, newValue) => setActionTab(newValue)}
-                    variant="fullWidth"
-                    sx={{
-                      '& .MuiTab-root': { fontFamily: '"Exo 2", sans-serif', fontWeight: 600, textTransform: 'none', py: 2 },
-                      '& .Mui-selected': { color: vigiaColors.primary },
-                      '& .MuiTabs-indicator': { backgroundColor: vigiaColors.primary, height: 3 }
-                    }}
-                  >
-                    <Tab label="Resolución" />
-                    <Tab label="Pase Visitante" />
-                  </Tabs>
-                </Box>
+            {/* DECISIÓN */}
+            <div style={{ background:'#fff', borderRadius:14, border:'2px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', background:'#F8F9FF', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>✏ Decisión del guardia</div>
+              <div style={{ padding:'18px 20px' }}>
 
-                <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-                  {actionTab === 0 ? (
-                    // FLOW 1: RESOLUCIÓN ESTÁNDAR
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                        <GavelIcon sx={{ color: vigiaColors.primary }} />
-                        <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.2rem' }}>
-                          Decisión de Acceso
-                        </Typography>
-                      </Box>
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:8 }}>Motivo sugerido</div>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {CHIPS.map(c=>(
+                      <button key={c} onClick={()=>setChipSel(chipSel===c?'':c)} style={{ padding:'5px 12px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'Inter,sans-serif', background: chipSel===c?'#EEF2FF':'#F8F9FF', color: chipSel===c?'#0D5CCF':'#555', border: chipSel===c?'1.5px solid #C7D2FE':'1.5px solid #E2E8F0' }}>
+                        {chipSel===c?'✓ ':''}{c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                      <FormControl fullWidth sx={{ mb: 3 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 1, letterSpacing: 0.5 }}>
-                          ESTADO FINAL *
-                        </Typography>
-                        <Select
-                          value={estadoFinal}
-                          onChange={(e) => setEstadoFinal(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{
-                            backgroundColor: vigiaColors.white,
-                            borderRadius: vigiaRadius.sm,
-                            fontFamily: '"Inter", sans-serif',
-                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' },
-                          }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>
-                            Seleccione estado...
-                          </MenuItem>
-                          <MenuItem value="PERMITIDO">Acceso Permitido</MenuItem>
-                          <MenuItem value="DENEGADO">Acceso Denegado</MenuItem>
-                        </Select>
-                      </FormControl>
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:6 }}>
+                    Detalle del motivo <span style={{ color:'#C62828' }}>*</span>
+                    {motivo.length > 0 && <span style={{ marginLeft:8, fontSize:11, color: motivo.length>=20?'#16A34A':'#C62828' }}>({motivo.length}/20 min)</span>}
+                  </div>
+                  <textarea value={motivo} onChange={e=>setMotivo(e.target.value)}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:8, border:`1.5px solid ${motivo.length>=20?'#BBF7D0':'#E2E8F0'}`, fontSize:13, fontFamily:'Inter,sans-serif', resize:'none', minHeight:72, boxSizing:'border-box' }}
+                    placeholder="Mínimo 20 caracteres..." />
+                </div>
 
-                      <FormControl fullWidth sx={{ mb: 4, flex: 1 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 1, letterSpacing: 0.5 }}>
-                          JUSTIFICACIÓN TÉCNICA *
-                        </Typography>
-                        <TextField
-                          multiline
-                          rows={4}
-                          value={justificacion}
-                          onChange={(e) => setJustificacion(e.target.value)}
-                          placeholder="El conductor coincide visualmente con el perfil registrado..."
-                          variant="outlined"
-                          sx={{
-                            backgroundColor: vigiaColors.white,
-                            borderRadius: vigiaRadius.sm,
-                            '& .MuiOutlinedInput-root': {
-                              fontFamily: '"Inter", sans-serif',
-                              fontSize: '0.9rem',
-                              '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' },
-                            }
-                          }}
-                        />
-                      </FormControl>
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:6 }}>Observaciones opcionales</div>
+                  <textarea value={obs} onChange={e=>setObs(e.target.value)}
+                    style={{ width:'100%', padding:'10px 14px', borderRadius:8, border:'1.5px solid #E2E8F0', fontSize:13, fontFamily:'Inter,sans-serif', resize:'none', minHeight:56, boxSizing:'border-box' }}
+                    placeholder="Información adicional..." />
+                </div>
 
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Button
-                          variant="contained"
-                          onClick={handleConfirmar}
-                          disabled={!estadoFinal || !justificacion}
-                          startIcon={<CheckCircleOutlineIcon />}
-                          sx={{
-                            backgroundColor: '#0A2F86',
-                            color: vigiaColors.white,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            '&:hover': { backgroundColor: '#07205A' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(10, 47, 134, 0.4)', color: 'rgba(255,255,255,0.7)' }
-                          }}
-                        >
-                          Confirmar Resolución
-                        </Button>
+                <div style={{ background:'#FEF2F2', borderRadius:10, padding:'12px 16px', border:'1px solid #FECACA', marginBottom:16, fontSize:12, color:'#991B1B' }}>
+                  ⚠ En SALIDA, "Denegar salida" es la acción predeterminada segura. "Autorizar bajo responsabilidad" requiere justificación verificable.
+                </div>
 
-                        <Button
-                          variant="outlined"
-                          onClick={handleContingencia}
-                          startIcon={<WarningAmberIcon />}
-                          sx={{
-                            borderColor: 'rgba(0,0,0,0.15)',
-                            color: vigiaColors.textBody,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            backgroundColor: '#F3F4F6',
-                            '&:hover': { backgroundColor: '#E5E7EB', borderColor: 'rgba(0,0,0,0.2)' }
-                          }}
-                        >
-                          Registrar Contingencia
-                        </Button>
-                      </Box>
-                    </Box>
-                  ) : (
-                    // FLOW 2: PASE VISITANTE
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <PersonOutlineIcon sx={{ color: vigiaColors.primary }} />
-                        <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.2rem' }}>
-                          Generar Pase Temporal
-                        </Typography>
-                      </Box>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button
+                    onClick={() => { if(validarFormulario()) setModalDecision('DENEGAR'); }}
+                    style={{ flex:1, padding:12, borderRadius:8, background:'#C62828', color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                    ✕ Denegar salida
+                  </button>
+                  <button
+                    onClick={() => { if(validarFormulario()) setModalDecision('AUTORIZAR'); }}
+                    style={{ flex:1, padding:12, borderRadius:8, background:'#F59E0B', color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                    ✓ Autorizar bajo responsabilidad
+                  </button>
+                  <button
+                    onClick={() => navigate('/guardia/contingencia')}
+                    style={{ flex:1, padding:12, borderRadius:8, background:'#E0E7FF', color:'#4527A0', fontSize:13, fontWeight:600, border:'1.5px solid #D1C4E9', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                    ⚠ Registrar contingencia
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                      <FormControl fullWidth>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>TIPO DE VISITANTE *</Typography>
-                        <Select
-                          value={visitanteTipo}
-                          onChange={(e) => setVisitanteTipo(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{ backgroundColor: vigiaColors.white, borderRadius: vigiaRadius.sm, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' } }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>Seleccione el tipo...</MenuItem>
-                          <MenuItem value="VISITA">Visita Familiar/Amigo</MenuItem>
-                          <MenuItem value="DELIVERY">Delivery / Repartidor</MenuItem>
-                          <MenuItem value="TAXI">Taxi / Transporte</MenuItem>
-                          <MenuItem value="SERVICIO">Servicios Técnicos</MenuItem>
-                          <MenuItem value="OTRO">Otro</MenuItem>
-                        </Select>
-                      </FormControl>
+          {/* COL DERECHA */}
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>🚗 Vehículo identificado</div>
+              <div style={{ padding:'16px 18px' }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:800, color:'#0A2F86', background:'#EEF2FF', padding:'6px 14px', borderRadius:7, border:'1px solid #C7D2FE', display:'inline-block', letterSpacing:1, marginBottom:10 }}>PCB-1234</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'#1F2A44', marginBottom:4 }}>Toyota Corolla 2022 · Blanco</div>
+                <div style={{ fontSize:12, color:'#6B7280' }}>Propietario: <strong style={{ color:'#0A2F86' }}>Carlos Mendoza</strong></div>
+                <div style={{ marginTop:10, padding:'8px 12px', background:'#F0FDF4', borderRadius:8, border:'1px solid #BBF7D0', fontSize:11, color:'#166534' }}>Estado: ACTIVO · Sin alertas previas</div>
+              </div>
+            </div>
 
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>NOMBRE *</Typography>
-                            <TextField
-                              size="small"
-                              value={visitanteNombre}
-                              onChange={(e) => setVisitanteNombre(e.target.value)}
-                              placeholder="Ej. Juan Pérez"
-                              sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                            />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DOCUMENTO *</Typography>
-                            <TextField
-                              size="small"
-                              value={visitanteDoc}
-                              onChange={(e) => setVisitanteDoc(e.target.value)}
-                              placeholder="Ej. 1712345678"
-                              sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                            />
-                          </FormControl>
-                        </Grid>
-                      </Grid>
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>👥 Conductores autorizados</div>
+              <div style={{ padding:'12px 18px' }}>
+                {[{init:'CM',name:'Carlos Mendoza',rol:'Propietario',color:'#0D5CCF'},{init:'ML',name:'María López',rol:'Cónyuge',color:'#16A34A'}].map(p=>(
+                  <div key={p.name} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid #F1F5F9' }}>
+                    <div style={{ width:36, height:36, borderRadius:'50%', background:p.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:600, color:'#fff', flexShrink:0 }}>{p.init}</div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'#0F172A' }}>{p.name}</div>
+                      <div style={{ fontSize:11, color:'#64748B' }}>{p.rol} · Bio: OK ✓</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop:10, padding:'8px 12px', background:'#FEF2F2', borderRadius:8, border:'1px solid #FECACA', fontSize:11, color:'#991B1B' }}>
+                  El conductor capturado no coincide con ninguno de los 2 autorizados vigentes.
+                </div>
+              </div>
+            </div>
 
-                      <FormControl fullWidth>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DESTINO / RESIDENTE *</Typography>
-                        <TextField
-                          size="small"
-                          value={visitanteDestino}
-                          onChange={(e) => setVisitanteDestino(e.target.value)}
-                          placeholder="Ej. Casa 42 - Familia Gómez"
-                          sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                        />
-                      </FormControl>
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>🔒 Autorizaciones vigentes</div>
+              <div style={{ padding:'12px 18px', fontSize:12, color:'#374151' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:'1px solid #F1F5F9' }}>
+                  <span>María López</span>
+                  <span style={{ background:'#DCFCE7', color:'#166534', fontSize:10, fontWeight:600, padding:'2px 8px', borderRadius:20 }}>Activa</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', padding:'7px 0' }}>
+                  <span style={{ color:'#888' }}>Sin permisos temporales activos</span>
+                  <span style={{ background:'#F1F5F9', color:'#475569', fontSize:10, fontWeight:600, padding:'2px 8px', borderRadius:20 }}>—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                      <FormControl fullWidth sx={{ mb: 1 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DURACIÓN DEL PASE *</Typography>
-                        <Select
-                          value={paseDuracion}
-                          onChange={(e) => setPaseDuracion(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{ backgroundColor: vigiaColors.white, borderRadius: vigiaRadius.sm, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' } }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>Seleccione duración...</MenuItem>
-                          <MenuItem value="30m">30 minutos</MenuItem>
-                          <MenuItem value="1h">1 hora</MenuItem>
-                          <MenuItem value="2h">2 horas</MenuItem>
-                          <MenuItem value="4h">4 horas</MenuItem>
-                          <MenuItem value="12h">12 horas</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DESCRIPCIÓN (OPCIONAL)</Typography>
-                        <TextField
-                          size="small"
-                          multiline
-                          rows={2}
-                          value={visitanteDescripcion}
-                          onChange={(e) => setVisitanteDescripcion(e.target.value)}
-                          placeholder="Ej. Ingresa a dejar un paquete, color del auto..."
-                          sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                        />
-                      </FormControl>
-
-                      <Box sx={{ mt: 'auto', pt: 1 }}>
-                        <Button
-                          variant="contained"
-                          onClick={() => {
-                            if (!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion) return;
-                            navigate('/guardia/cola-eventos');
-                          }}
-                          disabled={!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion}
-                          startIcon={<CheckCircleOutlineIcon />}
-                          fullWidth
-                          sx={{
-                            backgroundColor: '#059669', // Green for new pass
-                            color: vigiaColors.white,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            '&:hover': { backgroundColor: '#047857' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(5, 150, 105, 0.4)', color: 'rgba(255,255,255,0.7)' }
-                          }}
-                        >
-                          Generar Pase y Permitir
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
-            </Grid>
-
-          </Grid>
-        </motion.div>
+        {/* MODAL CONFIRMAR DECISIÓN */}
+        {modalDecision && (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}>
+            <div style={{ background:'#fff', borderRadius:16, padding:28, width:400, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', border:`1px solid ${modalDecision==='DENEGAR'?'#FECACA':'#BBF7D0'}` }}>
+              <div style={{ marginBottom:16 }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:18, fontWeight:800, color: modalDecision==='DENEGAR'?'#C62828':'#2E7D32' }}>
+                  {modalDecision==='DENEGAR' ? '✕ Confirmar denegación' : '✓ Confirmar autorización'}
+                </div>
+                <div style={{ fontSize:12, color:'#6B7280', marginTop:3 }}>Esta acción quedará registrada con tu nombre y timestamp</div>
+              </div>
+              <div style={{ background: modalDecision==='DENEGAR'?'#FEF2F2':'#F0FDF4', border:`1px solid ${modalDecision==='DENEGAR'?'#FECACA':'#BBF7D0'}`, borderRadius:10, padding:'12px 16px', marginBottom:14 }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:800, color: modalDecision==='DENEGAR'?'#991B1B':'#166534', letterSpacing:2 }}>PCB-1234</div>
+                <div style={{ fontSize:12, color: modalDecision==='DENEGAR'?'#C62828':'#16A34A', marginTop:4 }}>
+                  SALIDA · {chipSel || motivo.slice(0,40)}
+                </div>
+              </div>
+              {modalDecision==='AUTORIZAR' && (
+                <div style={{ background:'#FEF9C3', borderRadius:8, padding:'10px 14px', border:'1px solid #FDE68A', fontSize:12, color:'#92400E', marginBottom:14 }}>
+                  ⚠ Estás autorizando bajo tu responsabilidad. Esta decisión es trazable e irrevocable.
+                </div>
+              )}
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => setModalDecision(null)} style={{ flex:1, padding:11, borderRadius:8, background:'#fff', color:'#555', fontSize:13, fontWeight:500, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                  Cancelar
+                </button>
+                <button onClick={confirmarDecision} style={{ flex:1, padding:11, borderRadius:8, background: modalDecision==='DENEGAR'?'#C62828':'#2E7D32', color:'#fff', fontSize:13, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                  {modalDecision==='DENEGAR' ? '✕ Confirmar denegación' : '✓ Confirmar autorización'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </Box>
     </DashboardTemplate>

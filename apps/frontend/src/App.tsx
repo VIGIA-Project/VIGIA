@@ -48,6 +48,9 @@ import { ColaEventosPage } from "./pages/guardia/ColaEventos";
 import { RevisionManualPage } from "./pages/guardia/RevisionManual";
 import { ContingenciaPage } from "./pages/guardia/Contingencia";
 import { AlertasGuardiaPage } from "./pages/guardia/AlertasGuardia";
+import { HistorialGuardiaPage } from "./pages/guardia/HistorialGuardia";
+import { PaseRapidoPage } from "./pages/guardia/PaseRapido";
+import { RegistroInvitadoPage } from "./pages/guardia/RegistroInvitado";
 
 // ─── Páginas: Admin ───────────────────────────────────────────────────────
 import LegacyAdminLayout from "./components/templates/LegacyAdminLayout";
@@ -314,6 +317,36 @@ const AnimatedRoutes: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+              <Route
+                  path="/guardia/historial"
+                  element={
+                      <ProtectedRoute allowedRoles={["GUARD"]}>
+                          <PageTransition>
+                              <HistorialGuardiaPage />
+                          </PageTransition>
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/guardia/pase-rapido"
+                  element={
+                      <ProtectedRoute allowedRoles={["GUARD"]}>
+                          <PageTransition>
+                              <PaseRapidoPage />
+                          </PageTransition>
+                      </ProtectedRoute>
+                  }
+              />
+              <Route
+                  path="/guardia/registro-invitado"
+                  element={
+                      <ProtectedRoute allowedRoles={["GUARD"]}>
+                          <PageTransition>
+                              <RegistroInvitadoPage />
+                          </PageTransition>
+                      </ProtectedRoute>
+                  }
+              />
 
             {/* ═══ Admin ═══ */}
             <Route

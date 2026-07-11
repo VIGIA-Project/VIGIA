@@ -1,332 +1,283 @@
 import React, { useState } from 'react';
-import { Box, Typography, Select, MenuItem, FormControl, Paper, useTheme, useMediaQuery, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { EventQueueCard } from '../../components/molecules';
-import { fadeInUp, staggerContainer } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CloseIcon from '@mui/icons-material/Close';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-// MOCK DATA BASED ON THE DOCUMENTATION
-const MOCK_EVENTS = [
-  {
-    id: 1,
-    placa: 'PCB-1234',
-    timeAgo: 'hace 3 min',
-    timeAgoUrgent: false,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:24:15',
-    alertTitle: 'SIN_PERFILES_BIOMETRICOS',
-    alertDescription: 'No existen perfiles biométricos disponibles para el conjunto autorizado',
-    alertType: 'error' as const,
-    vehiculo: 'Toyota Corolla (Blanco)',
-    propietario: 'Lenin David',
-  },
-  {
-    id: 2,
-    placa: 'DEF-5678',
-    timeAgo: 'hace 5 min',
-    timeAgoUrgent: false,
-    direction: 'SALIDA' as const,
-    timestamp: '13:22:00',
-    alertTitle: 'FALLO_OCR',
-    alertDescription: 'Lectura parcial de placa',
-    alertType: 'error' as const,
-    vehiculo: 'Honda Civic (Gris)',
-    propietario: 'María Fernanda',
-  },
-  {
-    id: 3,
-    placa: 'GHI-9012',
-    timeAgo: 'hace 8 min',
-    timeAgoUrgent: true,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:16:30',
-    alertTitle: 'EVIDENCIA_INSUFICIENTE',
-    alertDescription: 'El nivel de coincidencia no supera el umbral requerido',
-    alertType: 'error' as const,
-    vehiculo: 'Ford Explorer (Negro)',
-    propietario: 'Carlos Ruiz',
-  },
-  {
-    id: 4,
-    placa: 'XTR-4455',
-    timeAgo: 'hace 10 min',
-    timeAgoUrgent: true,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:14:00',
-    alertTitle: 'FALLO_BIOMETRICO',
-    alertDescription: 'El servicio biométrico no está respondiendo',
-    alertType: 'warning' as const,
-    vehiculo: 'Nissan Versa (Plata)',
-    propietario: 'Ana López',
-  },
+type Criticidad = 'ALTA' | 'MEDIA' | 'BAJA';
+type Movimiento = 'ENTRADA' | 'SALIDA';
+type Motivo = 'CONDUCTOR_NO_AUTORIZADO' | 'VEHICULO_NO_REGISTRADO' | 'EVIDENCIA_INSUFICIENTE' | 'CONDUCTOR_PRESENTA_PASE';
+
+interface Evento {
+  id: number;
+  placa: string;
+  tiempo: string;
+  minutos: number;
+  movimiento: Movimiento;
+  hora: string;
+  motivo: Motivo;
+  descripcion: string;
+  criticidad: Criticidad;
+  vehiculo: string;
+  propietario: string;
+  score?: number;
+}
+
+const EVENTOS: Evento[] = [
+  { id:1, placa:'PCB-1234', tiempo:'hace 1 min', minutos:1, movimiento:'SALIDA', hora:'13:24:15', motivo:'CONDUCTOR_NO_AUTORIZADO', descripcion:'La persona capturada no coincide con ningún conductor autorizado vigente. Riesgo de retiro no autorizado del vehículo.', criticidad:'ALTA', vehiculo:'Toyota Corolla Blanco', propietario:'Carlos Mendoza' },
+  { id:2, placa:'ABC-5678', tiempo:'hace 3 min', minutos:3, movimiento:'ENTRADA', hora:'13:21:08', motivo:'VEHICULO_NO_REGISTRADO', descripcion:'La placa no existe en el registro institucional. Registre como invitado o deniegue el ingreso.', criticidad:'MEDIA', vehiculo:'Vehículo no registrado', propietario:'—' },
+  { id:3, placa:'XYZ-9012', tiempo:'hace 5 min', minutos:5, movimiento:'SALIDA', hora:'13:19:33', motivo:'EVIDENCIA_INSUFICIENTE', descripcion:'Score biométrico 0.62 inferior al umbral requerido 0.75. Revise la evidencia visual.', criticidad:'MEDIA', vehiculo:'Honda Civic Gris', propietario:'María López', score:0.62 },
+  { id:4, placa:'MNB-4455', tiempo:'hace 7 min', minutos:7, movimiento:'SALIDA', hora:'13:17:22', motivo:'CONDUCTOR_PRESENTA_PASE', descripcion:'El conductor no fue reconocido biométricamente pero presenta un código de pase rápido.', criticidad:'BAJA', vehiculo:'Nissan Versa Plata', propietario:'Ana García' },
 ];
+
+const cfgCrit: Record<Criticidad,{border:string;headerBg:string;headerText:string;dot:string;cardBg:string}> = {
+  ALTA:  { border:'#FECACA', headerBg:'#FEF2F2', headerText:'#991B1B', dot:'#C62828', cardBg:'#FFF8F8' },
+  MEDIA: { border:'#FDE68A', headerBg:'#FFFBEB', headerText:'#92400E', dot:'#F2851F', cardBg:'#FFFDF5' },
+  BAJA:  { border:'#BFDBFE', headerBg:'#EFF6FF', headerText:'#1E3A8A', dot:'#0D5CCF', cardBg:'#F8FAFF' },
+};
+
+const cfgMov: Record<Movimiento,{bg:string;text:string}> = {
+  ENTRADA: { bg:'#E3F2FD', text:'#1565C0' },
+  SALIDA:  { bg:'#EDE7F6', text:'#4527A0' },
+};
+
+const motivoLabel: Record<Motivo,string> = {
+  CONDUCTOR_NO_AUTORIZADO: 'Conductor no autorizado',
+  VEHICULO_NO_REGISTRADO:  'Vehículo no registrado',
+  EVIDENCIA_INSUFICIENTE:  'Evidencia insuficiente',
+  CONDUCTOR_PRESENTA_PASE: 'Pase rápido — validación requerida',
+};
+
+const critLabel: Record<Criticidad,string> = {
+  ALTA:  '⚠ Alta criticidad',
+  MEDIA: 'Media criticidad',
+  BAJA:  'Pase rápido',
+};
 
 export const ColaEventosPage: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [filtroMov, setFiltroMov] = useState('Todos');
+  const [filtroCrit, setFiltroCrit] = useState('Todos');
+  const [sort, setSort] = useState('MasCritico');
+  const [modalDenegar, setModalDenegar] = useState<Evento | null>(null);
+  const [eventosResueltos, setEventosResueltos] = useState<number[]>([]);
 
-  const [filterTipo, setFilterTipo] = useState('Todos');
-  const [filterMotivo, setFilterMotivo] = useState('Todos');
-  const [sortOrder, setSortOrder] = useState('MasAntiguo');
-  const [selectedEvent, setSelectedEvent] = useState<typeof MOCK_EVENTS[0] | null>(null);
+  const confirmarDenegar = (ev: Evento) => {
+    setEventosResueltos(prev => [...prev, ev.id]);
+    setModalDenegar(null);
+  };
 
-  // Simple filtering and sorting logic
-  const filteredEvents = MOCK_EVENTS.filter((event) => {
-    // Tipo Filter
-    if (filterTipo !== 'Todos' && event.direction !== filterTipo.toUpperCase()) return false;
-    
-    // Motivo Filter
-    if (filterMotivo !== 'Todos' && event.alertTitle !== filterMotivo) return false;
-    
-    return true;
-  }).sort((a, b) => {
-    // Basic mock sort logic (by ID since it matches antiquity here)
-    if (sortOrder === 'MasAntiguo') return a.id - b.id;
-    return b.id - a.id; // MasReciente
-  });
+  const ordCrit: Record<Criticidad,number> = { ALTA:0, MEDIA:1, BAJA:2 };
+
+  const visibles = EVENTOS
+    .filter(e => !eventosResueltos.includes(e.id))
+    .filter(e => {
+      if (filtroMov !== 'Todos' && e.movimiento !== filtroMov) return false;
+      if (filtroCrit !== 'Todos' && e.criticidad !== filtroCrit) return false;
+      return true;
+    })
+    .sort((a,b) => {
+      if (sort === 'MasCritico') return ordCrit[a.criticidad] - ordCrit[b.criticidad];
+      if (sort === 'MasAntiguo') return b.minutos - a.minutos;
+      return a.minutos - b.minutos;
+    });
+
+  const altaCount = visibles.filter(e=>e.criticidad==='ALTA').length;
 
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Cola de Pendientes">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        
-        {/* Header Section */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
-            <Box>
-              <Typography variant="h4" sx={{ color: '#0A2F86', mb: 1, fontWeight: 800, fontFamily: '"Exo 2", sans-serif' }}>
-                Cola de Pendientes (PENDING_VERIFY)
-              </Typography>
-              <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                Resuelve los casos retenidos por el sistema. Ordenados por antigüedad.
-              </Typography>
-            </Box>
+    <DashboardTemplate rol="GUARD" pageTitle="Cola de pendientes">
+      <Box sx={{ fontFamily:'Inter,sans-serif' }}>
 
-            {/* Top Indicator */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, backgroundColor: '#FFFBEB', px: 2, py: 1, borderRadius: vigiaRadius.full, border: '1px solid #FDE68A' }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#D97706' }} />
-              <Typography sx={{ color: '#B45309', fontWeight: 700, fontSize: '0.85rem' }}>{filteredEvents.length} Pendientes Ahora</Typography>
-            </Box>
-          </Box>
-        </motion.div>
-
-        {/* Filters Section */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              borderRadius: vigiaRadius.md,
-              border: '1px solid rgba(0,0,0,0.08)',
-              backgroundColor: vigiaColors.white,
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              gap: 3,
-              alignItems: 'center',
-            }}
-          >
-            <FormControl fullWidth size="small" variant="outlined" sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: vigiaColors.textSecondary, mb: 0.5, fontFamily: '"Inter", sans-serif' }}>
-                Tipo de Movimiento
-              </Typography>
-              <Select
-                value={filterTipo}
-                onChange={(e) => setFilterTipo(e.target.value)}
-                IconComponent={ExpandMoreIcon}
-                sx={{
-                  borderRadius: vigiaRadius.sm,
-                  backgroundColor: '#FAFBFC',
-                  fontSize: '0.875rem',
-                  fontFamily: '"Inter", sans-serif',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.2)' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#11A9D6', borderWidth: 1 },
-                }}
-              >
-                <MenuItem value="Todos" sx={{ fontFamily: '"Inter", sans-serif' }}>Todos</MenuItem>
-                <MenuItem value="ENTRADA" sx={{ fontFamily: '"Inter", sans-serif' }}>ENTRADA</MenuItem>
-                <MenuItem value="SALIDA" sx={{ fontFamily: '"Inter", sans-serif' }}>SALIDA</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth size="small" variant="outlined" sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: vigiaColors.textSecondary, mb: 0.5, fontFamily: '"Inter", sans-serif' }}>
-                Motivo de Pendiente
-              </Typography>
-              <Select
-                value={filterMotivo}
-                onChange={(e) => setFilterMotivo(e.target.value)}
-                IconComponent={ExpandMoreIcon}
-                sx={{
-                  borderRadius: vigiaRadius.sm,
-                  backgroundColor: '#FAFBFC',
-                  fontSize: '0.875rem',
-                  fontFamily: '"Inter", sans-serif',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.2)' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#11A9D6', borderWidth: 1 },
-                }}
-              >
-                <MenuItem value="Todos" sx={{ fontFamily: '"Inter", sans-serif' }}>Todos</MenuItem>
-                <MenuItem value="SIN_PERFILES_BIOMETRICOS" sx={{ fontFamily: '"Inter", sans-serif' }}>SIN_PERFILES_BIOMETRICOS</MenuItem>
-                <MenuItem value="EVIDENCIA_INSUFICIENTE" sx={{ fontFamily: '"Inter", sans-serif' }}>EVIDENCIA_INSUFICIENTE</MenuItem>
-                <MenuItem value="FALLO_OCR" sx={{ fontFamily: '"Inter", sans-serif' }}>FALLO_OCR</MenuItem>
-                <MenuItem value="FALLO_BIOMETRICO" sx={{ fontFamily: '"Inter", sans-serif' }}>FALLO_BIOMETRICO</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth size="small" variant="outlined" sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: vigiaColors.textSecondary, mb: 0.5, fontFamily: '"Inter", sans-serif' }}>
-                Ordenar por
-              </Typography>
-              <Select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                IconComponent={ExpandMoreIcon}
-                sx={{
-                  borderRadius: vigiaRadius.sm,
-                  backgroundColor: '#FAFBFC',
-                  fontSize: '0.875rem',
-                  fontFamily: '"Inter", sans-serif',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.2)' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#11A9D6', borderWidth: 1 },
-                }}
-              >
-                <MenuItem value="MasAntiguo" sx={{ fontFamily: '"Inter", sans-serif' }}>Más antiguo primero (Default)</MenuItem>
-                <MenuItem value="MasReciente" sx={{ fontFamily: '"Inter", sans-serif' }}>Más reciente primero</MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
-        </motion.div>
-
-        {/* Grid of Cards */}
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          {filteredEvents.length > 0 ? (
-            <Grid container spacing={3}>
-              {filteredEvents.map((event) => (
-                <Grid item xs={12} sm={6} md={4} key={event.id}>
-                  <EventQueueCard
-                    {...event}
-                    onReview={() => navigate('/guardia/revision-manual')}
-                    onClickDetails={() => setSelectedEvent(event)}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-             <Box sx={{ p: 4, textAlign: 'center', backgroundColor: '#FAFBFC', borderRadius: vigiaRadius.md, border: '1px dashed rgba(0,0,0,0.1)' }}>
-               <Typography sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>La cola de pendientes está vacía.</Typography>
-             </Box>
+        {/* HEADER */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+          <div>
+            <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:22, fontWeight:700, color:'#0F172A' }}>Cola de pendientes</div>
+            <div style={{ fontSize:13, color:'#6B7280', marginTop:3 }}>
+              Acceso Norte · Ordenado por criticidad ·{' '}
+              <strong style={{ color:'#C62828' }}>{visibles.length} eventos pendientes</strong>
+            </div>
+          </div>
+          {altaCount > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, background:'#FEE2E2', padding:'7px 16px', borderRadius:20, border:'1px solid #FECACA' }}>
+              <div style={{ width:8, height:8, borderRadius:'50%', background:'#C62828' }} />
+              <span style={{ color:'#991B1B', fontWeight:700, fontSize:12 }}>{altaCount} caso{altaCount>1?'s':''} crítico{altaCount>1?'s':''}</span>
+            </div>
           )}
-        </motion.div>
+        </div>
 
-        {/* Modal / Dialog de Detalles */}
-        <Dialog 
-          open={Boolean(selectedEvent)} 
-          onClose={() => setSelectedEvent(null)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: vigiaRadius.lg, border: '1px solid rgba(0,0,0,0.1)' } }}
-        >
-          {selectedEvent && (
-            <>
-              <DialogTitle sx={{ m: 0, p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography sx={{ fontWeight: 800, color: '#0A2F86', fontFamily: '"Exo 2", sans-serif', fontSize: '1.4rem' }}>
-                    Detalle del Evento
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.85rem', color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                    {selectedEvent.timestamp} • {selectedEvent.timeAgo}
-                  </Typography>
-                </Box>
-                <IconButton onClick={() => setSelectedEvent(null)} sx={{ color: vigiaColors.textSecondary }}>
-                  <CloseIcon />
-                </IconButton>
-              </DialogTitle>
-              <DialogContent dividers sx={{ p: 3, borderTop: '1px solid rgba(0,0,0,0.05)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  
-                  {/* Placa y Movimiento */}
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Box sx={{ flex: 1, backgroundColor: '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center' }}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 0.5 }}>PLACA</Typography>
-                      <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: '"Exo 2", sans-serif', color: '#1F2937', letterSpacing: 2 }}>
-                        {selectedEvent.placa}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, backgroundColor: selectedEvent.direction === 'ENTRADA' ? 'rgba(17,169,214,0.1)' : '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                       <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 0.5 }}>MOVIMIENTO</Typography>
-                       <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: '"Inter", sans-serif', color: selectedEvent.direction === 'ENTRADA' ? '#11A9D6' : '#6B7280' }}>
-                         {selectedEvent.direction}
-                       </Typography>
-                    </Box>
-                  </Box>
+        {/* FILTROS */}
+        <div style={{ background:'#fff', borderRadius:12, border:'1px solid #E2E8F0', padding:'14px 18px', marginBottom:18, display:'flex', alignItems:'flex-end', gap:12, flexWrap:'wrap' }}>
+          {[
+            { label:'Movimiento', value:filtroMov, set:setFiltroMov, opts:['Todos','ENTRADA','SALIDA'] },
+            { label:'Criticidad',  value:filtroCrit, set:setFiltroCrit, opts:['Todos','ALTA','MEDIA','BAJA'] },
+            { label:'Ordenar por', value:sort, set:setSort, opts:[{v:'MasCritico',l:'Mayor criticidad'},{v:'MasAntiguo',l:'Más antiguo'},{v:'MasReciente',l:'Más reciente'}] as any },
+          ].map(f => (
+            <div key={f.label} style={{ display:'flex', flexDirection:'column', gap:4, flex:1, minWidth:140 }}>
+              <label style={{ fontSize:11, fontWeight:600, color:'#94A3B8' }}>{f.label}</label>
+              <select value={f.value} onChange={e=>f.set(e.target.value)} style={{ padding:'7px 12px', borderRadius:7, border:'1px solid #E2E8F0', fontSize:13, fontFamily:'Inter,sans-serif', background:'#FAFBFC' }}>
+                {f.opts.map((o:any) => typeof o === 'string'
+                  ? <option key={o} value={o}>{o}</option>
+                  : <option key={o.v} value={o.v}>{o.l}</option>
+                )}
+              </select>
+            </div>
+          ))}
+        </div>
 
-                  {/* Motivo de la Alerta */}
-                  <Box sx={{ backgroundColor: selectedEvent.alertType === 'error' ? '#FEF2F2' : '#FFFBEB', p: 2, borderRadius: vigiaRadius.sm, borderLeft: `4px solid ${selectedEvent.alertType === 'error' ? '#DC2626' : '#F2B51F'}` }}>
-                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: selectedEvent.alertType === 'error' ? '#B91C1C' : '#B45309', letterSpacing: 0.5, mb: 0.5 }}>
-                      MOTIVO DEL EVENTO
-                    </Typography>
-                    <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: selectedEvent.alertType === 'error' ? '#991B1B' : '#92400E', fontFamily: '"Inter", sans-serif', mb: 0.5 }}>
-                      {selectedEvent.alertTitle}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.9rem', color: selectedEvent.alertType === 'error' ? '#DC2626' : '#D97706', fontFamily: '"Inter", sans-serif' }}>
-                      {selectedEvent.alertDescription}
-                    </Typography>
-                  </Box>
-
-                  {/* Contexto del Vehículo */}
-                  <Box sx={{ p: 2, borderRadius: vigiaRadius.sm, border: '1px solid rgba(0,0,0,0.1)' }}>
-                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 2 }}>
-                      CONTEXTO REGISTRADO
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontSize: '0.75rem', color: vigiaColors.textSecondary, mb: 0.5 }}>Vehículo</Typography>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody }}>{selectedEvent.vehiculo}</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontSize: '0.75rem', color: vigiaColors.textSecondary, mb: 0.5 }}>Propietario / Autorizado</Typography>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody }}>{selectedEvent.propietario}</Typography>
-                      </Grid>
-                    </Grid>
-                  </Box>
-
-                </Box>
-              </DialogContent>
-              <DialogActions sx={{ p: 3, pt: 2, display: 'flex', gap: 2 }}>
-                <Button 
-                  onClick={() => setSelectedEvent(null)}
-                  variant="outlined"
-                  sx={{ flex: 1, borderColor: 'rgba(0,0,0,0.15)', color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif', fontWeight: 600 }}
-                >
-                  Cerrar
-                </Button>
-                <Button 
-                  onClick={() => navigate('/guardia/revision-manual')}
-                  variant="contained"
-                  endIcon={<ArrowForwardIcon />}
-                  sx={{ 
-                    flex: 1, 
-                    backgroundColor: '#0D5CCF', 
-                    color: 'white', 
-                    fontFamily: '"Inter", sans-serif', 
-                    fontWeight: 600,
-                    '&:hover': { backgroundColor: '#0A2F86' }
-                  }}
-                >
-                  Pasar a Resolución
-                </Button>
-              </DialogActions>
-            </>
+        {/* LISTA EVENTOS */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {visibles.length === 0 && (
+            <div style={{ padding:48, textAlign:'center', background:'#FAFBFC', borderRadius:14, border:'1px dashed #E2E8F0' }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>✅</div>
+              <div style={{ fontSize:14, color:'#6B7280' }}>Cola vacía — todos los eventos resueltos</div>
+            </div>
           )}
-        </Dialog>
+
+          {visibles.map(ev => {
+            const cc = cfgCrit[ev.criticidad];
+            const mc = cfgMov[ev.movimiento];
+            return (
+              <div key={ev.id} style={{ borderRadius:14, overflow:'hidden', border:`1px solid ${cc.border}`, background:cc.cardBg, boxShadow:'0 3px 14px rgba(10,47,134,0.08)' }}>
+
+                {/* HEADER */}
+                <div style={{ background:cc.headerBg, borderBottom:`1px solid ${cc.border}`, padding:'11px 22px', display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:cc.dot, flexShrink:0 }} />
+                  <span style={{ fontFamily:'"Exo 2",sans-serif', fontSize:11, fontWeight:700, color:cc.headerText, textTransform:'uppercase', letterSpacing:.8, flex:1 }}>
+                    {critLabel[ev.criticidad]} — {motivoLabel[ev.motivo]}
+                  </span>
+                  <span style={{ fontSize:11, color:cc.headerText, opacity:.8, fontWeight:600 }}>{ev.tiempo}</span>
+                </div>
+
+                {/* BODY */}
+                <div style={{ padding:'18px 22px', display:'flex', alignItems:'center', gap:18 }}>
+
+                  {/* PLACA */}
+                  <div style={{ flexShrink:0 }}>
+                    <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:800, color:'#0A2F86', background:'#EEF2FF', padding:'6px 16px', borderRadius:8, border:'1px solid #C7D2FE', letterSpacing:2, marginBottom:8 }}>
+                      {ev.placa}
+                    </div>
+                    <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:mc.bg, color:mc.text }}>
+                      {ev.movimiento}
+                    </span>
+                  </div>
+
+                  {/* SEPARADOR */}
+                  <div style={{ width:1, alignSelf:'stretch', background:'#E2E8F0', flexShrink:0 }} />
+
+                  {/* INFO */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:15, fontWeight:700, color:'#1F2A44', marginBottom:5 }}>{motivoLabel[ev.motivo]}</div>
+                    <div style={{ fontSize:13, color:'#555', lineHeight:1.55, marginBottom:6 }}>{ev.descripcion}</div>
+                    {ev.score !== undefined && (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                        <span style={{ fontSize:11, color:'#888' }}>Score:</span>
+                        <div style={{ flex:1, maxWidth:120, height:6, background:'#E2E8F0', borderRadius:3 }}>
+                          <div style={{ width:`${ev.score*100}%`, height:'100%', background:'#C62828', borderRadius:3 }} />
+                        </div>
+                        <span style={{ fontSize:11, fontWeight:700, color:'#C62828' }}>{ev.score}</span>
+                        <span style={{ fontSize:11, color:'#888' }}>/ umbral 0.75</span>
+                      </div>
+                    )}
+                    <div style={{ fontSize:11, color:'#94A3B8' }}>
+                      {ev.vehiculo !== 'Vehículo no registrado' ? `${ev.vehiculo} · ` : ''}
+                      {ev.propietario !== '—' ? `Prop: ${ev.propietario} · ` : ''}
+                      Acceso Norte · {ev.hora}
+                    </div>
+                  </div>
+
+                  {/* BOTONES CONTEXTUALES */}
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0, minWidth:178 }}>
+
+                    {ev.motivo === 'CONDUCTOR_NO_AUTORIZADO' && <>
+                      <button onClick={() => setModalDenegar(ev)}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#C62828', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        ✕ Denegar salida
+                      </button>
+                      <button onClick={() => navigate('/guardia/revision-manual', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        ℹ Ver detalle completo
+                      </button>
+                    </>}
+
+                    {ev.motivo === 'VEHICULO_NO_REGISTRADO' && <>
+                      <button onClick={() => navigate('/guardia/registro-invitado', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        👤 Registrar invitado
+                      </button>
+                      <button onClick={() => setModalDenegar(ev)}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#C62828', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        ✕ Denegar ingreso
+                      </button>
+                      <button onClick={() => navigate('/guardia/revision-manual', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'9px 16px', borderRadius:9, background:'#F8FAFC', color:'#374151', fontSize:12, fontWeight:600, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        Ver detalle
+                      </button>
+                    </>}
+
+                    {ev.motivo === 'EVIDENCIA_INSUFICIENTE' && <>
+                      <button onClick={() => navigate('/guardia/revision-manual', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        ℹ Ver detalle y resolver
+                      </button>
+                      <button onClick={() => navigate('/guardia/contingencia', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#F2851F', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        ⚠ Contingencia
+                      </button>
+                    </>}
+
+                    {ev.motivo === 'CONDUCTOR_PRESENTA_PASE' && <>
+                      <button onClick={() => navigate('/guardia/pase-rapido', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'10px 16px', borderRadius:9, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        🔓 Validar pase rápido
+                      </button>
+                      <button onClick={() => navigate('/guardia/revision-manual', { state:{ eventoId:ev.id, placa:ev.placa } })}
+                        style={{ padding:'9px 16px', borderRadius:9, background:'#F8FAFC', color:'#374151', fontSize:12, fontWeight:600, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif', justifyContent:'center', display:'flex', alignItems:'center', gap:6 }}>
+                        Ver detalle
+                      </button>
+                    </>}
+
+                  </div>
+                </div>
+
+                {/* FOOTER ADVERTENCIA */}
+                {ev.motivo === 'CONDUCTOR_NO_AUTORIZADO' && (
+                  <div style={{ background:'#FFF8F8', borderTop:`1px solid ${cc.border}`, padding:'9px 22px', display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:11, color:'#991B1B' }}>⚠ Aprobación rápida no disponible — revise el detalle completo antes de decidir</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* MODAL CONFIRMAR DENEGAR */}
+        {modalDenegar && (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}>
+            <div style={{ background:'#fff', borderRadius:16, border:'1px solid #FECACA', padding:28, width:420, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
+                <div>
+                  <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:18, fontWeight:800, color:'#C62828' }}>Confirmar denegación</div>
+                  <div style={{ fontSize:12, color:'#6B7280', marginTop:3 }}>Esta acción quedará registrada con tu nombre y timestamp</div>
+                </div>
+                <button onClick={() => setModalDenegar(null)} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#888', lineHeight:1 }}>✕</button>
+              </div>
+              <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:10, padding:'14px 18px', marginBottom:16 }}>
+                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:24, fontWeight:800, color:'#991B1B', letterSpacing:2 }}>{modalDenegar.placa}</div>
+                <div style={{ fontSize:12, color:'#C62828', marginTop:4 }}>{modalDenegar.movimiento} · {motivoLabel[modalDenegar.motivo]}</div>
+              </div>
+              <div style={{ fontSize:13, color:'#555', marginBottom:20 }}>
+                ¿Confirmas que deseas <strong style={{ color:'#C62828' }}>denegar este acceso</strong>? El evento se cerrará con decisión DENIED y se notificará al propietario.
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => setModalDenegar(null)} style={{ flex:1, padding:11, borderRadius:8, background:'#fff', color:'#555', fontSize:13, fontWeight:500, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                  Cancelar
+                </button>
+                <button onClick={() => confirmarDenegar(modalDenegar)} style={{ flex:1, padding:11, borderRadius:8, background:'#C62828', color:'#fff', fontSize:13, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                  ✕ Confirmar denegación
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </Box>
     </DashboardTemplate>

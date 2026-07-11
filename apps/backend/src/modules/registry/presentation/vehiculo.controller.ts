@@ -23,7 +23,7 @@ export class VehiculoController {
     constructor(private readonly vehiculoUseCases: VehiculoUseCases) {}
 
     @Post()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     @HttpCode(HttpStatus.CREATED)
     async crear(@Body() dto: CrearVehiculoDto) {
         return this.vehiculoUseCases.crear(dto);

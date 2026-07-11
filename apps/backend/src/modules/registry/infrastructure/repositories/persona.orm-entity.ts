@@ -34,6 +34,9 @@ export class PersonaOrmEntity {
     @Column({ name: 'telefono_contacto', length: 30, nullable: true })
     telefonoContacto: string | null;
 
+    @Column({ name: 'rol_institucional', length: 100, nullable: true })
+    rolInstitucional: string | null;
+
     @Column({
         name: 'estado_registro',
         type: 'enum',
@@ -50,9 +53,6 @@ export class PersonaOrmEntity {
         default: 'PENDIENTE',
     })
     estadoBiometrico: string;
-
-    @Column({ name: 'rol_institucional', length: 100, nullable: true })
-    rolInstitucional: string | null;
 
     @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
     createdAt: Date;

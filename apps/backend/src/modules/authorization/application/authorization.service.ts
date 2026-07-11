@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { EntityNotFoundException } from '@core/exceptions/domain-exception';
+import { BusinessRuleViolationException, EntityNotFoundException } from '@core/exceptions/domain-exception';
 import {
-  AUTORIZACION_PERMANENTE_REPOSITORY,
+  MIEMBRO_GRUPO_FAMILIAR_REPOSITORY,
   PERMISO_TEMPORAL_REPOSITORY,
   PASE_ACCESO_RAPIDO_REPOSITORY,
 } from '@shared/constants/injection-tokens';
-import { IAutorizacionPermanenteRepository } from '../domain/repositories/autorizacion-permanente.repository';
+import { IMiembroGrupoFamiliarRepository } from '../domain/repositories/miembro-grupo-familiar.repository';
 import { IPermisoTemporalRepository } from '../domain/repositories/permiso-temporal.repository';
 import { IPaseAccesoRapidoRepository } from '../domain/repositories/pase-acceso-rapido.repository';
-import { AutorizacionPermanente } from '../domain/entities/autorizacion-permanente.entity';
+import { MiembroGrupoFamiliar } from '../domain/entities/miembro-grupo-familiar.entity';
 import { PermisoTemporal } from '../domain/entities/permiso-temporal.entity';
 import { PaseAccesoRapido } from '../domain/entities/pase-acceso-rapido.entity';
 import { Vigencia } from '../domain/value-objects/vigencia.vo';
@@ -18,7 +18,7 @@ import {
   ConjuntoAutorizado,
 } from '../domain/services/construccion-conjunto-autorizado.service';
 import { EvaluacionPaseService, ResultadoEvaluacionPase } from '../domain/services/evaluacion-pase.service';
-import { CrearAutorizacionPermanenteDto } from './dto/crear-autorizacion-permanente.dto';
+import { CrearMiembroGrupoFamiliarDto } from './dto/crear-miembro-grupo-familiar.dto';
 import { CrearPermisoTemporalDto } from './dto/crear-permiso-temporal.dto';
 import { CrearPaseRapidoDto } from './dto/crear-pase-rapido.dto';
 
@@ -30,8 +30,8 @@ import { CrearPaseRapidoDto } from './dto/crear-pase-rapido.dto';
 @Injectable()
 export class AuthorizationService {
   constructor(
-    @Inject(AUTORIZACION_PERMANENTE_REPOSITORY)
-    private readonly autorizacionPermanenteRepository: IAutorizacionPermanenteRepository,
+    @Inject(MIEMBRO_GRUPO_FAMILIAR_REPOSITORY)
+    private readonly miembroGrupoFamiliarRepository: IMiembroGrupoFamiliarRepository,
     @Inject(PERMISO_TEMPORAL_REPOSITORY)
     private readonly permisoTemporalRepository: IPermisoTemporalRepository,
     @Inject(PASE_ACCESO_RAPIDO_REPOSITORY)
@@ -40,37 +40,59 @@ export class AuthorizationService {
     private readonly evaluacionPaseService: EvaluacionPaseService,
   ) {}
 
-  // ─── Autorizaciones permanentes ──────────────────────────────────────
+  // ─── Grupo familiar ─────────────────────────────────────────────────
 
-  async crearAutorizacionPermanente(
-    dto: CrearAutorizacionPermanenteDto,
+  async crearMiembroGrupoFamiliar(
+    dto: CrearMiembroGrupoFamiliarDto,
     propietarioId: string,
-  ): Promise<AutorizacionPermanente> {
-    const autorizacion = AutorizacionPermanente.crear({
+  ): Promise<MiembroGrupoFamiliar> {
+    const totalActivos = await this.miembroGrupoFamiliarRepository.contarActivosPorPropietario(
+      propietarioId,
+    );
+    if (totalActivos >= MiembroGrupoFamiliar.LIMITE_MAXIMO) {
+      throw new BusinessRuleViolationException(
+        'MiembroGrupoFamiliar.limiteMaximo',
+        `El propietario ya alcanzó el límite de ${MiembroGrupoFamiliar.LIMITE_MAXIMO} miembros del grupo familiar`,
+      );
+    }
+
+    const yaEsMiembro = await this.miembroGrupoFamiliarRepository.existeMiembroActivo(
+      dto.personaId,
+      propietarioId,
+    );
+    if (yaEsMiembro) {
+      throw new BusinessRuleViolationException(
+        'MiembroGrupoFamiliar.duplicado',
+        'Esta persona ya es miembro activo del grupo familiar de este propietario',
+      );
+    }
+
+    const miembro = MiembroGrupoFamiliar.crear({
       id: uuidv4(),
       personaId: dto.personaId,
-      vehiculoId: dto.vehiculoId,
       propietarioId,
       relacion: dto.relacion,
     });
-    return this.autorizacionPermanenteRepository.guardar(autorizacion);
+    return this.miembroGrupoFamiliarRepository.guardar(miembro);
   }
 
-  async listarPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
-    return this.autorizacionPermanenteRepository.buscarPorVehiculo(vehiculoId);
+  async listarGrupoFamiliarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
+    return this.miembroGrupoFamiliarRepository.buscarPorPropietario(propietarioId);
   }
 
-  async listarActivasPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
-    return this.autorizacionPermanenteRepository.buscarActivasPorVehiculo(vehiculoId);
+  async listarGrupoFamiliarActivoPorPropietario(
+    propietarioId: string,
+  ): Promise<MiembroGrupoFamiliar[]> {
+    return this.miembroGrupoFamiliarRepository.buscarActivosPorPropietario(propietarioId);
   }
 
-  async revocarAutorizacion(id: string): Promise<AutorizacionPermanente> {
-    const autorizacion = await this.autorizacionPermanenteRepository.buscarPorId(id);
-    if (!autorizacion) {
-      throw new EntityNotFoundException('AutorizacionPermanente', id);
+  async revocarMiembroGrupoFamiliar(id: string): Promise<MiembroGrupoFamiliar> {
+    const miembro = await this.miembroGrupoFamiliarRepository.buscarPorId(id);
+    if (!miembro) {
+      throw new EntityNotFoundException('MiembroGrupoFamiliar', id);
     }
-    autorizacion.revocar();
-    return this.autorizacionPermanenteRepository.guardar(autorizacion);
+    miembro.revocar();
+    return this.miembroGrupoFamiliarRepository.guardar(miembro);
   }
 
   // ─── Permisos temporales ──────────────────────────────────────────────

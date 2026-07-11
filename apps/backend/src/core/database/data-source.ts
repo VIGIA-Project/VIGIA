@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import * as path from 'path';
 

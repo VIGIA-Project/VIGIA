@@ -1,78 +1,66 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IAutorizacionPermanenteRepository } from '../../domain/repositories/autorizacion-permanente.repository';
-import { AutorizacionPermanente } from '../../domain/entities/autorizacion-permanente.entity';
+import { IMiembroGrupoFamiliarRepository } from '../../domain/repositories/miembro-grupo-familiar.repository';
+import { MiembroGrupoFamiliar } from '../../domain/entities/miembro-grupo-familiar.entity';
 import { EstadoAutorizacion } from '../../domain/value-objects/estado-autorizacion.vo';
-import { AutorizacionPermanenteOrmEntity } from '../entities/autorizacion-permanente.orm-entity';
-import { AutorizacionPermanenteMapper } from '../mappers/autorizacion-permanente.mapper';
+import { MiembroGrupoFamiliarOrmEntity } from '../entities/miembro-grupo-familiar.orm-entity';
+import { MiembroGrupoFamiliarMapper } from '../mappers/miembro-grupo-familiar.mapper';
 
 @Injectable()
-export class TypeOrmAutorizacionPermanenteRepository
-  implements IAutorizacionPermanenteRepository
+export class TypeOrmMiembroGrupoFamiliarRepository
+  implements IMiembroGrupoFamiliarRepository
 {
   constructor(
-    @InjectRepository(AutorizacionPermanenteOrmEntity)
-    private readonly repo: Repository<AutorizacionPermanenteOrmEntity>,
+    @InjectRepository(MiembroGrupoFamiliarOrmEntity)
+    private readonly repo: Repository<MiembroGrupoFamiliarOrmEntity>,
   ) {}
 
-  async guardar(autorizacion: AutorizacionPermanente): Promise<AutorizacionPermanente> {
-    const orm = AutorizacionPermanenteMapper.toOrm(autorizacion);
+  async guardar(miembro: MiembroGrupoFamiliar): Promise<MiembroGrupoFamiliar> {
+    const orm = MiembroGrupoFamiliarMapper.toOrm(miembro);
     const saved = await this.repo.save(orm);
-    return AutorizacionPermanenteMapper.toDomain(saved);
+    return MiembroGrupoFamiliarMapper.toDomain(saved);
   }
 
-  async buscarPorId(id: string): Promise<AutorizacionPermanente | null> {
+  async buscarPorId(id: string): Promise<MiembroGrupoFamiliar | null> {
     const orm = await this.repo.findOne({ where: { id } });
-    return orm ? AutorizacionPermanenteMapper.toDomain(orm) : null;
+    return orm ? MiembroGrupoFamiliarMapper.toDomain(orm) : null;
   }
 
-  async buscarPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
+  async buscarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     const orms = await this.repo
-      .createQueryBuilder('a')
-      .where('a.vehiculo_id = :vehiculoId', { vehiculoId })
-      .orderBy('a.created_at', 'DESC')
+      .createQueryBuilder('m')
+      .where('m.propietario_id = :propietarioId', { propietarioId })
+      .orderBy('m.created_at', 'DESC')
       .getMany();
-    return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
+    return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
   }
 
-  async buscarActivasPorVehiculo(vehiculoId: string): Promise<AutorizacionPermanente[]> {
+  async buscarActivosPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     const orms = await this.repo
-      .createQueryBuilder('a')
-      .where('a.vehiculo_id = :vehiculoId', { vehiculoId })
-      .andWhere('a.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .createQueryBuilder('m')
+      .where('m.propietario_id = :propietarioId', { propietarioId })
+      .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .orderBy('m.created_at', 'DESC')
       .getMany();
-    return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
+    return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
   }
 
-  async buscarPorPersonaYVehiculo(
-    personaId: string,
-    vehiculoId: string,
-  ): Promise<AutorizacionPermanente | null> {
-    const orm = await this.repo
-      .createQueryBuilder('a')
-      .where('a.persona_id = :personaId', { personaId })
-      .andWhere('a.vehiculo_id = :vehiculoId', { vehiculoId })
-      .getOne();
-    return orm ? AutorizacionPermanenteMapper.toDomain(orm) : null;
+  async contarActivosPorPropietario(propietarioId: string): Promise<number> {
+    return this.repo
+      .createQueryBuilder('m')
+      .where('m.propietario_id = :propietarioId', { propietarioId })
+      .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .getCount();
   }
 
-  async existeAutorizacionActiva(personaId: string, vehiculoId: string): Promise<boolean> {
+  async existeMiembroActivo(personaId: string, propietarioId: string): Promise<boolean> {
     const count = await this.repo
-      .createQueryBuilder('a')
-      .where('a.persona_id = :personaId', { personaId })
-      .andWhere('a.vehiculo_id = :vehiculoId', { vehiculoId })
-      .andWhere('a.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .createQueryBuilder('m')
+      .where('m.persona_id = :personaId', { personaId })
+      .andWhere('m.propietario_id = :propietarioId', { propietarioId })
+      .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
       .getCount();
     return count > 0;
-  }
-
-  async buscarPorPropietario(propietarioId: string): Promise<AutorizacionPermanente[]> {
-    const orms = await this.repo
-      .createQueryBuilder('a')
-      .where('a.propietario_id = :propietarioId', { propietarioId })
-      .orderBy('a.created_at', 'DESC')
-      .getMany();
-    return orms.map((orm) => AutorizacionPermanenteMapper.toDomain(orm));
   }
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { actualizarOnboardingStatus } from '../services/auth.service';
+import { biometricService } from '../services/biometric.service';
 
 interface AuthUser {
   email: string;
@@ -125,6 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
 
     try {
+      await biometricService.registrarPerfilBiometrico();
       await actualizarOnboardingStatus({ biometric_registered: true });
     } catch (err) {
       console.error('Failed to persist biometric status:', err);

@@ -133,14 +133,6 @@ export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
 };
 
 /**
- * PATCH tipado
- */
-export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
-  const response = await apiClient.patch<T>(url, data);
-  return response.data;
-};
-
-/**
  * DELETE tipado
  */
 export const apiDelete = async <T>(url: string): Promise<T> => {
@@ -163,18 +155,15 @@ export interface ApiEnvelope<T> {
 }
 
 export const apiGetData = async <T>(url: string, params?: Record<string, unknown>): Promise<T> => {
-  const envelope = await apiGet<ApiEnvelope<T>>(url, params);
-  return envelope.data;
+  return await apiGet<T>(url, params);
 };
 
 export const apiPostData = async <T>(url: string, data?: unknown): Promise<T> => {
-  const envelope = await apiPost<ApiEnvelope<T>>(url, data);
-  return envelope.data;
+  return await apiPost<T>(url, data);
 };
 
 export const apiPatchData = async <T>(url: string, data?: unknown): Promise<T> => {
-  const envelope = await apiPatch<ApiEnvelope<T>>(url, data);
-  return envelope.data;
+  return await apiPatch<T>(url, data);
 };
 
 export default apiClient;

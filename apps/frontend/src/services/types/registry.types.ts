@@ -12,6 +12,7 @@ export interface Persona {
   nombreCompleto: string;
   correoInstitucional?: string;
   telefonoContacto?: string;
+  rolInstitucional?: string;
   estadoRegistro: 'ACTIVO' | 'INACTIVO';
   estadoBiometrico: 'PENDIENTE' | 'COMPLETO';
   createdAt: string;
@@ -36,4 +37,5 @@ export interface CrearPersonaDto {
   apellidos: string;
   correoInstitucional?: string;
   telefonoContacto?: string;
+  rolInstitucional?: string;
 }

@@ -30,12 +30,7 @@ interface AuthResponse {
   vehicle_registered?: boolean;
 }
 
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-  timestamp: string;
-  path: string;
-}
+
 
 const authenticate = async (email: string, password: string): Promise<AuthResponse> => {
   const response = await apiPost<AuthResponse>('/auth/login', { email, password });

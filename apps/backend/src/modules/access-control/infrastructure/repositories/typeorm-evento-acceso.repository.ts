@@ -13,6 +13,11 @@ export class TypeOrmEventoAccesoRepository implements IEventoAccesoRepository {
     private readonly repo: Repository<EventoAccesoOrmEntity>,
   ) {}
 
+  async guardar(evento: EventoAcceso): Promise<void> {
+    const ormEntity = EventoAccesoMapper.toOrm(evento);
+    await this.repo.save(ormEntity);
+  }
+
   async buscarRecientes(limite = 7): Promise<EventoAcceso[]> {
     const orms = await this.repo.find({
       order: { timestampEvento: 'DESC' },

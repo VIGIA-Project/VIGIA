@@ -9,6 +9,7 @@ import { AuthorizationModule } from '@modules/authorization/presentation/authori
 import { RegistryModule } from '@modules/registry/presentation/registry.module';
 import { BiometricModule } from '@modules/biometric/presentation/biometric.module';
 import { AlertingModule } from '@modules/alerting/presentation/alerting.module';
+import { NotificationModule } from '@modules/notification/presentation/notification.module';
 import { AuthModule } from '@core/auth/auth.module';
 import appConfig from '@core/config/app.config';
 import databaseConfig from '@core/config/database.config';
@@ -45,6 +46,7 @@ import { envValidationSchema } from '@core/config/env.validation';
     RegistryModule,
     BiometricModule,
     AlertingModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}

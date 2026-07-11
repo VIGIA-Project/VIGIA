@@ -83,8 +83,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp,
       path,
       method,
-      message: 'Error interno del servidor',
+      message: exception instanceof Error ? exception.message : 'Error interno del servidor',
       code: 'INTERNAL_SERVER_ERROR',
+      errors: exception instanceof Error ? exception.stack : String(exception),
     };
   }
 

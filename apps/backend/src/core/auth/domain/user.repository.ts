@@ -29,6 +29,7 @@ export interface IUserRepository {
             biometricRegistered: boolean;
             vehicleRegistered: boolean;
             updatedBy: string;
+            lastLoginAt: Date;
         }>,
     ): Promise<User>;
 }

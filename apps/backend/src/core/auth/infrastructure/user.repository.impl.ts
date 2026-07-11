@@ -82,6 +82,7 @@ export class UserRepositoryImpl implements IUserRepository {
             biometricRegistered: boolean;
             vehicleRegistered: boolean;
             updatedBy: string;
+            lastLoginAt: Date;
         }>,
     ): Promise<User> {
         const updateData: any = {};
@@ -91,6 +92,7 @@ export class UserRepositoryImpl implements IUserRepository {
         if (data.biometricRegistered !== undefined) updateData.biometricRegistered = data.biometricRegistered;
         if (data.vehicleRegistered !== undefined) updateData.vehicleRegistered = data.vehicleRegistered;
         if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
+        if (data.lastLoginAt !== undefined) updateData.lastLoginAt = data.lastLoginAt;
 
         await this.repo
             .createQueryBuilder()
@@ -115,6 +117,7 @@ export class UserRepositoryImpl implements IUserRepository {
             personaId: orm.personaId ?? undefined,
             biometricRegistered: orm.biometricRegistered,
             vehicleRegistered: orm.vehicleRegistered,
+            lastLoginAt: orm.lastLoginAt,
             createdAt: orm.createdAt,
             updatedAt: orm.updatedAt,
         });

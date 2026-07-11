@@ -21,6 +21,7 @@ export class User {
         public readonly personaId: string | undefined,
         public readonly biometricRegistered: boolean,
         public readonly vehicleRegistered: boolean,
+        public readonly lastLoginAt: Date | null,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
     ) {}
@@ -35,6 +36,7 @@ export class User {
         personaId?: string;
         biometricRegistered?: boolean;
         vehicleRegistered?: boolean;
+        lastLoginAt?: Date | null;
         createdAt?: Date;
         updatedAt?: Date;
     }): User {
@@ -51,6 +53,7 @@ export class User {
             props.personaId,
             props.biometricRegistered ?? false,
             props.vehicleRegistered ?? false,
+            props.lastLoginAt ?? null,
             props.createdAt ?? new Date(),
             props.updatedAt ?? new Date(),
         );

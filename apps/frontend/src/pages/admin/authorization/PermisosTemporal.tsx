@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid2";
@@ -12,6 +13,7 @@ import { authorizationService, PermisoTemporal } from "../../../services/authori
 import { registryService, Persona, Vehiculo } from "../../../services/registry.service";
 
 export default function PermisosTemporal() {
+  const navigate = useNavigate();
   const [permisosBackend, setPermisosBackend] = useState<PermisoTemporal[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
@@ -46,6 +48,7 @@ export default function PermisosTemporal() {
     const vehiculo = getVehiculo(p.vehiculoId);
     return {
       id: p.id,
+      personaId: p.personaId,
       persona: persona ? `${persona.nombres} ${persona.apellidos}` : p.personaId,
       cedula: persona?.identificacionNumero || "",
       relacion: "Permiso Temporal",
@@ -131,9 +134,6 @@ export default function PermisosTemporal() {
         }}
         onRevoke={(id) => {
           console.log("Admin revocar permiso", id);
-        }}
-        onCreateClick={() => {
-          console.log("Admin crear permiso (no disponible)");
         }}
       />
     </Box>

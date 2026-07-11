@@ -5,11 +5,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
-import { loadPersonas } from "../../../config/propietario-personas.config";
 
 export default function RegistroUsuario() {
   const navigate = useNavigate();
-  const personas = loadPersonas();
+  const personas: any[] = [];
   const [nombre, setNombre] = useState("");
   const [identificacion, setIdentificacion] = useState("");
   const [correo, setCorreo] = useState("");
@@ -72,7 +71,7 @@ export default function RegistroUsuario() {
           helperText="(Opcional) vincula la cuenta a una persona existente"
         >
           <MenuItem value="">Ninguna</MenuItem>
-          {personas.map((p) => (
+          {personas.map((p: any) => (
             <MenuItem key={p.id} value={p.id}>
               {p.nombre} · {p.cedula}
             </MenuItem>

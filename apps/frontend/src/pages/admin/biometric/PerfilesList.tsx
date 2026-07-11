@@ -15,6 +15,7 @@ import PageHeader from '../../../components/admin-legacy/PageHeader';
 import DataTable, { type Column } from '../../../components/admin-legacy/DataTable';
 import StatusChip from '../../../components/admin-legacy/StatusChip';
 import { registryService } from '../../../services/registry.service';
+import { biometricService } from '../../../services/biometric.service';
 
 interface Perfil {
   id: string;
@@ -39,7 +40,7 @@ const columns: Column<Perfil>[] = [
       </Box>
     ),
   },
-  { id: 'estado', label: 'Disponibilidad', render: (row) => <StatusChip kind="disponibilidad" value={row.estado} /> },
+  { id: 'estado', label: 'Estado de Registro', render: (row) => <StatusChip kind="disponibilidad" value={row.estado} /> },
   { id: 'representaciones', label: 'Representaciones', render: (row) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.representaciones} activas</Typography> },
   { id: 'ultimaActualizacion', label: 'Última Actualización', render: (row) => <Typography variant="caption" color="text.secondary">{row.ultimaActualizacion}</Typography> },
 ];
@@ -53,16 +54,23 @@ export default function PerfilesList() {
     const fetchPerfiles = async () => {
       try {
         setLoading(true);
-        const personas = await registryService.getPersonas();
-        // Since backend biometric module doesn't exist yet, we map all personas as PENDIENTE
-        setRows(personas.map(p => ({
-          id: p.personaId,
-          persona: `${p.nombres} ${p.apellidos}`,
-          identificacion: p.identificacionNumero || 'N/A',
-          estado: 'PENDIENTE',
-          ultimaActualizacion: 'Nunca',
-          representaciones: 0,
-        })));
+        const [personas, perfiles] = await Promise.all([
+          registryService.getPersonas(),
+          biometricService.obtenerTodos(),
+        ]);
+        
+        const mappedRows = perfiles.map((p: any) => {
+          const persona = personas.find(pers => pers.personaId === p.personaId);
+          return {
+            id: p.id,
+            persona: persona ? `${persona.nombres} ${persona.apellidos}` : 'Usuario Desconocido',
+            identificacion: persona?.identificacionNumero || 'N/A',
+            estado: p.estado === 'ACTIVO' ? 'DISPONIBLE' : 'NO_DISPONIBLE',
+            ultimaActualizacion: 'Reciente',
+            representaciones: 1,
+          };
+        });
+        setRows(mappedRows as Perfil[]);
       } catch (err) {
         console.error("Error fetching personas for perfiles", err);
       } finally {

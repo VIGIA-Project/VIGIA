@@ -190,7 +190,7 @@ export default function PersonaDetail() {
                   sx={{ fontWeight: 600 }}
                 />
                 <Chip
-                  label={persona.rolInstitucional || "Sin rol institucional"}
+                  label={"Sin rol institucional"}
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -236,7 +236,7 @@ export default function PersonaDetail() {
                 ["Apellidos", persona.apellidos],
                 ["Correo institucional", persona.correoInstitucional || "---"],
                 ["Teléfono", persona.telefonoContacto || "---"],
-                ["Rol Institucional", persona.rolInstitucional || "---"],
+                ["Rol Institucional", "---"],
                 ["Fecha de registro", new Date(persona.createdAt).toLocaleDateString()],
               ].map(([label, value]) => (
                 <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}>
@@ -307,7 +307,7 @@ export default function PersonaDetail() {
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {persona.rolInstitucional || "Rol no asignado"}
+                          {"Rol no asignado"}
                         </Typography>
                         <Chip
                           label="Vigente"
@@ -343,8 +343,8 @@ export default function PersonaDetail() {
                 >
                   Estado de perfil biométrico
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 500, color: persona.estadoBiometrico === 'ACTIVO' ? 'success.main' : 'warning.main' }}>
-                  {persona.estadoBiometrico === 'ACTIVO' ? 'ACTIVO (Registrado)' : 'PENDIENTE (Sin registro)'}
+                <Typography variant="body2" sx={{ fontWeight: 500, color: persona.estadoBiometrico === 'COMPLETO' ? 'success.main' : 'warning.main' }}>
+                  {persona.estadoBiometrico === 'COMPLETO' ? 'COMPLETO (Registrado)' : 'PENDIENTE (Sin registro)'}
                 </Typography>
               </Grid>
             </Grid>

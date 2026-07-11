@@ -16,6 +16,13 @@ import LockResetIcon from "@mui/icons-material/LockReset";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
 import DataTable, { type Column } from "../../../components/admin-legacy/DataTable";
 import StatusChip from "../../../components/admin-legacy/StatusChip";
@@ -151,6 +158,11 @@ export default function PersonasList() {
   const [rows, setRows] = useState<UnifiedRow[]>([]);
   const [accessFilter, setAccessFilter] = useState("Todos");
   const [roleFilter, setRoleFilter] = useState("Todos");
+  const [tempPassword, setTempPassword] = useState<{
+    open: boolean;
+    password?: string;
+    message: string;
+  }>({ open: false, message: "" });
   const [confirm, setConfirm] = useState<{
     open: boolean;
     title: string;
@@ -325,11 +337,21 @@ export default function PersonasList() {
                   setConfirm({
                     open: true,
                     title: "Resetear contraseña",
-                    message: `Se enviará una nueva contraseña temporal a ${row.correo}.`,
+                    message: `Se generará una nueva contraseña temporal para ${row.correo} y se mostrará en pantalla. El usuario cambiará a estado "Pendiente de Contraseña". ¿Deseas continuar?`,
                     action: async () => {
-                      await authService.resetPassword(row.userId!);
-                      setConfirm((s) => ({ ...s, open: false }));
-                      loadData();
+                      try {
+                        const response = await authService.resetPassword(row.userId!);
+                        setTempPassword({
+                          open: true,
+                          password: response.temporaryPassword,
+                          message: "La contraseña ha sido reseteada con éxito. Por favor entrega esta contraseña temporal al usuario.",
+                        });
+                        setConfirm((s) => ({ ...s, open: false }));
+                        loadData();
+                      } catch (error) {
+                        console.error(error);
+                        alert("Error al resetear la contraseña");
+                      }
                     },
                   }),
                 color: "warning",
@@ -393,6 +415,44 @@ export default function PersonasList() {
           loadData();
         }}
       />
+
+      <Dialog open={tempPassword.open} onClose={() => setTempPassword({ open: false, message: "" })} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LockResetIcon color="primary" />
+          Contraseña Reseteada
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>{tempPassword.message}</Typography>
+          {tempPassword.password && (
+            <Box sx={{ 
+              p: 2, 
+              bgcolor: 'background.default', 
+              borderRadius: 2, 
+              border: '1px dashed',
+              borderColor: 'divider',
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontFamily: 'monospace',
+              fontSize: '1.2rem',
+              fontWeight: 700,
+              letterSpacing: 2
+            }}>
+              {tempPassword.password}
+              <Tooltip title="Copiar al portapapeles">
+                <IconButton onClick={() => navigator.clipboard.writeText(tempPassword.password!)} size="small" color="primary">
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTempPassword({ open: false, message: "" })} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -50,41 +50,6 @@ interface NavSection {
 
 const topLevelItem = { label: 'Inicio', icon: <DashboardIcon />, path: '/admin' };
 
-const navSections: NavSection[] = [
-  {
-    label: 'REGISTRY',
-    items: [
-      { label: 'Personas', path: '/admin/registry/personas', icon: <GroupIcon /> },
-      { label: 'Vehículos', path: '/admin/registry/vehiculos', icon: <DirectionsCarIcon /> },
-    ]
-  },
-  {
-    label: 'AUTHORIZATION',
-    items: [
-      { label: 'Autorizaciones', path: '/admin/authorization/permanentes', icon: <VerifiedUserIcon /> },
-      { label: 'Permisos Temporales', path: '/admin/authorization/temporales', icon: <KeyIcon /> },
-      { label: 'Vista por Vehículo', path: '/admin/authorization/por-vehiculo', icon: <SecurityIcon /> },
-    ]
-  },
-  {
-    label: 'BIOMETRIC',
-    items: [
-      { label: 'Perfiles Biométricos', path: '/admin/biometric/perfiles', icon: <FaceRetouchingNaturalIcon /> },
-    ]
-  },
-  {
-    label: 'ALERTING',
-    items: [
-      { label: 'Alertas', path: '/admin/alerting/alertas', icon: <WarningAmberIcon />, badge: 3 },
-    ]
-  },
-  {
-    label: 'AUDITORÍA',
-    items: [
-      { label: 'Historial de Eventos', path: '/admin/auditoria/eventos', icon: <HistoryIcon /> },
-    ]
-  },
-];
 
 const getNotificationColor = (type: string) => {
   if (type === 'error') return '#C0524A';
@@ -100,6 +65,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const { logout } = useAuth();
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
+
+  const navSections: NavSection[] = [
+    {
+      label: 'REGISTRY',
+      items: [
+        { label: 'Personas', path: '/admin/registry/personas', icon: <GroupIcon /> },
+        { label: 'Vehículos', path: '/admin/registry/vehiculos', icon: <DirectionsCarIcon /> },
+      ]
+    },
+    {
+      label: 'AUTHORIZATION',
+      items: [
+        { label: 'Autorizaciones', path: '/admin/authorization/permanentes', icon: <VerifiedUserIcon /> },
+        { label: 'Permisos Temporales', path: '/admin/authorization/temporales', icon: <KeyIcon /> },
+        { label: 'Vista por Vehículo', path: '/admin/authorization/por-vehiculo', icon: <SecurityIcon /> },
+      ]
+    },
+    {
+      label: 'BIOMETRIC',
+      items: [
+        { label: 'Perfiles Biométricos', path: '/admin/biometric/perfiles', icon: <FaceRetouchingNaturalIcon /> },
+      ]
+    },
+    {
+      label: 'ALERTING',
+      items: [
+        { label: 'Alertas', path: '/admin/alerting/alertas', icon: <WarningAmberIcon />, badge: recentNotifications.length > 0 ? recentNotifications.length : undefined },
+      ]
+    },
+    {
+      label: 'AUDITORÍA',
+      items: [
+        { label: 'Historial de Eventos', path: '/admin/auditoria/eventos', icon: <HistoryIcon /> },
+      ]
+    },
+  ];
 
   useEffect(() => {
     const fetchAlerts = async () => {

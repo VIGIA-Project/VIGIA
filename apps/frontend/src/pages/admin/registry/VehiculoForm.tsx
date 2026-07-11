@@ -53,7 +53,7 @@ export default function VehiculoForm() {
   }, [isEdit, id]);
 
   const handleChange = (field: keyof Vehiculo, value: any) =>
-    setForm((f) => ({ ...f, [field]: value }));
+    setForm((f: Partial<Vehiculo>) => ({ ...f, [field]: value }));
 
   const handleSubmit = async () => {
     if (!ownerId && !isEdit) {

@@ -79,15 +79,23 @@ export const useMarcarEnrollmentCompleto = () => {
 /**
  * Vehículo principal del propietario autenticado — hoy el dashboard opera
  * sobre un único vehículo (el sembrado por el seed de desarrollo).
+ *
+ * `perfilIncompleto` distingue el caso en que el usuario aún no tiene
+ * `personaId` vinculado (JWT sin Persona asociada en Registry) del caso de
+ * "no tiene vehículos" — ambos lucían igual antes de este fix y mostraban
+ * el mensaje engañoso "Necesitas registrar un vehículo" incluso cuando el
+ * vehículo sí existía pero no podía resolverse por falta de personaId.
  */
 export const usePropietarioVehiculo = () => {
   const { user } = useAuth();
+  const perfilIncompleto = !user?.personaId;
   const query = useVehiculosDelPropietario(user?.personaId);
   return {
     vehiculo: query.data?.[0],
-    isLoading: query.isLoading,
+    isLoading: !perfilIncompleto && query.isLoading,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
+    perfilIncompleto,
   };
 };

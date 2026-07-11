@@ -11,7 +11,7 @@ import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PasesGrid } from '../../components/organisms/propietario/PasesGrid';
 import { GenerarPaseDrawer, GenerarPaseData } from '../../components/organisms/propietario/GenerarPaseDrawer';
 import { RevokePaseModal } from '../../components/organisms/propietario/RevokePaseModal';
-import { ErrorState, LoadingSkeleton } from '../../components/atoms';
+import { ErrorState, LoadingSkeleton, PerfilIncompletoState } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
 import { PaseRapido, mapPaseAViewModel } from '../../config/propietario-pases.config';
@@ -26,7 +26,7 @@ const PasesRapidosPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo, perfilIncompleto } = usePropietarioVehiculo();
   const pasesQuery = useMisPases();
   const generarPaseMutation = useGenerarPase();
   const revocarPaseMutation = useRevocarPase();
@@ -108,6 +108,14 @@ const PasesRapidosPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
         <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (perfilIncompleto) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <PerfilIncompletoState />
       </DashboardTemplate>
     );
   }

@@ -7,7 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PersonasGrid, AddPersonaDrawer, RevokePersonaModal } from '../../components/organisms/propietario';
-import { ErrorState, LoadingSkeleton } from '../../components/atoms';
+import { ErrorState, LoadingSkeleton, PerfilIncompletoState } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 import { usePropietarioVehiculo, useCrearPersona, usePersonasDelPropietario as usePersonasResolver } from '../../hooks/useRegistry';
@@ -28,7 +28,7 @@ const PersonasAutorizadasPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo, perfilIncompleto } = usePropietarioVehiculo();
   const tieneVehiculos = !!vehiculo;
 
   const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
@@ -125,6 +125,14 @@ const PersonasAutorizadasPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
         <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (perfilIncompleto) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+        <PerfilIncompletoState />
       </DashboardTemplate>
     );
   }

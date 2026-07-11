@@ -12,6 +12,7 @@ export interface IRegistryPort {
     findVehiculoByPlaca(placa: string): Promise<VehiculoResponseDto | null>;
     findVehiculoById(vehiculoId: string): Promise<VehiculoResponseDto | null>;
     findPersonaById(personaId: string): Promise<PersonaResponseDto | null>;
+    findPersonaByCorreo(correoInstitucional: string): Promise<PersonaResponseDto | null>;
     findPropietarioByVehiculo(vehiculoId: string): Promise<PersonaResponseDto | null>;
     findPersonasAutorizadasByVehiculo(vehiculoId: string): Promise<AsignacionRolResponseDto[]>;
     findGrupoFamiliarByVehiculo(vehiculoId: string): Promise<AsignacionRolResponseDto[]>;

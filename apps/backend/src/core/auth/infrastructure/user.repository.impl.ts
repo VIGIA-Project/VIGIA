@@ -81,6 +81,7 @@ export class UserRepositoryImpl implements IUserRepository {
             mustChangePassword: boolean;
             biometricRegistered: boolean;
             vehicleRegistered: boolean;
+            personaId: string;
             updatedBy: string;
         }>,
     ): Promise<User> {
@@ -90,6 +91,7 @@ export class UserRepositoryImpl implements IUserRepository {
         if (data.mustChangePassword !== undefined) updateData.mustChangePassword = data.mustChangePassword;
         if (data.biometricRegistered !== undefined) updateData.biometricRegistered = data.biometricRegistered;
         if (data.vehicleRegistered !== undefined) updateData.vehicleRegistered = data.vehicleRegistered;
+        if (data.personaId !== undefined) updateData.personaId = data.personaId;
         if (data.updatedBy !== undefined) updateData.updatedBy = data.updatedBy;
 
         await this.repo

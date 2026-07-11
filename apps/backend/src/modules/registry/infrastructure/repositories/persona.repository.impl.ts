@@ -64,6 +64,19 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
         return orms.map((orm) => this.toDomain(orm));
     }
 
+    async contarTotal(): Promise<number> {
+        return this.repo.count();
+    }
+
+    async findSinPerfilBiometrico(): Promise<Persona[]> {
+        const orms = await this.repo
+            .createQueryBuilder('p')
+            .leftJoin('biometric.perfiles_biometricos', 'pb', 'pb.persona_id = p.persona_id')
+            .where('pb.perfil_biometrico_id IS NULL')
+            .getMany();
+        return orms.map((orm) => this.toDomain(orm));
+    }
+
     async update(
         personaId: string,
         data: Partial<{

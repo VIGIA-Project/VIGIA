@@ -35,6 +35,12 @@ export class VehiculoController {
         return this.vehiculoUseCases.listar();
     }
 
+    @Get('count')
+    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    async contar() {
+        return this.vehiculoUseCases.contar();
+    }
+
     @Get('placa/:placa')
     @Roles(UserRole.ADMIN, UserRole.GUARD)
     async buscarPorPlaca(@Param('placa') placa: string) {

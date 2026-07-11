@@ -59,6 +59,16 @@ export class PersonaUseCases {
         return personas.map((p) => this.toResponse(p));
     }
 
+    async contar(): Promise<{ count: number }> {
+        const count = await this.personaRepo.contarTotal();
+        return { count };
+    }
+
+    async listarSinBiometria(): Promise<PersonaResponseDto[]> {
+        const personas = await this.personaRepo.findSinPerfilBiometrico();
+        return personas.map((p) => this.toResponse(p));
+    }
+
     async actualizar(
         personaId: string,
         dto: ActualizarPersonaDto,

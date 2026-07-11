@@ -119,7 +119,7 @@ const VehicleOnboardingPage: React.FC = () => {
             {VEHICLE_MAIN_COPY.description}
           </Typography>
 
-          <VehicleRegistrationForm onComplete={handleComplete} onFieldsProgress={setValidFieldsCount} />
+          <VehicleRegistrationForm personaId={user?.personaId || ''} onComplete={handleComplete} onFieldsProgress={setValidFieldsCount} />
         </Box>
       </Box>
     </Box>

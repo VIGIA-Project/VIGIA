@@ -18,34 +18,10 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../context';
-import { usePropietarioVehiculo } from '../../hooks/useRegistry';
-import { usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
+import { usePropietarioVehiculo, useVehiculosDelPropietario, usePersonasDelPropietario } from '../../hooks/useRegistry';
+import { usePermisosVigentesPorVehiculo, useMisPases, useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
 
-// === MOCK DATA ===
-// TODO: Replace with real data when Alerting BC is implemented
-const MOCK_KPI_ALERTAS = { value: 2, label: 'Alertas Pendientes', indicator: '🔴 1 alta prioridad', indicatorColor: '#C62828', accentColor: '#C62828', route: '/propietario/alertas' };
-// TODO: Replace with real data when Biometric BC is implemented
-const MOCK_KPI_BIOMETRIA = { value: 1, label: 'Biom. Pendiente', indicator: '🔶 1 persona sin biometría', indicatorColor: '#F59E0B', accentColor: '#F59E0B', route: '/propietario/personas' };
-
-// TODO: Replace with real data when Access Control BC is implemented
-const MOCK_ACTIVIDAD = [
-  { icon: <CheckCircleIcon sx={{ color: '#2E7D32' }} />, title: 'Acceso autorizado · PBW-1234 · Acceso Norte', subtitle: 'Validación biométrica exitosa', timestamp: 'hace 2h', severity: 'success' as const },
-  { icon: <WarningAmberIcon sx={{ color: '#EDB200' }} />, title: 'Permiso próximo a expirar · PBB-3456', subtitle: 'Permiso de Jorge Mendoza vence en 4 horas', timestamp: 'hace 3h', severity: 'warning' as const },
-  { icon: <ErrorIcon sx={{ color: '#C62828' }} />, title: 'Intento de acceso no autorizado · Acceso Sur', subtitle: 'Persona no registrada intentó ingresar con PBW-1234', timestamp: 'hace 5h', severity: 'error' as const },
-  { icon: <InfoIcon sx={{ color: '#0D5CCF' }} />, title: 'Pase consumido · VIG-A7K3M2 · Jorge Mendoza', subtitle: 'Ingreso exitoso por Acceso Norte', timestamp: 'ayer', severity: 'info' as const },
-];
-
-const MOCK_VEHICULOS = [
-  { placa: 'PBW-1234', marca: 'Chevrolet', modelo: 'Sail', estado: 'ACTIVO' as const, permisosActivos: 2 },
-  { placa: 'PBA-5678', marca: 'Kia', modelo: 'Rio', estado: 'ACTIVO' as const, permisosActivos: 0 },
-  { placa: 'PBB-3456', marca: 'Hyundai', modelo: 'Accent', estado: 'ACTIVO' as const, permisosActivos: 1 },
-];
-
-const MOCK_FAMILIA = [
-  { nombre: 'Stalin Coello', parentesco: 'Hermano', enrollmentCompletado: false },
-  { nombre: 'María Elena Arévalo', parentesco: 'Madre', enrollmentCompletado: true },
-  { nombre: 'Carlos Coello', parentesco: 'Padre', enrollmentCompletado: false },
-];
+// Se removieron los MOCK DATA porque el usuario solicitó que todo venga desde los endpoints
 
 const InicioPage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,9 +35,33 @@ const InicioPage: React.FC = () => {
   const { vehiculo } = usePropietarioVehiculo();
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const pasesQuery = useMisPases();
+  
+  // Real data for UI
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+  const vehiculosData = (vehiculosQuery.data ?? []).map((v: any) => ({
+    placa: v.placa,
+    marca: v.marca,
+    modelo: v.modelo,
+    estado: 'ACTIVO' as const,
+    permisosActivos: (permisosQuery.data ?? []).length, // simplified
+  }));
+  
+  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const autorizaciones = autorizacionesQuery.data ?? [];
+  const personaIds = React.useMemo(() => autorizaciones.map((a: any) => a.personaId), [autorizaciones]);
+  const { personasById } = usePersonasDelPropietario(personaIds);
+  
+  const familiaData = autorizaciones.map((a: any) => {
+    const p = personasById.get(a.personaId);
+    return {
+      nombre: p?.nombreCompleto || `${p?.nombres} ${p?.apellidos}` || 'Cargando...',
+      parentesco: a.relacion,
+      enrollmentCompletado: p?.estadoBiometrico === 'COMPLETO'
+    };
+  });
 
-  const permisosActivos = (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length;
-  const pasesActivos = (pasesQuery.data ?? []).filter((p) => p.estado === 'ACTIVO').length;
+  const permisosActivos = (permisosQuery.data ?? []).filter((p: any) => p.estado === 'ACTIVA' || p.estado === 'PROGRAMADO' || p.estado === 'EN_CURSO').length;
+  const pasesActivos = (pasesQuery.data ?? []).filter((p: any) => p.estado === 'ACTIVO').length;
 
   const kpis = [
     {
@@ -88,8 +88,6 @@ const InicioPage: React.FC = () => {
       accentColor: '#F2B51F',
       route: '/propietario/pases-rapidos',
     },
-    MOCK_KPI_ALERTAS,
-    MOCK_KPI_BIOMETRIA,
   ];
 
   return (
@@ -166,9 +164,9 @@ const InicioPage: React.FC = () => {
           />
           <motion.div variants={staggerContainer} initial="hidden" animate="visible">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {MOCK_ACTIVIDAD.map((item, i) => (
-                <ActivityTimelineItem key={i} {...item} />
-              ))}
+              <Typography sx={{ p: 2, fontSize: '0.9rem', color: vigiaColors.textSecondary, textAlign: 'center', bgcolor: '#fff', borderRadius: 2, border: '1px dashed #e0e0e0' }}>
+                No hay actividad reciente registrada
+              </Typography>
             </Box>
           </motion.div>
         </Box>
@@ -197,9 +195,14 @@ const InicioPage: React.FC = () => {
                   }
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {MOCK_VEHICULOS.map((v) => (
+                  {vehiculosData.slice(0, 3).map((v: any) => (
                     <MiniVehicleItem key={v.placa} {...v} onClick={() => navigate(`/propietario/vehiculos/${v.placa}`)} />
                   ))}
+                  {vehiculosData.length === 0 && (
+                    <Typography sx={{ p: 2, fontSize: '0.8rem', color: vigiaColors.textSecondary, textAlign: 'center' }}>
+                      No tienes vehículos registrados
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -221,9 +224,14 @@ const InicioPage: React.FC = () => {
                   }
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {MOCK_FAMILIA.map((f) => (
-                    <MiniFamilyCard key={f.nombre} {...f} onClick={() => navigate('/propietario/personas')} />
+                  {familiaData.slice(0, 3).map((f: any, i: number) => (
+                    <MiniFamilyCard key={i} {...f} onClick={() => navigate('/propietario/personas')} />
                   ))}
+                  {familiaData.length === 0 && (
+                    <Typography sx={{ p: 2, fontSize: '0.8rem', color: vigiaColors.textSecondary, textAlign: 'center' }}>
+                      No tienes personas autorizadas
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>

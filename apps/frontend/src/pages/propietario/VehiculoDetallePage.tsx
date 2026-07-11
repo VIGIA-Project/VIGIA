@@ -15,7 +15,9 @@ import {
   RegisterVehicleDrawer,
 } from '../../components/organisms/propietario';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
-import { buildInitialVehiculos, PropietarioVehiculo, REGISTER_VEHICLE_DRAWER_COPY } from '../../config/propietario-vehiculos.config';
+import { PropietarioVehiculo, REGISTER_VEHICLE_DRAWER_COPY } from '../../config/propietario-vehiculos.config';
+import { useAuth } from '../../context';
+import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
 import { VEHICULO_DETALLE_TABS, VEHICULO_DETALLE_COPY, ESTADO_VEHICULO_STYLES, TabKey } from '../../config/propietario-vehiculo-detalle.config';
 
 const VehiculoDetallePage: React.FC = () => {
@@ -26,12 +28,28 @@ const VehiculoDetallePage: React.FC = () => {
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [editToast, setEditToast] = useState(false);
 
-  const [vehiculo, setVehiculo] = useState<PropietarioVehiculo | undefined>(() =>
-    buildInitialVehiculos().find((v) => v.placa === placa)
-  );
+  const { user } = useAuth();
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+  const vehiculosData = vehiculosQuery.data ?? [];
+  const rawVehiculo = vehiculosData.find((v: any) => v.placa === placa);
 
-  const handleUpdated = (actualizado: PropietarioVehiculo) => {
-    setVehiculo(actualizado);
+  const vehiculo: PropietarioVehiculo | undefined = rawVehiculo ? {
+    id: rawVehiculo.vehiculoId,
+    placa: rawVehiculo.placa,
+    marca: rawVehiculo.marca,
+    modelo: rawVehiculo.modelo,
+    anio: rawVehiculo.anio,
+    color: rawVehiculo.color,
+    tipo: rawVehiculo.tipoVehiculo || 'Sedán',
+    estado: 'ACTIVO' as const,
+    permisosActivos: 0,
+    alertas: 0,
+    personasAsignadas: 0,
+    personasSinBiometria: 0,
+  } : undefined;
+
+  const handleUpdated = () => {
+    vehiculosQuery.refetch();
     setEditDrawerOpen(false);
     setEditToast(true);
   };

@@ -6,6 +6,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { useQuery } from '@tanstack/react-query';
+import { accessControlService } from '../../services/access-control.service';
 import { staggerContainer, fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows, vigiaSpacing } from '../../theme/vigia-theme';
 
@@ -31,16 +33,7 @@ const RESULTADO_BADGE: Record<ResultadoEvento, { label: string; bg: string; colo
   PERMISO_EXPIRADO: { label: 'Permiso expirado', bg: '#F1F5F9', color: '#64748B' },
 };
 
-const MOCK_EVENTOS: HistorialEvento[] = [
-  { id: 'hi-1', fecha: '2026-07-09', hora: '08:05', placa: 'ABC-1234', resultado: 'ENTRADA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Andrea Torres', grupo: 'hoy' },
-  { id: 'hi-2', fecha: '2026-07-09', hora: '07:42', placa: 'XYZ-5678', resultado: 'REVISION_MANUAL', puntoAcceso: 'Garita Sur', persona: 'Luis Pérez', grupo: 'hoy' },
-  { id: 'hi-3', fecha: '2026-07-08', hora: '18:10', placa: 'ABC-1234', resultado: 'SALIDA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Propietario', grupo: 'ayer' },
-  { id: 'hi-4', fecha: '2026-07-08', hora: '11:30', placa: 'XYZ-5678', resultado: 'PASE_CONSUMIDO', puntoAcceso: 'Garita Norte', persona: 'Laura Vega', grupo: 'ayer' },
-  { id: 'hi-5', fecha: '2026-07-07', hora: '22:00', placa: 'ABC-1234', resultado: 'DENEGADO', puntoAcceso: 'Garita Sur', persona: 'Desconocido', grupo: 'anterior' },
-  { id: 'hi-6', fecha: '2026-07-06', hora: '09:15', placa: 'XYZ-5678', resultado: 'PERMISO_EXPIRADO', puntoAcceso: 'Garita Norte', persona: 'Juan Paredes', grupo: 'anterior' },
-  { id: 'hi-7', fecha: '2026-07-05', hora: '14:20', placa: 'ABC-1234', resultado: 'ENTRADA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Carlos Ruiz', grupo: 'anterior' },
-  { id: 'hi-8', fecha: '2026-07-04', hora: '17:05', placa: 'XYZ-5678', resultado: 'SALIDA_PERMITIDA', puntoAcceso: 'Garita Sur', persona: 'Propietario', grupo: 'anterior' },
-];
+// MOCK_EVENTOS eliminado
 
 const VEHICULO_OPTIONS = ['Todos', 'ABC-1234', 'XYZ-5678'];
 const RESULTADO_OPTIONS: { key: 'TODOS' | ResultadoEvento; label: string }[] = [
@@ -67,15 +60,36 @@ const HistorialPage: React.FC = () => {
   const [resultado, setResultado] = useState<'TODOS' | ResultadoEvento>('TODOS');
   const [busqueda, setBusqueda] = useState('');
 
+  const { data: rawEventos = [] } = useQuery({
+    queryKey: ['historial', 'recientes'],
+    queryFn: () => accessControlService.obtenerEventosRecientes(50)
+  });
+
+  const eventosMapped: HistorialEvento[] = useMemo(() => {
+    return rawEventos.map((e: any) => {
+      const fechaObj = new Date(e.fechaCreacion || e.fecha || new Date());
+      return {
+        id: e.id || e.evento_id || Math.random().toString(),
+        fecha: fechaObj.toISOString().split('T')[0],
+        hora: fechaObj.toLocaleTimeString().slice(0, 5),
+        placa: e.placa || e.vehiculo_placa || 'N/A',
+        resultado: (e.tipoEvento === 'ACCESO_DENEGADO' || e.resultado === 'DENEGADO') ? 'DENEGADO' : 'ENTRADA_PERMITIDA',
+        puntoAcceso: e.puntoAcceso || e.garita || 'Garita Principal',
+        persona: e.persona || 'Desconocido',
+        grupo: 'hoy' as const
+      };
+    });
+  }, [rawEventos]);
+
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
-    return MOCK_EVENTOS.filter((e) => {
+    return eventosMapped.filter((e) => {
       const matchVehiculo = vehiculo === 'Todos' || e.placa === vehiculo;
       const matchResultado = resultado === 'TODOS' || e.resultado === resultado;
       const matchBusqueda = !term || e.persona.toLowerCase().includes(term) || e.placa.toLowerCase().includes(term) || e.puntoAcceso.toLowerCase().includes(term);
       return matchVehiculo && matchResultado && matchBusqueda;
     });
-  }, [vehiculo, resultado, busqueda]);
+  }, [eventosMapped, vehiculo, resultado, busqueda]);
 
   const grupos: HistorialEvento['grupo'][] = ['hoy', 'ayer', 'anterior'];
 

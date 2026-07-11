@@ -15,11 +15,12 @@ import {
   VEHICLE_SUCCESS_COPY,
   VEHICLE_STORAGE_KEY,
 } from '../../../config/onboarding.config';
+import { registryService } from '../../../services/registry.service';
 
 const PLACA_REGEX = /^[A-Z]{3}-\d{4}$/;
 const ANIO_MIN = 1990;
 const ANIO_MAX = 2027;
-const SUBMIT_DELAY_MS = 1500;
+
 // Verde de estado "completado" — consistente con OnboardingProgressPanel y BiometricCapture
 const SUCCESS_GREEN = '#22C55E';
 
@@ -37,12 +38,13 @@ const vehicleSchema = z.object({
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
 
 export interface VehicleRegistrationFormProps {
+  personaId: string;
   onComplete: () => void;
   /** Cuántos de los 5 campos son válidos en este momento — para la barra "Tu progreso" */
   onFieldsProgress?: (validCount: number) => void;
 }
 
-export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = ({ onComplete, onFieldsProgress }) => {
+export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = ({ personaId, onComplete, onFieldsProgress }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<VehicleFormValues | null>(null);
 
@@ -80,13 +82,27 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validCount]);
 
-  const onSubmit = (data: VehicleFormValues) => {
+  const onSubmit = async (data: VehicleFormValues) => {
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      if (personaId) {
+        await registryService.createVehiculo({
+          propietarioPersonaId: personaId,
+          placa: data.placa,
+          marca: data.marca,
+          modelo: data.modelo,
+          color: data.color,
+          anio: Number(data.anio),
+        });
+      }
       localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(data));
-      setIsSubmitting(false);
       setSubmitted(data);
-    }, SUBMIT_DELAY_MS);
+    } catch (error) {
+      console.error('Error creating vehicle:', error);
+      alert('Error al registrar el vehículo. Por favor intente de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {

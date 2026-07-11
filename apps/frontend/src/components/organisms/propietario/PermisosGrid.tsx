@@ -22,7 +22,7 @@ export interface PermisosGridProps {
   permisos: PermisoTemporal[];
   onViewDetail: (id: string) => void;
   onRevoke: (id: string) => void;
-  onCreateClick: () => void;
+  onCreateClick?: () => void;
 }
 
 export const PermisosGrid: React.FC<PermisosGridProps> = ({ permisos, onViewDetail, onRevoke, onCreateClick }) => {
@@ -106,24 +106,26 @@ export const PermisosGrid: React.FC<PermisosGridProps> = ({ permisos, onViewDeta
           <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.875rem', color: '#64748B', mb: 3 }}>
             Crea un permiso para autorizar acceso temporal a personas externas.
           </Typography>
-          <Box
-            component="button"
-            onClick={onCreateClick}
-            sx={{
-              border: 'none',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #0D5CCF, #19D6C4)',
-              color: '#FFFFFF',
-              fontFamily: '"Inter", sans-serif',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              borderRadius: vigiaRadius.md,
-              px: 3,
-              py: 1.5,
-            }}
-          >
-            Crear permiso
-          </Box>
+          {onCreateClick && (
+            <Box
+              component="button"
+              onClick={onCreateClick}
+              sx={{
+                border: 'none',
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, #0D5CCF, #19D6C4)',
+                color: '#FFFFFF',
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                borderRadius: vigiaRadius.md,
+                px: 3,
+                py: 1.5,
+              }}
+            >
+              Crear permiso
+            </Box>
+          )}
         </Box>
       ) : (
         <motion.div variants={shouldReduceMotion ? undefined : staggerContainer} initial="hidden" animate="visible">

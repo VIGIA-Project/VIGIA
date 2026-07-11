@@ -31,10 +31,10 @@ export interface PermisoTemporalCardProps {
   onRevoke?: (id: string) => void;
 }
 
-export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permiso, onViewDetail, onRevoke }) => {
+export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permiso, onRevoke }) => {
   const shouldReduceMotion = useReducedMotion();
   const badge = ESTADO_BADGE[permiso.estado] || { bg: '#E2E8F0', text: '#475569', label: permiso.estado || 'Desconocido' };
-  const diasParaExpirar = (permiso.estado === 'ACTIVO' || permiso.estado === 'ACTIVA') ? differenceInCalendarDays(parseISO(permiso.fechaFin), new Date()) : null;
+  const diasParaExpirar = (permiso.estado === 'ACTIVO') ? differenceInCalendarDays(parseISO(permiso.fechaFin), new Date()) : null;
   const proximoAExpirar = diasParaExpirar !== null && diasParaExpirar >= 0 && diasParaExpirar <= 3;
 
   return (

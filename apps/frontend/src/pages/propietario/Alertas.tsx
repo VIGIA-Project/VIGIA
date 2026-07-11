@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Box, Typography, Button, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { EmptyState } from '../../components/atoms';
 import { AlertCard, FilterChips } from '../../components/molecules';
+import { useQuery } from '@tanstack/react-query';
+import { alertingService } from '../../services/alerting.service';
 import { staggerContainer, fadeInUp } from '../../config/animations.config';
 import { vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 
@@ -48,81 +49,7 @@ interface AlertaViewDto {
   accion_sugerida?: string;
 }
 
-// === MOCK DATA ===
-const MOCK_ALERTAS: AlertaViewDto[] = [
-  {
-    alerta_id: 'alt-001',
-    tipo: 'ACCESO_DENEGADO',
-    severidad: 'ALTA',
-    titulo: 'Intento de acceso no autorizado',
-    descripcion: 'Persona no registrada intentó ingresar con el vehículo PBW-1234 por Acceso Sur. Se activó protocolo de seguridad.',
-    fecha: '2026-07-04T02:15:00',
-    timestamp_relativo: 'hace 2h',
-    leida: false,
-    vehiculo_placa: 'PBW-1234',
-    accion_sugerida: 'Ver vehículo',
-  },
-  {
-    alerta_id: 'alt-002',
-    tipo: 'PERMISO_POR_EXPIRAR',
-    severidad: 'MEDIA',
-    titulo: 'Permiso temporal próximo a expirar',
-    descripcion: 'El permiso de Jorge Mendoza para el vehículo PBB-3456 expira en 4 horas. Renueve si desea mantener el acceso.',
-    fecha: '2026-07-04T01:30:00',
-    timestamp_relativo: 'hace 3h',
-    leida: false,
-    vehiculo_placa: 'PBB-3456',
-    accion_sugerida: 'Renovar permiso',
-  },
-  {
-    alerta_id: 'alt-003',
-    tipo: 'ENROLLMENT_PENDIENTE',
-    severidad: 'MEDIA',
-    titulo: 'Enrollment biométrico pendiente',
-    descripcion: 'Stalin Coello aún no ha completado su enrollment biométrico. Sin enrollment, la validación será solo por placa.',
-    fecha: '2026-07-03T18:00:00',
-    timestamp_relativo: 'hace 10h',
-    leida: false,
-    vehiculo_placa: undefined,
-    accion_sugerida: 'Ver personas',
-  },
-  {
-    alerta_id: 'alt-004',
-    tipo: 'ACCESO_EXITOSO',
-    severidad: 'INFORMATIVA',
-    titulo: 'Acceso autorizado registrado',
-    descripcion: 'María Elena Arévalo ingresó exitosamente con PBW-1234 por Acceso Norte. Validación biométrica correcta.',
-    fecha: '2026-07-03T14:32:00',
-    timestamp_relativo: 'ayer 14:32',
-    leida: true,
-    vehiculo_placa: 'PBW-1234',
-    accion_sugerida: undefined,
-  },
-  {
-    alerta_id: 'alt-005',
-    tipo: 'PASE_CONSUMIDO',
-    severidad: 'INFORMATIVA',
-    titulo: 'Pase de Acceso Rápido consumido',
-    descripcion: 'El pase VIG-A7K3M2 fue utilizado por Jorge Mendoza. Ingreso por Acceso Norte a las 09:15.',
-    fecha: '2026-07-03T09:15:00',
-    timestamp_relativo: 'ayer 09:15',
-    leida: true,
-    vehiculo_placa: 'PBW-1234',
-    accion_sugerida: undefined,
-  },
-  {
-    alerta_id: 'alt-006',
-    tipo: 'VEHICULO_NO_RECONOCIDO',
-    severidad: 'ALTA',
-    titulo: 'Vehículo no reconocido detectado',
-    descripcion: 'Se detectó el vehículo con placa PZZ-9999 (no registrado) intentando acceder por Acceso Sur. Sin coincidencia en el sistema.',
-    fecha: '2026-07-02T22:45:00',
-    timestamp_relativo: 'hace 2 días',
-    leida: true,
-    vehiculo_placa: 'PZZ-9999',
-    accion_sugerida: 'Ver detalle',
-  },
-];
+// === MOCK DATA REMOVED ===
 
 // === FILTROS ===
 const FILTER_OPTIONS = [
@@ -156,9 +83,33 @@ const AlertasPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Estado
-  const [alertas, setAlertas] = useState<AlertaViewDto[]>(MOCK_ALERTAS);
+  const [alertas, setAlertas] = React.useState<AlertaViewDto[]>([]);
   const [filtroActivo, setFiltroActivo] = useState('TODAS');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+
+  const { data: rawAlertas = [] } = useQuery({
+    queryKey: ['alertas', 'recientes'],
+    queryFn: () => alertingService.obtenerAlertasRecientes(50)
+  });
+
+  React.useEffect(() => {
+    if (rawAlertas && rawAlertas.length > 0) {
+      setAlertas(rawAlertas.map((a: any) => ({
+        alerta_id: a.id || a.alerta_id || Math.random().toString(),
+        tipo: a.tipo || 'INFORMATIVA',
+        severidad: a.severidad || 'INFORMATIVA',
+        titulo: a.titulo || 'Alerta',
+        descripcion: a.descripcion || '',
+        fecha: a.createdAt || a.fechaCreacion || new Date().toISOString(),
+        timestamp_relativo: 'Reciente',
+        leida: a.leida || false,
+        vehiculo_placa: a.placa || a.vehiculo_placa,
+        accion_sugerida: a.accion_sugerida
+      })));
+    } else {
+      setAlertas([]);
+    }
+  }, [rawAlertas]);
 
   // Filtrado
   const alertasFiltradas = alertas.filter((a) => {

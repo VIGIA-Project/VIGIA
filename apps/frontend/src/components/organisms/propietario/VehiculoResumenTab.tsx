@@ -14,7 +14,7 @@ import { staggerContainer } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
 import { MiniKpiCard, EventoTimeline } from '../../molecules';
 import { PropietarioVehiculo } from '../../../config/propietario-vehiculos.config';
-import { RESUMEN_TAB_COPY, ESTADO_VEHICULO_STYLES, MOCK_EVENTOS_DETALLE, FAMILIA_MAX_MIEMBROS, TabKey } from '../../../config/propietario-vehiculo-detalle.config';
+import { RESUMEN_TAB_COPY, ESTADO_VEHICULO_STYLES, FAMILIA_MAX_MIEMBROS, TabKey } from '../../../config/propietario-vehiculo-detalle.config';
 
 export interface VehiculoResumenTabProps {
   vehiculo: PropietarioVehiculo;
@@ -140,7 +140,9 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
             {RESUMEN_TAB_COPY.verHistorialCompleto}
           </Box>
         </Box>
-        <EventoTimeline eventos={MOCK_EVENTOS_DETALLE.slice(0, 3)} />
+        <Typography sx={{ p: 2, fontSize: '0.9rem', color: vigiaColors.textSecondary, textAlign: 'center', bgcolor: '#fff', borderRadius: 2, border: '1px dashed #e0e0e0' }}>
+          No hay actividad reciente registrada para este vehículo
+        </Typography>
       </Box>
     </Box>
   );

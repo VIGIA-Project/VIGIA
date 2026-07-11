@@ -15,12 +15,12 @@ import { fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 import {
   PropietarioVehiculo,
-  buildInitialVehiculos,
   MIS_VEHICULOS_COPY,
   REGISTER_VEHICLE_DRAWER_COPY,
   HISTORIAL_ACCESOS_COPY,
-  MOCK_ACCESOS_RECIENTES,
 } from '../../config/propietario-vehiculos.config';
+import { useAuth } from '../../context';
+import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
 
 const LAST_UPDATED_MOCK_MINUTES = 4;
 
@@ -38,9 +38,26 @@ const MisVehiculosPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [vehiculos, setVehiculos] = useState<PropietarioVehiculo[]>(buildInitialVehiculos);
+  const { user } = useAuth();
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
+
+  const vehiculos: PropietarioVehiculo[] = (vehiculosQuery.data ?? []).map((v: any) => ({
+    id: v.vehiculoId,
+    placa: v.placa,
+    marca: v.marca,
+    modelo: v.modelo,
+    anio: v.anio,
+    color: v.color,
+    tipo: v.tipoVehiculo || 'Sedán',
+    estado: 'ACTIVO' as const,
+    permisosActivos: 0,
+    alertas: 0,
+    personasAsignadas: 0,
+    personasSinBiometria: 0,
+  }));
 
   useEffect(() => {
     if ((location.state as { openRegistrar?: boolean } | null)?.openRegistrar) {
@@ -49,7 +66,7 @@ const MisVehiculosPage: React.FC = () => {
     }
   }, [location.state]);
 
-  const activos = vehiculos.filter((v) => v.estado === 'ACTIVO').length;
+  const activos = vehiculos.length; // Por ahora todos son activos
 
   const handleViewDetail = (placa: string) => {
     navigate(`/propietario/vehiculos/${placa}`);
@@ -59,8 +76,8 @@ const MisVehiculosPage: React.FC = () => {
     navigate('/propietario/permisos-temporales');
   };
 
-  const handleRegistered = (vehiculo: PropietarioVehiculo) => {
-    setVehiculos((prev) => [vehiculo, ...prev]);
+  const handleRegistered = () => {
+    vehiculosQuery.refetch();
     setDrawerOpen(false);
     setToastOpen(true);
   };
@@ -143,27 +160,12 @@ const MisVehiculosPage: React.FC = () => {
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, fontSize: '1rem', color: '#0F172A', mb: 1.5 }}>
             {HISTORIAL_ACCESOS_COPY.title}
           </Typography>
-          {MOCK_ACCESOS_RECIENTES.length === 0 ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
-              <HistoryOutlinedIcon sx={{ color: vigiaColors.textTertiary, fontSize: 28 }} />
-              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: '#64748B' }}>
-                {HISTORIAL_ACCESOS_COPY.empty}
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {MOCK_ACCESOS_RECIENTES.map((evento) => (
-                <ActivityTimelineItem
-                  key={evento.id}
-                  icon={SEVERITY_ICON[evento.severity]}
-                  title={`${evento.placa} · ${evento.title}`}
-                  subtitle={evento.subtitle}
-                  timestamp={evento.timestamp}
-                  severity={evento.severity}
-                />
-              ))}
-            </Box>
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
+            <HistoryOutlinedIcon sx={{ color: vigiaColors.textTertiary, fontSize: 28 }} />
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: '#64748B' }}>
+              {HISTORIAL_ACCESOS_COPY.empty}
+            </Typography>
+          </Box>
         </Box>
       </Box>
 

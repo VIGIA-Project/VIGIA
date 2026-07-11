@@ -4,7 +4,7 @@
 // este archivo conserva el "view model" que ya consumen PersonaCard/PersonasGrid/etc.
 
 import { format } from 'date-fns';
-import { AutorizacionPermanente } from '../services/types/authorization.types';
+import { MiembroGrupoFamiliar } from '../services/types/authorization.types';
 import { Persona } from '../services/types/registry.types';
 
 export type PersonaTipo = 'familia' | 'frecuente';
@@ -12,7 +12,7 @@ export type PersonaBiometria = 'COMPLETADA' | 'PENDIENTE';
 export type PersonaEstado = 'ACTIVA' | 'REVOCADA';
 
 export interface PersonaAutorizada {
-  /** id de la AutorizacionPermanente — usado para revocar */
+  /** id del MiembroGrupoFamiliar — usado para revocar */
   id: string;
   /** id de la Persona en Registry — usado para resolver biometría/navegación secundaria */
   personaId: string;
@@ -32,9 +32,9 @@ export const enmascararCedula = (numero: string): string => {
   return `${numero.slice(0, 2)}${'X'.repeat(numero.length - 4)}${numero.slice(-2)}`;
 };
 
-/** Combina una AutorizacionPermanente (Authorization) con su Persona (Registry). */
+/** Combina un MiembroGrupoFamiliar (Authorization) con su Persona (Registry). */
 export const mapAutorizacionAPersona = (
-  autorizacion: AutorizacionPermanente,
+  autorizacion: MiembroGrupoFamiliar,
   persona?: Persona
 ): PersonaAutorizada => ({
   id: autorizacion.id,

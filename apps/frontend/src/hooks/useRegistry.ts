@@ -77,8 +77,13 @@ export const useMarcarEnrollmentCompleto = () => {
 };
 
 /**
- * Vehículo principal del propietario autenticado — hoy el dashboard opera
- * sobre un único vehículo (el sembrado por el seed de desarrollo).
+ * Vehículos del propietario autenticado.
+ *
+ * El grupo familiar tiene acceso a TODOS los vehículos activos del propietario
+ * (decisión 02.4 v1.5). Las páginas de Permisos Temporales y Pases operan
+ * sobre vehiculos[0] como vehículo activo en el MVP.
+ *
+ * TODO post-MVP: implementar selector de vehículo activo para Permisos y Pases.
  *
  * `perfilIncompleto` distingue el caso en que el usuario aún no tiene
  * `personaId` vinculado (JWT sin Persona asociada en Registry) del caso de

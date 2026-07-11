@@ -20,7 +20,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../context';
 import { useVehiculosDelPropietario, usePersonasDelPropietario as usePersonasResolver } from '../../hooks/useRegistry';
-import { usePermisosVigentesPorVehiculo, useMisPases, useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
+import { usePermisosVigentesPorVehiculo, useMisPases, useMiembrosGrupoFamiliar } from '../../hooks/useAuthorization';
 
 // === MOCK DATA ===
 // TODO: Replace with real data when Alerting BC is implemented
@@ -51,7 +51,7 @@ const InicioPage: React.FC = () => {
   const vehiculo = vehiculos[0];
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const pasesQuery = useMisPases();
-  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
 
   const permisosActivos = (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length;
   const pasesActivos = (pasesQuery.data ?? []).filter((p) => p.estado === 'ACTIVO').length;

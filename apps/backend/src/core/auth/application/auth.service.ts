@@ -35,6 +35,7 @@ export interface UserResponseDto {
     personaId?: string;
     biometricRegistered: boolean;
     vehicleRegistered: boolean;
+    lastLoginAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -77,6 +78,10 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        await this.userRepository.update(user.id, {
+            lastLoginAt: new Date()
+        });
+
         const payload = {
             sub: user.id,
             email: user.email,
@@ -118,6 +123,7 @@ export class AuthService {
         await this.userRepository.update(userId, {
             passwordHash: newHash,
             mustChangePassword: false,
+            status: UserStatus.ACTIVE,
         });
     }
 
@@ -242,6 +248,7 @@ export class AuthService {
             personaId: user.personaId,
             biometricRegistered: user.biometricRegistered,
             vehicleRegistered: user.vehicleRegistered,
+            lastLoginAt: user.lastLoginAt,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

@@ -98,9 +98,16 @@ const fetchUsers = async () => {
         correo: user.email,
         rol: user.role,
         estado: estado as Cuenta["estado"],
-        ultimoLogin: user.lastLoginAt
-          ? new Date(user.lastLoginAt).toLocaleString()
-          : "Nunca",
+        ultimoLogin: (() => {
+          if (!user.lastLoginAt) return "Nunca";
+          try {
+            const d = new Date(user.lastLoginAt);
+            if (isNaN(d.getTime())) return "Nunca";
+            return `${d.toLocaleDateString('es-EC')} ${d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
+          } catch {
+            return "Nunca";
+          }
+        })(),
       };
     });
 
@@ -172,9 +179,9 @@ return (
 
     <Grid container spacing={2.5} sx={{ mb: 3 }}>
       {[
-        { label: "Cuentas Activas", value: "4", color: "success.main" },
-        { label: "Pendientes de Cambio", value: "1", color: "warning.main" },
-        { label: "Inactivas", value: "1", color: "text.secondary" },
+        { label: "Cuentas Activas", value: String(rows.filter(r => r.estado === "ACTIVO" || r.estado === "PENDIENTE_BIOMETRIA").length), color: "success.main" },
+        { label: "Pendientes de Cambio", value: String(rows.filter(r => r.estado === "PENDIENTE_CONTRASEÑA").length), color: "warning.main" },
+        { label: "Inactivas", value: String(rows.filter(r => r.estado === "INACTIVO" || r.estado === "DESACTIVADO").length), color: "text.secondary" },
       ].map((s) => (
         <Grid key={s.label} size={{ xs: 12, sm: 4 }}>
           <Card>

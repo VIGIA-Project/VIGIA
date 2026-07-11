@@ -17,7 +17,8 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import PageHeader from '../../../components/admin-legacy/PageHeader';
 import StatusChip from '../../../components/admin-legacy/StatusChip';
 import { registryService, Vehiculo, Persona } from '../../../services/registry.service';
-import { authorizationService } from '../../../services/authorization.service';
+import { authorizationService, listarActivosPorPlaca } from '../../../services/authorization.service';
+import { accessControlService } from '../../../services/access-control.service';
 
 interface Conductor {
   id: string;
@@ -25,6 +26,7 @@ interface Conductor {
   tipo: 'Permanente' | 'Temporal';
   estado: string;
   vigencia: string;
+  esPropietario?: boolean;
 }
 
 export default function VistaPorVehiculo() {
@@ -62,47 +64,72 @@ export default function VistaPorVehiculo() {
     const fetchAuths = async () => {
       try {
         setLoadingAuths(true);
-        const auths = await authorizationService.getConjuntoAutorizado(vehiculoSeleccionado.vehiculoId);
+        const [auths, pasesRapidos, pasesGarita] = await Promise.all([
+          authorizationService.getConjuntoAutorizado(vehiculoSeleccionado.vehiculoId).catch(() => ({ propietarioId: null, autorizados: [] })),
+          listarActivosPorPlaca(vehiculoSeleccionado.placa).catch(() => []),
+          accessControlService.listarPasesGarita().catch(() => [])
+        ]);
         
-        // Map the backend response to the Conductor interface
-        // The backend response format for getConjuntoAutorizado is expected to be an array of objects
-        // with properties describing the permission/authorization.
         const mappedAuths: Conductor[] = [];
         
-        if (auths.propietario) {
-           const p = personas.find(x => x.personaId === auths.propietario.personaId);
+        // El propietario siempre es un conductor permanente
+        if (auths.propietarioId) {
+           const p = personas.find(x => x.personaId === auths.propietarioId);
            mappedAuths.push({
              id: 'prop',
              persona: p ? `${p.nombres} ${p.apellidos}` : 'Propietario',
              tipo: 'Permanente',
              estado: 'ACTIVA',
-             vigencia: 'Propietario'
+             vigencia: 'Propietario',
+             esPropietario: true
            });
         }
         
-        if (Array.isArray(auths.permanentes)) {
-           auths.permanentes.forEach((auth: any) => {
+        if (Array.isArray(auths.autorizados)) {
+           auths.autorizados.forEach((auth: any) => {
+             // Ignorar al propietario si viene en la lista de autorizados, ya lo agregamos
+             if (auth.personaId === auths.propietarioId) return;
+
              const p = personas.find(x => x.personaId === auth.personaId);
              mappedAuths.push({
-               id: auth.id,
+               id: auth.id || auth.personaId,
                persona: p ? `${p.nombres} ${p.apellidos}` : auth.personaId,
-               tipo: 'Permanente',
-               estado: auth.estado,
-               vigencia: 'Indefinida'
+               tipo: auth.tipo === 'PERMANENTE' ? 'Permanente' : 'Temporal',
+               estado: auth.estado || 'ACTIVA',
+               vigencia: auth.tipo === 'PERMANENTE' 
+                          ? 'Indefinida' 
+                          : `Hasta ${new Date(auth.vigenciaFin || auth.fechaActualizacion || Date.now()).toLocaleString()}`,
+               esPropietario: false
              });
            });
         }
-
-        if (Array.isArray(auths.temporales)) {
-           auths.temporales.forEach((auth: any) => {
-             const p = personas.find(x => x.personaId === auth.personaId);
+        
+        if (Array.isArray(pasesRapidos)) {
+           pasesRapidos.forEach((pase: any) => {
              mappedAuths.push({
-               id: auth.id,
-               persona: p ? `${p.nombres} ${p.apellidos}` : auth.personaId,
-               tipo: 'Temporal',
-               estado: auth.estado,
-               vigencia: `Hasta ${new Date(auth.vigencia?.fin || auth.fechaActualizacion).toLocaleString()}`
+               id: pase.id,
+               persona: pase.nombreVisitante,
+               tipo: 'Temporal', // Pase Rápido
+               estado: pase.estado === 'CONSUMIDO' ? 'EXPIRADA' : pase.estado,
+               vigencia: `Pase Rápido - Hasta ${new Date(pase.vigenciaFin).toLocaleString()}`,
+               esPropietario: false
              });
+           });
+        }
+        
+        if (Array.isArray(pasesGarita)) {
+           pasesGarita.forEach((pase: any) => {
+             // Filter locally since we don't have a by-plate endpoint for Garita passes
+             if (pase.placaVehiculo === vehiculoSeleccionado.placa) {
+               mappedAuths.push({
+                 id: pase.id,
+                 persona: pase.nombreVisitante,
+                 tipo: 'Temporal', // Pase Garita
+                 estado: pase.estado === 'FINALIZADO' ? 'EXPIRADA' : (pase.estado === 'ACTIVO' ? 'ACTIVA' : pase.estado),
+                 vigencia: `Pase Garita - ${pase.duracionHoras}h`,
+                 esPropietario: false
+               });
+             }
            });
         }
 
@@ -169,7 +196,7 @@ export default function VistaPorVehiculo() {
                   <Box key={c.id}>
                     <ListItem sx={{ px: 0, gap: 2 }}>
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: c.estado === 'ACTIVA' ? 'success.main' : 'grey.400' }}>
+                        <Avatar sx={{ bgcolor: c.esPropietario ? 'primary.main' : (c.estado === 'ACTIVA' ? 'success.main' : 'grey.400') }}>
                           {c.persona.charAt(0)}
                         </Avatar>
                       </ListItemAvatar>
@@ -177,6 +204,7 @@ export default function VistaPorVehiculo() {
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.persona}</Typography>
+                            {c.esPropietario && <Chip label="Dueño" size="small" color="primary" />}
                             <Chip label={c.tipo} size="small" variant="outlined" />
                             <StatusChip kind="autorizacion" value={c.estado} />
                           </Box>

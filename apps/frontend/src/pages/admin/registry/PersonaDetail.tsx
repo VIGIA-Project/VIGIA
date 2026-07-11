@@ -21,9 +21,10 @@ import DataTable, {
   type Column,
 } from "../../../components/admin-legacy/DataTable";
 import EditPersonaModal from "./EditPersonaModal";
-import { registryService, Persona } from "../../../services/registry.service";
+import { registryService, Persona, Vehiculo } from "../../../services/registry.service";
 import { authService, UserResponseDto } from "../../../services/auth.service";
-import { Vehiculo } from "../../../services/registry.service";
+import { authorizationService, AutorizacionPermanente, PermisoTemporal } from "../../../services/authorization.service";
+import { biometricService } from "../../../services/biometric.service";
 
 export default function PersonaDetail() {
   const { id } = useParams();
@@ -35,6 +36,9 @@ export default function PersonaDetail() {
   const [persona, setPersona] = useState<Persona | null>(null);
   const [userAccount, setUserAccount] = useState<UserResponseDto | null>(null);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [vehiculosAutorizados, setVehiculosAutorizados] = useState<(Vehiculo & { vinculo: string })[]>([]);
+  const [perfilBiometrico, setPerfilBiometrico] = useState<any>(null);
+  const [isAgregado, setIsAgregado] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -50,10 +54,39 @@ export default function PersonaDetail() {
         if (u) setUserAccount(u);
       }
 
-      // Fetch vehicles
-      const vehiculosRes = await registryService.getVehiculos().catch(() => []);
+      // Fetch biometrics
+      const perfiles = await biometricService.obtenerTodos().catch(() => []);
+      const biometria = perfiles.find((perf: any) => perf.personaId === id);
+      setPerfilBiometrico(biometria || null);
+
+      // Fetch permissions for "Agregado" logic and authorized vehicles
+      const [todasPerm, temporalesPerson, vehiculosRes] = await Promise.all([
+        authorizationService.getTodasPermanentes().catch(() => []),
+        authorizationService.listarPorPersona(id).catch(() => []),
+        registryService.getVehiculos().catch(() => []),
+      ]);
+
+      const misPermanentes = (todasPerm as AutorizacionPermanente[]).filter(p => p.personaId === id);
+      const misTemporales = temporalesPerson as PermisoTemporal[];
+      
+      setIsAgregado(misPermanentes.length > 0 || misTemporales.length > 0);
+
+      // Distinguish owned vs authorized vehicles
       if (vehiculosRes) {
         setVehiculos(vehiculosRes.filter((v) => v.propietarioPersonaId === id));
+        
+        const autVehicles: (Vehiculo & { vinculo: string })[] = [];
+        // Add permanent authorized
+        misPermanentes.forEach(p => {
+          const v = vehiculosRes.find((veh: any) => veh.vehiculoId === p.vehiculoId);
+          if (v && !autVehicles.some((av: any) => av.vehiculoId === v.vehiculoId)) autVehicles.push({ ...v, vinculo: 'Permanente' });
+        });
+        // Add temporal authorized
+        misTemporales.forEach(t => {
+          const v = vehiculosRes.find((veh: any) => veh.vehiculoId === t.vehiculoId);
+          if (v && !autVehicles.some((av: any) => av.vehiculoId === v.vehiculoId)) autVehicles.push({ ...v, vinculo: `Temporal (Hasta ${new Date(t.vigenciaFin).toLocaleDateString()})` });
+        });
+        setVehiculosAutorizados(autVehicles);
       }
     } catch (err) {
       console.error("Failed to load persona details", err);
@@ -197,9 +230,18 @@ export default function PersonaDetail() {
                 />
                 {userAccount && (
                   <Chip
-                    label={`Acceso al Sistema: ${userAccount.role}`}
+                    label={`Cuenta: ${userAccount.role}`}
                     size="small"
                     color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
+                {isAgregado && (
+                  <Chip
+                    label="Agregado (Grupo Familiar / Permisos)"
+                    size="small"
+                    color="secondary"
                     variant="outlined"
                     sx={{ fontWeight: 600 }}
                   />
@@ -236,7 +278,7 @@ export default function PersonaDetail() {
                 ["Apellidos", persona.apellidos],
                 ["Correo institucional", persona.correoInstitucional || "---"],
                 ["Teléfono", persona.telefonoContacto || "---"],
-                ["Rol Institucional", "---"],
+                ["Rol Institucional", persona.rolInstitucional || "---"],
                 ["Fecha de registro", new Date(persona.createdAt).toLocaleDateString()],
               ].map(([label, value]) => (
                 <Grid key={label} size={{ xs: 12, sm: 6, md: 3 }}>
@@ -293,7 +335,26 @@ export default function PersonaDetail() {
                 )}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                {/* Omitted "Vinculación Externa" until there's a backend implementation for family groups */}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600, display: "block", mb: 1 }}
+                >
+                  Roles de Vinculación
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
+                  {userAccount?.role === 'OWNER' && (
+                    <Chip label="Owner (Propietario Principal)" color="primary" />
+                  )}
+                  {isAgregado && (
+                    <Chip label="Agregado (Conductor Autorizado)" color="secondary" />
+                  )}
+                  {(!userAccount || userAccount.role !== 'OWNER') && !isAgregado && (
+                    <Typography variant="body2" color="text.secondary">
+                      Sin vinculación activa a vehículos
+                    </Typography>
+                  )}
+                </Box>
               </Grid>
             </Grid>
           )}
@@ -327,11 +388,24 @@ export default function PersonaDetail() {
             </List>
           )}
           {tab === 3 && (
-            <DataTable
-              columns={vehiculoCols}
-              rows={vehiculos.map(v => ({ ...v, id: v.vehiculoId }))}
-              searchKeys={(r) => `${r.placa} ${r.marca}`}
-            />
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>Vehículos Propios</Typography>
+              <DataTable
+                columns={vehiculoCols}
+                rows={vehiculos.map(v => ({ ...v, id: v.vehiculoId }))}
+                searchKeys={(r) => `${r.placa} ${r.marca}`}
+              />
+
+              <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Vehículos Autorizados (Agregado)</Typography>
+              <DataTable
+                columns={[
+                  ...vehiculoCols,
+                  { id: "vinculo", label: "Vínculo", render: (r: any) => r.vinculo }
+                ]}
+                rows={vehiculosAutorizados.map(v => ({ ...v, id: v.vehiculoId }))}
+                searchKeys={(r) => `${r.placa} ${r.marca}`}
+              />
+            </Box>
           )}
           {tab === 4 && (
             <Grid container spacing={2}>
@@ -343,9 +417,20 @@ export default function PersonaDetail() {
                 >
                   Estado de perfil biométrico
                 </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 500, color: persona.estadoBiometrico === 'COMPLETO' ? 'success.main' : 'warning.main' }}>
-                  {persona.estadoBiometrico === 'COMPLETO' ? 'COMPLETO (Registrado)' : 'PENDIENTE (Sin registro)'}
+                <Typography variant="body2" sx={{ fontWeight: 500, color: perfilBiometrico?.estado === 'ACTIVO' ? 'success.main' : 'warning.main' }}>
+                  {perfilBiometrico?.estado === 'ACTIVO' ? 'COMPLETO (Registrado)' : 'PENDIENTE (Sin registro)'}
                 </Typography>
+                
+                {perfilBiometrico && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block" }}>
+                      ID de Biometría
+                    </Typography>
+                    <Typography variant="body2">
+                      {perfilBiometrico.id}
+                    </Typography>
+                  </Box>
+                )}
               </Grid>
             </Grid>
           )}

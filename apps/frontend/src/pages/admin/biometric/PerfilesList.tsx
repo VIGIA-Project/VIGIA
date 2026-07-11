@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import Grid from '@mui/material/Grid2';
@@ -16,6 +18,7 @@ import DataTable, { type Column } from '../../../components/admin-legacy/DataTab
 import StatusChip from '../../../components/admin-legacy/StatusChip';
 import { registryService } from '../../../services/registry.service';
 import { biometricService } from '../../../services/biometric.service';
+import { authService } from '../../../services/auth.service';
 
 interface Perfil {
   id: string;
@@ -49,25 +52,35 @@ export default function PerfilesList() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Perfil[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filtroEstado, setFiltroEstado] = useState<'TODOS' | 'DISPONIBLE' | 'PENDIENTE'>('TODOS');
 
   useEffect(() => {
     const fetchPerfiles = async () => {
       try {
         setLoading(true);
-        const [personas, perfiles] = await Promise.all([
+        const [personas, perfiles, usuariosData] = await Promise.all([
           registryService.getPersonas(),
           biometricService.obtenerTodos(),
+          authService.getUsers(1, 100).catch(() => ({ data: [] })),
         ]);
         
-        const mappedRows = perfiles.map((p: any) => {
-          const persona = personas.find(pers => pers.personaId === p.personaId);
+        // usuariosData can be { data: [...], total, ... } or just the array
+        const usersArray = Array.isArray(usuariosData) ? usuariosData : (Array.isArray((usuariosData as any)?.data) ? (usuariosData as any).data : []);
+        const guardPersonaIds = new Set(usersArray.filter((u: any) => u.role === 'GUARD').map((u: any) => u.personaId));
+        const personasSinGuardias = personas.filter((p: any) => {
+          const rol = (p.rolInstitucional || '').toLowerCase();
+          const esGuardia = rol.includes('guardia') || rol.includes('guard') || rol === 'seguridad';
+          return !esGuardia && !guardPersonaIds.has(p.personaId || p.id);
+        });
+        const mappedRows = personasSinGuardias.map((persona: any) => {
+          const p = perfiles.find((perf: any) => perf.personaId === persona.personaId);
           return {
-            id: p.id,
-            persona: persona ? `${persona.nombres} ${persona.apellidos}` : 'Usuario Desconocido',
-            identificacion: persona?.identificacionNumero || 'N/A',
-            estado: p.estado === 'ACTIVO' ? 'DISPONIBLE' : 'NO_DISPONIBLE',
-            ultimaActualizacion: 'Reciente',
-            representaciones: 1,
+            id: p?.id || persona.personaId,
+            persona: `${persona.nombres} ${persona.apellidos}`,
+            identificacion: persona.identificacionNumero || 'N/A',
+            estado: p?.estado === 'ACTIVO' ? 'DISPONIBLE' : 'PENDIENTE',
+            ultimaActualizacion: p ? 'Reciente' : '-',
+            representaciones: p ? 1 : 0,
           };
         });
         setRows(mappedRows as Perfil[]);
@@ -90,9 +103,9 @@ export default function PerfilesList() {
       />
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {[
-          { label: 'Perfiles Disponibles', value: '0', color: '#5B9C5F' },
-          { label: 'Pendientes de Captura', value: rows.length.toString(), color: '#E0A82E' },
-          { label: 'No Disponibles', value: '0', color: '#C0524A' },
+          { label: 'Perfiles Disponibles', value: rows.filter((r) => r.estado === 'DISPONIBLE').length.toString(), color: '#5B9C5F' },
+          { label: 'Pendientes de Captura', value: rows.filter((r) => r.estado === 'PENDIENTE').length.toString(), color: '#E0A82E' },
+          { label: 'No Disponibles', value: rows.filter((r) => r.estado === 'NO_DISPONIBLE').length.toString(), color: '#C0524A' },
         ].map((s) => (
           <Grid key={s.label} size={{ xs: 12, sm: 4 }}>
             <Card><CardContent>
@@ -110,9 +123,21 @@ export default function PerfilesList() {
       ) : (
         <DataTable
           columns={columns}
-          rows={rows}
+          rows={filtroEstado === 'TODOS' ? rows : rows.filter((r) => r.estado === filtroEstado)}
           searchPlaceholder="Buscar por persona o identificación..."
           searchKeys={(r) => `${r.persona} ${r.identificacion}`}
+          headerActions={
+            <ToggleButtonGroup
+              size="small"
+              value={filtroEstado}
+              exclusive
+              onChange={(_, val) => { if (val) setFiltroEstado(val); }}
+            >
+              <ToggleButton value="TODOS">Todos</ToggleButton>
+              <ToggleButton value="DISPONIBLE">Disponibles</ToggleButton>
+              <ToggleButton value="PENDIENTE">Pendientes</ToggleButton>
+            </ToggleButtonGroup>
+          }
           onRowClick={(row) => navigate(`/admin/biometric/perfiles/${row.id}`)}
           rowActions={(row) => [
             { icon: <VisibilityIcon fontSize="small" />, label: 'Ver detalle', onClick: () => navigate(`/admin/biometric/perfiles/${row.id}`), color: 'primary' },

@@ -19,7 +19,6 @@ import KpiCard from '../../components/admin-legacy/KpiCard';
 import StatusChip from '../../components/admin-legacy/StatusChip';
 import PeopleIcon from '@mui/icons-material/People';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import FaceRetouchingNaturalIcon from '@mui/icons-material/FaceRetouchingNatural';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -40,6 +39,7 @@ import { authorizationService } from '../../services/authorization.service';
 import { biometricService } from '../../services/biometric.service';
 import { alertingService } from '../../services/alerting.service';
 import { accessControlService } from '../../services/access-control.service';
+import { authService } from '../../services/auth.service';
 
 const accionesRapidas = [
   { label: 'Nueva Persona', icon: <PersonAddIcon />, color: '#0D5CCF', href: '/admin/registry/personas' },
@@ -69,6 +69,8 @@ export default function Dashboard() {
     temporales: 0,
     biometricos: 0,
     alertas: 0,
+    pasesGarita: 0,
+    pasesRapidos: 0,
   });
   const [alertas, setAlertas] = useState<any[]>([]);
   const [eventos, setEventos] = useState<any[]>([]);
@@ -83,37 +85,74 @@ export default function Dashboard() {
           cntVehiculos,
           cntPermanentes,
           cntTemporales,
+          cntPasesRapidos,
           cntBiometricos,
           cntAlertas,
+          cntPasesGarita,
           dataAlertas,
           dataEventos,
           dataSinBiometria,
-          dataPermisosExpirar,
+          dataTodosTemporales,
+          dataTodosPases,
+          perfilesTotales,
+          usuariosData,
         ] = await Promise.all([
           registryService.countPersonas().catch(() => 0),
           registryService.countVehiculos().catch(() => 0),
           authorizationService.countPermanentes().catch(() => 0),
           authorizationService.countTemporales().catch(() => 0),
+          authorizationService.countPasesRapidos().catch(() => 0),
           biometricService.contarPerfiles().catch(() => 0),
           alertingService.contarAlertas().catch(() => 0),
+          accessControlService.contarPasesGaritaActivos().catch(() => 0),
           alertingService.obtenerAlertasRecientes(6).catch(() => []),
           accessControlService.obtenerEventosRecientes(7).catch(() => []),
           registryService.getPersonasSinBiometria().catch(() => []),
-          authorizationService.getTemporalesProximosAExpirar().catch(() => []),
+          authorizationService.getTodosTemporales().catch(() => []),
+          authorizationService.getTodosPasesRapidos().catch(() => []),
+          biometricService.obtenerTodos().catch(() => []),
+          authService.getUsers(1, 100).catch(() => ({ data: [] })),
         ]);
+
+        const personasIdsConBiometria = new Set(perfilesTotales.map((p: any) => p.personaId));
+        // usuariosData can be { data: [...], total, ... } or just the array
+        const usersArray = Array.isArray(usuariosData) ? usuariosData : (Array.isArray((usuariosData as any)?.data) ? (usuariosData as any).data : []);
+        const guardPersonaIds = new Set(usersArray.filter((u: any) => u.role === 'GUARD').map((u: any) => u.personaId));
+
+        const sinBiometriaReal = (dataSinBiometria || []).filter((p: any) => {
+          const rol = (p.rolInstitucional || '').toLowerCase();
+          const esGuardia = rol.includes('guardia') || rol.includes('guard') || rol === 'seguridad';
+          return !personasIdsConBiometria.has(p.personaId || p.id) && 
+                 !guardPersonaIds.has(p.personaId || p.id) &&
+                 !esGuardia;
+        });
 
         setCounts({
           personas: cntPersonas,
           vehiculos: cntVehiculos,
           permanentes: cntPermanentes,
           temporales: cntTemporales,
+          pasesRapidos: cntPasesRapidos,
           biometricos: cntBiometricos,
           alertas: cntAlertas,
+          pasesGarita: cntPasesGarita,
         });
         setAlertas(dataAlertas || []);
         setEventos(dataEventos || []);
-        setSinBiometria(dataSinBiometria || []);
-        setPermisosExpirar(dataPermisosExpirar || []);
+        setSinBiometria(sinBiometriaReal);
+
+        // Calcular permisos por expirar: temporales + pases activos que expiran en 7 días
+        const ahora = new Date();
+        const limite = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const temporalesProximos = (dataTodosTemporales || []).filter((p: any) => {
+          const fin = new Date(p.vigenciaFin || p.vigencia?.fin);
+          return (p.estado === 'ACTIVA' || p.estado === 'ACTIVO') && fin >= ahora && fin <= limite;
+        }).map((p: any) => ({ ...p, _tipo: 'TEMPORAL' }));
+        const pasesProximos = (dataTodosPases || []).filter((p: any) => {
+          const fin = new Date(p.vigenciaFin || p.vigencia?.fin);
+          return (p.estado === 'ACTIVA' || p.estado === 'ACTIVO') && fin >= ahora && fin <= limite;
+        }).map((p: any) => ({ ...p, _tipo: 'PASE', motivo: p.motivo || `Pase: ${p.nombreVisitante}` }));
+        setPermisosExpirar([...temporalesProximos, ...pasesProximos]);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -125,12 +164,12 @@ export default function Dashboard() {
   }, []);
 
   const kpis = [
-    { title: 'Personas Registradas', value: counts.personas.toString(), subtitle: 'En el sistema', icon: <PeopleIcon />, accent: 'primary' as const },
-    { title: 'Vehículos Registrados', value: counts.vehiculos.toString(), subtitle: 'En el sistema', icon: <DirectionsCarIcon />, accent: 'secondary' as const },
-    { title: 'Autorizaciones Activas', value: counts.permanentes.toString(), subtitle: 'Permanentes', icon: <VerifiedUserIcon />, accent: 'info' as const },
-    { title: 'Permisos Vigentes', value: counts.temporales.toString(), subtitle: 'Temporales', icon: <VpnKeyIcon />, accent: 'warning' as const },
-    { title: 'Perfiles Biométricos', value: counts.biometricos.toString(), subtitle: 'Activos', icon: <FaceRetouchingNaturalIcon />, accent: 'success' as const },
-    { title: 'Alertas Generadas', value: counts.alertas.toString(), subtitle: 'Totales históricas', icon: <WarningAmberIcon />, accent: 'error' as const },
+    { title: 'Personas Registradas', value: counts.personas.toString(), subtitle: 'En el sistema', icon: <PeopleIcon />, accent: 'primary' as const, href: '/admin/registry/personas' },
+    { title: 'Vehículos Registrados', value: counts.vehiculos.toString(), subtitle: 'En el sistema', icon: <DirectionsCarIcon />, accent: 'secondary' as const, href: '/admin/registry/vehiculos' },
+    { title: 'Pases Rápidos', value: counts.pasesRapidos.toString(), subtitle: 'De propietarios', icon: <VpnKeyIcon />, accent: 'info' as const, href: '/admin/authorization/por-vehiculo' },
+    { title: 'Permisos Temporales', value: counts.temporales.toString(), subtitle: 'Vigentes', icon: <ScheduleIcon />, accent: 'warning' as const, href: '/admin/authorization/temporales' },
+    { title: 'Pases de Garita', value: counts.pasesGarita.toString(), subtitle: 'De guardias', icon: <AssignmentIndIcon />, accent: 'success' as const, href: '/admin/authorization/temporales?filtro=GARITA' },
+    { title: 'Perfiles Biométricos', value: counts.biometricos.toString(), subtitle: 'Activos', icon: <FaceRetouchingNaturalIcon />, accent: 'primary' as const, href: '/admin/biometric/perfiles' },
   ];
 
   if (loading) {
@@ -152,7 +191,7 @@ export default function Dashboard() {
             Resumen general del sistema VIGIA · {new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </Typography>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {accionesRapidas.map((accion) => (
             <Button
@@ -180,7 +219,9 @@ export default function Dashboard() {
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {kpis.map((kpi) => (
           <Grid key={kpi.title} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-            <KpiCard {...kpi} />
+            <Box component={RouterLink} to={kpi.href} sx={{ textDecoration: 'none' }}>
+              <KpiCard {...kpi} />
+            </Box>
           </Grid>
         ))}
       </Grid>
@@ -356,7 +397,7 @@ export default function Dashboard() {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Permisos por Expirar (48h)
+                  Permisos por Expirar (7 días)
                 </Typography>
                 <Tooltip title={`${permisosExpirar.length} permisos próximos`}>
                   <Box sx={{ bgcolor: 'warning.main', color: '#0A2F86', borderRadius: 10, px: 1, fontSize: '0.7rem', fontWeight: 700 }}>

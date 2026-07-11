@@ -116,7 +116,7 @@ const columns: Column<UnifiedRow>[] = [
     label: "Acceso y Vinculación",
     render: (row) => (
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        {row.tieneCuenta ? (
+        {row.tieneCuenta && (
           <Chip
             label="Acceso al Sistema"
             size="small"
@@ -124,7 +124,17 @@ const columns: Column<UnifiedRow>[] = [
             variant="outlined"
             sx={{ fontWeight: 600 }}
           />
-        ) : (
+        )}
+        {row.rolInstitucional === "AGREGADO" && (
+          <Chip
+            label="Agregado"
+            size="small"
+            color="secondary"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+        )}
+        {!row.tieneCuenta && row.rolInstitucional !== "AGREGADO" && (
           <Typography variant="body2" color="text.secondary" component="div" sx={{ py: 0.5 }}>
             Solo Registro
           </Typography>
@@ -189,6 +199,9 @@ export default function PersonasList() {
       // 1. Process all users
       for (const user of users) {
         let p = user.personaId ? personaMap.get(user.personaId) : null;
+        
+        const instRole = (p?.rolInstitucional && p.rolInstitucional !== "N/A") ? p.rolInstitucional : "AGREGADO";
+        
         unifiedRows.push({
           id: user.id || `user-${Math.random()}`,
           userId: user.id,
@@ -197,7 +210,7 @@ export default function PersonasList() {
           nombre: p ? p.nombreCompleto || `${p.nombres} ${p.apellidos}`.trim() : "Usuario del sistema",
           correo: p?.correoInstitucional || user.email,
           rol: user.role,
-          rolInstitucional: p?.rolInstitucional || "N/A",
+          rolInstitucional: instRole,
           estado: user.status,
           tieneCuenta: true,
           ultimoLogin: null,
@@ -207,6 +220,8 @@ export default function PersonasList() {
 
       // 2. Process remaining personas (no user account)
       for (const p of Array.from(personaMap.values())) {
+        const instRole = (p.rolInstitucional && p.rolInstitucional !== "N/A") ? p.rolInstitucional : "AGREGADO";
+        
         unifiedRows.push({
           id: p.personaId || `persona-${Math.random()}`,
           userId: undefined,
@@ -215,7 +230,7 @@ export default function PersonasList() {
           nombre: p.nombreCompleto || `${p.nombres} ${p.apellidos}`.trim(),
           correo: p.correoInstitucional || "---",
           rol: "N/A", // System role is N/A since there's no account
-          rolInstitucional: p.rolInstitucional || "N/A",
+          rolInstitucional: instRole,
           estado: p.estadoRegistro,
           tieneCuenta: false,
           ultimoLogin: null,

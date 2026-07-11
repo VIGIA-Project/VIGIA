@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, useMediaQuery, useTheme } from '@mui/material';
+import React, { useMemo } from 'react';
+import { Box, Typography, Card, CardContent, Skeleton, Button, useMediaQuery, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
@@ -7,6 +7,7 @@ import { SectionHeader } from '../../components/atoms';
 import { KpiCard, ActivityTimelineItem, QuickActionButton, MiniVehicleItem, MiniFamilyCard } from '../../components/molecules';
 import { staggerContainer, fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
+import { mapAutorizacionAPersona } from '../../config/propietario-personas.config';
 
 // Icons
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -18,8 +19,8 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../context';
-import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
-import { usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
+import { useVehiculosDelPropietario, usePersonasDelPropietario as usePersonasResolver } from '../../hooks/useRegistry';
+import { usePermisosVigentesPorVehiculo, useMisPases, useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
 
 // === MOCK DATA ===
 // TODO: Replace with real data when Alerting BC is implemented
@@ -33,18 +34,6 @@ const MOCK_ACTIVIDAD = [
   { icon: <WarningAmberIcon sx={{ color: '#EDB200' }} />, title: 'Permiso próximo a expirar · PBB-3456', subtitle: 'Permiso de Jorge Mendoza vence en 4 horas', timestamp: 'hace 3h', severity: 'warning' as const },
   { icon: <ErrorIcon sx={{ color: '#C62828' }} />, title: 'Intento de acceso no autorizado · Acceso Sur', subtitle: 'Persona no registrada intentó ingresar con PBW-1234', timestamp: 'hace 5h', severity: 'error' as const },
   { icon: <InfoIcon sx={{ color: '#0D5CCF' }} />, title: 'Pase consumido · VIG-A7K3M2 · Jorge Mendoza', subtitle: 'Ingreso exitoso por Acceso Norte', timestamp: 'ayer', severity: 'info' as const },
-];
-
-const MOCK_VEHICULOS = [
-  { placa: 'PBW-1234', marca: 'Chevrolet', modelo: 'Sail', estado: 'ACTIVO' as const, permisosActivos: 2 },
-  { placa: 'PBA-5678', marca: 'Kia', modelo: 'Rio', estado: 'ACTIVO' as const, permisosActivos: 0 },
-  { placa: 'PBB-3456', marca: 'Hyundai', modelo: 'Accent', estado: 'ACTIVO' as const, permisosActivos: 1 },
-];
-
-const MOCK_FAMILIA = [
-  { nombre: 'Stalin Coello', parentesco: 'Hermano', enrollmentCompletado: false },
-  { nombre: 'María Elena Arévalo', parentesco: 'Madre', enrollmentCompletado: true },
-  { nombre: 'Carlos Coello', parentesco: 'Padre', enrollmentCompletado: false },
 ];
 
 const InicioPage: React.FC = () => {
@@ -62,9 +51,19 @@ const InicioPage: React.FC = () => {
   const vehiculo = vehiculos[0];
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const pasesQuery = useMisPases();
+  const autorizacionesQuery = useAutorizacionesPorVehiculo(vehiculo?.vehiculoId);
 
   const permisosActivos = (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length;
   const pasesActivos = (pasesQuery.data ?? []).filter((p) => p.estado === 'ACTIVO').length;
+
+  const autorizaciones = autorizacionesQuery.data ?? [];
+  const personaIds = useMemo(() => autorizaciones.map((a) => a.personaId), [autorizaciones]);
+  const { personasById, isLoading: isLoadingFamilia } = usePersonasResolver(personaIds);
+
+  const familia = useMemo(
+    () => autorizaciones.map((a) => mapAutorizacionAPersona(a, personasById.get(a.personaId))),
+    [autorizaciones, personasById]
+  );
 
   const kpis = [
     {
@@ -200,9 +199,34 @@ const InicioPage: React.FC = () => {
                   }
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {MOCK_VEHICULOS.map((v) => (
-                    <MiniVehicleItem key={v.placa} {...v} onClick={() => navigate(`/propietario/vehiculos/${v.placa}`)} />
-                  ))}
+                  {vehiculosQuery.isLoading ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                      <Skeleton key={i} variant="rounded" height={44} sx={{ mb: 1, borderRadius: '6px' }} />
+                    ))
+                  ) : vehiculosQuery.isError ? (
+                    <Box sx={{ py: 2, textAlign: 'center' }}>
+                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mb: 1 }}>
+                        No se pudieron cargar tus vehículos.
+                      </Typography>
+                      <Button size="small" onClick={() => vehiculosQuery.refetch()}>Reintentar</Button>
+                    </Box>
+                  ) : vehiculos.length === 0 ? (
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, py: 2, textAlign: 'center' }}>
+                      Aún no tienes vehículos registrados.
+                    </Typography>
+                  ) : (
+                    vehiculos.map((v) => (
+                      <MiniVehicleItem
+                        key={v.vehiculoId}
+                        placa={v.placa}
+                        marca={v.marca ?? ''}
+                        modelo={v.modelo ?? ''}
+                        estado={v.estadoRegistro}
+                        permisosActivos={v.vehiculoId === vehiculo?.vehiculoId ? permisosActivos : 0}
+                        onClick={() => navigate(`/propietario/vehiculos/${v.placa}`)}
+                      />
+                    ))
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -224,9 +248,32 @@ const InicioPage: React.FC = () => {
                   }
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {MOCK_FAMILIA.map((f) => (
-                    <MiniFamilyCard key={f.nombre} {...f} onClick={() => navigate('/propietario/personas')} />
-                  ))}
+                  {autorizacionesQuery.isLoading || isLoadingFamilia ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                      <Skeleton key={i} variant="rounded" height={44} sx={{ mb: 1, borderRadius: '6px' }} />
+                    ))
+                  ) : autorizacionesQuery.isError ? (
+                    <Box sx={{ py: 2, textAlign: 'center' }}>
+                      <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mb: 1 }}>
+                        No se pudo cargar tu grupo familiar.
+                      </Typography>
+                      <Button size="small" onClick={() => autorizacionesQuery.refetch()}>Reintentar</Button>
+                    </Box>
+                  ) : familia.length === 0 ? (
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, py: 2, textAlign: 'center' }}>
+                      Aún no tienes personas autorizadas.
+                    </Typography>
+                  ) : (
+                    familia.map((f) => (
+                      <MiniFamilyCard
+                        key={f.id}
+                        nombre={f.nombre}
+                        parentesco={f.relacion}
+                        enrollmentCompletado={f.biometria === 'COMPLETADA'}
+                        onClick={() => navigate('/propietario/personas')}
+                      />
+                    ))
+                  )}
                 </Box>
               </CardContent>
             </Card>

@@ -4,3 +4,5 @@ export * from './types/authorization.types';
 export * as authorizationService from './authorization.service';
 export * as registryService from './registry.service';
 export * as authService from './auth.service';
+export * as adminService from './admin.service';
+export * from './types/admin.types';

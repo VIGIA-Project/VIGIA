@@ -18,7 +18,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
 import { useAuth } from '../../context';
-import { usePropietarioVehiculo } from '../../hooks/useRegistry';
+import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
 import { usePermisosVigentesPorVehiculo, useMisPases } from '../../hooks/useAuthorization';
 
 // === MOCK DATA ===
@@ -56,7 +56,10 @@ const InicioPage: React.FC = () => {
   const displayName = user?.email?.split('@')[0] || 'Propietario';
   const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
 
-  const { vehiculo } = usePropietarioVehiculo();
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+  const vehiculos = vehiculosQuery.data ?? [];
+  const vehiculosCount = vehiculos.length;
+  const vehiculo = vehiculos[0];
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const pasesQuery = useMisPases();
 
@@ -65,10 +68,10 @@ const InicioPage: React.FC = () => {
 
   const kpis = [
     {
-      value: vehiculo ? 1 : 0,
+      value: vehiculosCount,
       label: 'Vehículos',
-      indicator: vehiculo ? '🟢 Activo' : 'Registra tu vehículo',
-      indicatorColor: vehiculo ? '#2E7D32' : '#6B7280',
+      indicator: vehiculosCount > 0 ? '🟢 Todos activos' : 'Registra tu vehículo',
+      indicatorColor: vehiculosCount > 0 ? '#2E7D32' : '#6B7280',
       accentColor: '#0D5CCF',
       route: '/propietario/vehiculos',
     },

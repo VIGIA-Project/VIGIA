@@ -23,7 +23,7 @@ export class AlertingController {
   // ─── Alertas ────────────────────────────────────────────────────────────
 
   @Get('alertas/recientes')
-  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarAlertasRecientes(@Query('limite') limite?: string) {
     const cantidad = limite ? parseInt(limite, 10) : 10;
     const alertas = await this.alertingService.listarRecientes(cantidad);
@@ -31,7 +31,7 @@ export class AlertingController {
   }
 
   @Get('alertas/count')
-  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async contarAlertas() {
     const count = await this.alertingService.contarNoResueltas();
     return { count };
@@ -40,7 +40,7 @@ export class AlertingController {
   // ─── Notificaciones ─────────────────────────────────────────────────────
 
   @Get('notificaciones')
-  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarNotificaciones(@Request() req: any) {
     const notificaciones = await this.alertingService.listarPorDestinatario(
       this.personaIdDesdeJwt(req),
@@ -49,7 +49,7 @@ export class AlertingController {
   }
 
   @Patch('notificaciones/:id/leer')
-  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async marcarNotificacionLeida(@Param('id') id: string) {
     const notificacion = await this.alertingService.marcarLeida(id);
     return notificacion.toJSON();

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
-import { AutorizacionPermanenteOrmEntity } from '../entities/autorizacion-permanente.orm-entity';
+import { MiembroGrupoFamiliarOrmEntity } from '../entities/miembro-grupo-familiar.orm-entity';
 import { PermisoTemporalOrmEntity } from '../entities/permiso-temporal.orm-entity';
 import { PaseAccesoRapidoOrmEntity } from '../entities/pase-acceso-rapido.orm-entity';
 import { UserOrmEntity } from '@core/auth/infrastructure/user.orm-entity';
@@ -25,6 +25,7 @@ interface PersonaSeed {
 const PERSONAS_AUTORIZADAS_SEED: PersonaSeed[] = [
   { nombres: 'Andrea', apellidos: 'Torres', identificacionNumero: '1799999902', relacion: 'CONYUGE' },
   { nombres: 'Luis', apellidos: 'Pérez', identificacionNumero: '1799999903', relacion: 'HIJO' },
+  { nombres: 'Marta', apellidos: 'Vega', identificacionNumero: '1799999905', relacion: 'MADRE' },
 ];
 
 const PERSONA_PERMISO_TEMPORAL_SEED: PersonaSeed = {
@@ -39,8 +40,8 @@ export class AuthorizationSeedService implements OnModuleInit {
   private readonly logger = new Logger(AuthorizationSeedService.name);
 
   constructor(
-    @InjectRepository(AutorizacionPermanenteOrmEntity)
-    private readonly autorizacionPermanenteRepo: Repository<AutorizacionPermanenteOrmEntity>,
+    @InjectRepository(MiembroGrupoFamiliarOrmEntity)
+    private readonly miembroGrupoFamiliarRepo: Repository<MiembroGrupoFamiliarOrmEntity>,
     @InjectRepository(PermisoTemporalOrmEntity)
     private readonly permisoTemporalRepo: Repository<PermisoTemporalOrmEntity>,
     @InjectRepository(PaseAccesoRapidoOrmEntity)
@@ -59,7 +60,7 @@ export class AuthorizationSeedService implements OnModuleInit {
       return;
     }
 
-    const existentes = await this.autorizacionPermanenteRepo.count();
+    const existentes = await this.miembroGrupoFamiliarRepo.count();
     if (existentes > 0) {
       return;
     }
@@ -75,19 +76,18 @@ export class AuthorizationSeedService implements OnModuleInit {
     const propietarioPersona = await this.asegurarPersonaPropietario(propietarioUser);
     const vehiculo = await this.asegurarVehiculo(propietarioPersona.personaId);
 
-    // 2 autorizaciones permanentes
+    // Miembros del grupo familiar — vinculados al propietario, con acceso a
+    // todos sus vehículos activos (ya no a uno en particular).
     for (const seed of PERSONAS_AUTORIZADAS_SEED) {
       const persona = await this.asegurarPersona(seed);
-      const autorizacion = this.autorizacionPermanenteRepo.create({
+      const miembro = this.miembroGrupoFamiliarRepo.create({
         id: uuidv4(),
         personaId: persona.personaId,
-        vehiculoId: vehiculo.vehiculoId,
         propietarioId: propietarioPersona.personaId,
-        tipo: 'PERMANENTE',
         estado: 'ACTIVA',
         relacion: seed.relacion,
       });
-      await this.autorizacionPermanenteRepo.save(autorizacion);
+      await this.miembroGrupoFamiliarRepo.save(miembro);
     }
 
     // 1 permiso temporal vigente (hoy → +7 días)

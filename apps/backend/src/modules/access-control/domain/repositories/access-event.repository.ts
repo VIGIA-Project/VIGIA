@@ -1,18 +1,13 @@
-/**
- * Contrato de repositorio para AccessEvent.
- * Solo el dominio define la interfaz; la infraestructura la implementa.
- */
+// domain/repositories/access-event.repository.ts
+import { EventoAcceso, DecisionOperativa } from '../entities/access-event.entity';
+
 export interface IAccessEventRepository {
-  save(event: any): Promise<any>;
-  findById(id: string): Promise<any | null>;
-  findByLicensePlate(licensePlate: string, limit?: number): Promise<any[]>;
-  findLastByLicensePlate(licensePlate: string): Promise<any | null>;
-  findByAccessPoint(accessPointId: string, from: Date, to: Date): Promise<any[]>;
+  save(evento: EventoAcceso): Promise<EventoAcceso>;
+  findById(id: string): Promise<EventoAcceso | null>;
+  findPendientes(puntoControlId?: string): Promise<EventoAcceso[]>;
+  findByPlaca(placa: string, limit?: number): Promise<EventoAcceso[]>;
+  findByTurno(puntoControlId: string, desde: Date, hasta: Date): Promise<EventoAcceso[]>;
+  update(evento: EventoAcceso): Promise<EventoAcceso>;
 }
 
-export interface IAccessPointRepository {
-  save(point: any): Promise<any>;
-  findById(id: string): Promise<any | null>;
-  findAll(): Promise<any[]>;
-  findActive(): Promise<any[]>;
-}
+export const ACCESS_EVENT_REPOSITORY = Symbol('ACCESS_EVENT_REPOSITORY');

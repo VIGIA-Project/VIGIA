@@ -1,265 +1,295 @@
-# 🚨 VIGIA — Backend
+# VIGIA — Backend
 
-API REST construida con **NestJS 10**, **TypeORM 0.3** y **PostgreSQL**, siguiendo **Clean Architecture** con principios de **Domain-Driven Design (DDD)**.
+REST API built with **NestJS 10**, **TypeORM 0.3**, and **PostgreSQL**, following **Clean Architecture** with **Domain-Driven Design (DDD)** principles.
 
-> Para instrucciones de arranque rápido del monorepo completo (frontend + backend + DB), ver el [README de la raíz](../../README.md). Este documento cubre el detalle interno del backend.
+> For quick-start instructions covering the whole monorepo (frontend + backend + DB), see the [root README](../../README.md). This document covers backend internals.
 
 ---
 
-## 📐 Arquitectura
+## Architecture
 
-### Capas (por Bounded Context)
+### Layers (per Bounded Context)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  presentation/     Controllers, DTOs de entrada, Módulo   │
+│  presentation/     Controllers, input DTOs, module         │
 ├─────────────────────────────────────────────────────────┤
-│  application/       Casos de uso / Services                │
+│  application/       Use cases / Services                   │
 ├─────────────────────────────────────────────────────────┤
-│  domain/            Entidades de dominio, interfaces de     │
-│                      repositorio — SIN dependencias externas│
+│  domain/            Domain entities, repository interfaces  │
+│                      — NO external dependencies              │
 ├─────────────────────────────────────────────────────────┤
-│  infrastructure/     Repositorios TypeORM, *.orm-entity.ts  │
+│  infrastructure/     TypeORM repositories, *.orm-entity.ts  │
 └─────────────────────────────────────────────────────────┘
 ```
 
-Regla de dependencias: `domain` no importa nada de NestJS ni de TypeORM. `application` solo depende de interfaces de `domain`. Todo acceso a base de datos vive en `infrastructure/repositories/`.
+Dependency rule: `domain` imports nothing from NestJS or TypeORM. `application` only depends on `domain` interfaces. All database access lives in `infrastructure/repositories/`.
 
-### Estructura real de directorios
+### Actual directory structure
 
 ```
 src/
-├── main.ts                        # Bootstrap: prefijo global, ValidationPipe, CORS, interceptores
-├── app.module.ts                  # Módulo raíz — importa config, DB, auth, health y los 5 BCs
+├── main.ts                        # Bootstrap: global prefix, ValidationPipe, CORS, interceptors
+├── app.module.ts                  # Root module — imports config, DB, auth, health, and the 5 BCs
 │
 ├── core/
-│   ├── auth/                      # Módulo de autenticación (NO es un Bounded Context de negocio)
+│   ├── auth/                      # Authentication module (NOT a business Bounded Context)
 │   │   ├── application/           # AuthController, AuthService
-│   │   ├── domain/                # User entity, roles, UserRepository (interfaz)
+│   │   ├── domain/                # User entity, roles, UserRepository (interface)
 │   │   ├── infrastructure/        # UserOrmEntity, TypeOrmUserRepository
-│   │   └── presentation/          # JwtAuthGuard, RolesGuard, decoradores @Roles/@Public
+│   │   └── presentation/          # JwtAuthGuard, RolesGuard, @Roles/@Public decorators
 │   ├── config/                    # app.config.ts, database.config.ts, env.validation.ts (Joi)
 │   ├── database/
 │   │   ├── database.module.ts     # TypeORM.forRootAsync + ensureSchemas()
 │   │   ├── database.service.ts
-│   │   ├── init-schemas.ts        # Crea schemas "auth" y "registry" + extensión uuid-ossp
-│   │   ├── seed.service.ts        # Inserta usuarios de prueba en NODE_ENV=development
-│   │   ├── migrations/            # Migraciones TypeORM (uso opcional, ver más abajo)
-│   │   └── seeds/                 # Script de seed manual alternativo (pnpm run seed)
-│   ├── decorators/                # Decoradores compartidos
-│   ├── exceptions/                # AllExceptionsFilter + DomainException base
-│   ├── guards/                    # JwtAuthGuard genérico
+│   │   ├── init-schemas.ts        # Creates the "auth" and "registry" schemas + uuid-ossp extension
+│   │   ├── seed.service.ts        # Inserts test users when NODE_ENV=development
+│   │   ├── migrations/            # TypeORM migrations (optional use, see below)
+│   │   └── seeds/                 # Alternative manual seed script (pnpm run seed)
+│   ├── decorators/                # Shared decorators
+│   ├── exceptions/                # AllExceptionsFilter + base DomainException
+│   ├── guards/                    # Generic JwtAuthGuard
 │   └── interceptors/               # ResponseInterceptor, LoggingInterceptor
 │
-├── shared/                        # Código compartido ENTRE Bounded Contexts, sin lógica de negocio
-│   ├── constants/                 # Tokens de inyección (ej. USER_REPOSITORY), límites de negocio
-│   ├── dto/                       # PaginationDto y respuestas genéricas
-│   ├── enums/                     # Enums de dominio compartidos
-│   ├── interfaces/contracts/      # Contratos entre BCs (anti-corruption layer, ver abajo)
+├── shared/                        # Code shared BETWEEN Bounded Contexts, no business logic
+│   ├── constants/                 # Injection tokens (e.g. USER_REPOSITORY), business limits
+│   ├── dto/                       # PaginationDto and generic responses
+│   ├── enums/                     # Shared domain enums
+│   ├── interfaces/contracts/      # Contracts between BCs (anti-corruption layer, see below)
 │   ├── logger/                    # LoggerModule + VigiaLogger (Winston)
-│   └── utils/                     # Utilidades puras (fecha, string)
+│   └── utils/                     # Pure utilities (date, string)
 │
-├── modules/                       # Los 5 Bounded Contexts de negocio
-│   ├── registry/                  # ✅ Implementado — Personas, Vehículos, Asignaciones de rol
-│   ├── authorization/              # 🚧 Scaffolded — permisos permanentes/temporales, pases rápidos
-│   ├── biometric/                  # 🚧 Scaffolded — perfiles biométricos (pgvector futuro)
-│   ├── access-control/             # 🚧 Scaffolded — eventos de entrada/salida
-│   └── alerting/                   # 🚧 Scaffolded — alertas y notificaciones
+├── modules/                       # The 5 business Bounded Contexts
+│   ├── registry/                  # ✅ Implemented — People, vehicles, role assignments
+│   ├── authorization/              # ✅ Implemented — Family group, temporary permits, quick-access passes
+│   ├── biometric/                  # 🚧 Scaffolded — biometric profiles (pgvector, future)
+│   ├── access-control/             # 🚧 Scaffolded — entry/exit events
+│   └── alerting/                   # 🚧 Scaffolded — alerts and notifications
 │
 └── presentation/
     └── health/                    # Health checks (Terminus)
 ```
 
-Cada módulo de `modules/` sigue la misma subestructura `application/ domain/ infrastructure/ presentation/`. Los que están **🚧 Scaffolded** ya tienen su módulo NestJS registrado en `app.module.ts` y (en algunos casos) entidades de dominio/infraestructura, pero **todavía no exponen un `*.controller.ts`** — no hay endpoint HTTP que golpear. El frontend cubre esas features con mocks hasta que se implementen.
+Every module under `modules/` follows the same `application/ domain/ infrastructure/ presentation/` sub-structure. The ones marked **🚧 Scaffolded** already have a NestJS module registered in `app.module.ts` and, in some cases, domain/infrastructure entities, but **don't expose a `*.controller.ts` yet** — there's no HTTP endpoint to hit. The frontend covers those features with mocks until they're implemented.
 
 ### Bounded Contexts
 
-| BC | Estado | Responsabilidad | Entidades |
+| BC | Status | Responsibility | Entities |
 |----|:---:|-----------------|-----------|
-| `registry` | ✅ | Catálogo de vehículos, personas y su asignación de rol (dueño/familiar/etc.) | `Persona`, `Vehiculo`, `AsignacionRol` |
-| `authorization` | 🚧 | Permisos permanentes, temporales y pases rápidos | — |
-| `biometric` | 🚧 | Perfiles biométricos y verificación (pgvector, futuro) | — |
-| `access_control` | 🚧 | Eventos de entrada/salida en puntos de control | — |
-| `alerting` | 🚧 | Emisión y gestión de alertas/notificaciones | — |
+| `registry` | ✅ | Catalog of vehicles, people, and their role assignment (owner/family/etc.) | `Persona`, `Vehiculo`, `AsignacionRol` |
+| `authorization` | ✅ | Family group (global per owner), temporary permits, quick-access passes | `MiembroGrupoFamiliar`, `PermisoTemporal`, `PaseAccesoRapido` |
+| `biometric` | 🚧 | Biometric profiles and verification (pgvector, future) | — |
+| `access_control` | 🚧 | Entry/exit events at checkpoints | — |
+| `alerting` | 🚧 | Alert/notification emission and management | — |
 
-`core/auth` no es un Bounded Context de dominio — es infraestructura transversal de autenticación (usuarios, roles, JWT), por eso vive en `core/` y no en `modules/`.
+`core/auth` is not a domain Bounded Context — it's cross-cutting authentication infrastructure (users, roles, JWT), which is why it lives in `core/` rather than `modules/`.
 
-### Comunicación entre Bounded Contexts
+### Communication between Bounded Contexts
 
-Los BCs **nunca se importan directamente entre sí**. Se comunican exclusivamente a través de contratos definidos en `src/shared/interfaces/contracts/` (uno por BC: `registry.contract.ts`, `authorization.contract.ts`, `biometric.contract.ts`, `access-control.contract.ts`, `alerting.contract.ts`):
+BCs **never import each other directly**. They communicate exclusively through contracts defined in `src/shared/interfaces/contracts/` (one per BC: `registry.contract.ts`, `authorization.contract.ts`, `biometric.contract.ts`, `access-control.contract.ts`, `alerting.contract.ts`):
 
 ```typescript
-// ✅ Correcto: usar el contrato
+// ✅ Correct: use the contract
 import { IAlertingContract } from '@shared/interfaces/contracts';
 
-// ❌ Incorrecto: importar el módulo de otro BC directamente
+// ❌ Incorrect: import another BC's module directly
 import { AlertingModule } from '@modules/alerting/presentation/alerting.module';
 ```
 
-### Regla de entidades y TypeORM
+### Entity and TypeORM rules
 
-- **Nunca** usar glob patterns en `entities` de la configuración TypeORM (rompe con el modo strip-only de Node 22) — siempre `autoLoadEntities: true` (ya configurado en `database.module.ts`).
-- Los enums de TypeScript en entidades son válidos siempre que se carguen vía `autoLoadEntities` (no vía glob).
-- Cada entidad pertenece a un único schema: `@Entity({ schema: 'registry' })`, etc.
+- **Never** use glob patterns in TypeORM's `entities` config (breaks under Node 22's strip-only mode) — always `autoLoadEntities: true` (already configured in `database.module.ts`).
+- TypeScript enums in entities are valid as long as they're loaded via `autoLoadEntities` (not via glob).
+- Each entity belongs to a single schema: `@Entity({ schema: 'registry' })`, etc.
 
 ---
 
-## 🛠️ Instalación y arranque
+## Setup and startup
 
-### Prerequisitos
+### Prerequisites
 
 - Node.js **22.x**
 - pnpm **11.x**
-- PostgreSQL 16/17 corriendo (local o vía `docker-compose up -d postgres` desde la raíz)
+- PostgreSQL 16/17 running (local, or via `docker-compose up -d postgres` from the repo root)
 
 ### Setup
 
 ```bash
-# Desde la raíz del monorepo
+# From the monorepo root
 pnpm install
 
-# Configurar variables de entorno del backend
+# Configure backend environment variables
 cp apps/backend/.env.example apps/backend/.env
-# Ajustar credenciales si no usas Postgres local con postgres/admin
+# Adjust credentials if you're not using local Postgres with postgres/admin
 
-# Crear la base de datos (vacía, sin schemas — el backend los crea al arrancar)
+# Create the database (empty, no schemas — the backend creates them on boot)
 psql -U postgres -c "CREATE DATABASE vigia_db;"
 
-# Arrancar en modo watch
+# Start in watch mode
 pnpm --filter @vigia/backend run start:dev
 ```
 
-Al arrancar, el backend automáticamente:
-1. Crea los schemas `auth` y `registry` si no existen, más la extensión `uuid-ossp` (`ensureSchemas`, ver `core/database/init-schemas.ts`).
-2. Sincroniza las tablas desde las entidades TypeORM si `DB_SYNCHRONIZE=true` — **no hace falta correr migraciones en desarrollo**.
-3. Inserta los 3 usuarios de prueba (`admin@uce.edu.ec`, `guardia@uce.edu.ec`, `propietario@uce.edu.ec`) si `NODE_ENV=development` y la tabla `auth.users` está vacía (`SeedService.onModuleInit`).
+On boot, the backend automatically:
+1. Creates the `auth` and `registry` schemas if missing, plus the `uuid-ossp` extension (`ensureSchemas`, see `core/database/init-schemas.ts`).
+2. Syncs tables from TypeORM entities if `DB_SYNCHRONIZE=true` — **no need to run migrations in development**.
+3. Inserts the 3 test users (`admin@uce.edu.ec`, `guardia@uce.edu.ec`, `propietario@uce.edu.ec`) if `NODE_ENV=development` and `auth.users` is empty (`SeedService.onModuleInit`).
 
-### Migraciones (opcional — solo si `DB_SYNCHRONIZE=false`)
+### Migrations (optional — only if `DB_SYNCHRONIZE=false`)
 
-Existen dos migraciones ya generadas en `src/core/database/migrations/` (`InitialSchema`, `RegistryVIG75`) pensadas para producción, donde no se quiere depender de `synchronize`:
+Three migrations already exist under `src/core/database/migrations/` (`InitialSchema`, `RegistryVIG75`, `GrupoFamiliarGlobal`), meant for production, where you don't want to depend on `synchronize`:
 
 ```bash
 pnpm --filter @vigia/backend run build
 pnpm --filter @vigia/backend run migration:run
-pnpm --filter @vigia/backend run migration:generate -- src/core/database/migrations/NombreMigracion
+pnpm --filter @vigia/backend run migration:generate -- src/core/database/migrations/MigrationName
 pnpm --filter @vigia/backend run migration:revert
 ```
 
-### Seed manual (alternativa al `SeedService` automático)
+### Manual seed (alternative to the automatic `SeedService`)
 
 ```bash
 pnpm --filter @vigia/backend run seed
 ```
 
-Ejecuta `src/core/database/seeds/run-seed.ts` directamente con `ts-node`. Útil si necesitas re-sembrar datos sin reiniciar el proceso Nest.
+Runs `src/core/database/seeds/run-seed.ts` directly with `ts-node`. Useful to re-seed data without restarting the Nest process.
 
 ---
 
-## 🔧 Variables de entorno
+## Environment variables
 
-Validadas al arrancar con Joi (`src/core/config/env.validation.ts`) — si falta una variable **requerida**, el proceso no levanta.
+Validated at boot with Joi (`src/core/config/env.validation.ts`) — the process refuses to start if a **required** variable is missing.
 
-| Variable | Requerida | Default | Descripción |
+| Variable | Required | Default | Description |
 |----------|:---:|---------|-------------|
-| `DB_HOST` | ✅ | — | Host de PostgreSQL |
-| `DB_PORT` | ✅ | `5432` | Puerto |
-| `DB_USERNAME` | ✅ | — | Usuario de la BD |
-| `DB_PASSWORD` | ✅ | — | Password de la BD |
-| `DB_NAME` | ✅ | — | Nombre de la base de datos |
-| `DB_SYNCHRONIZE` | — | `false` | `true` en dev — TypeORM crea/actualiza tablas desde las entidades |
-| `DB_LOGGING` | — | `false` | Loguea las queries SQL ejecutadas |
-| `JWT_SECRET` | ✅ | — | Secreto de firma de los JWT |
-| `JWT_EXPIRATION` | — | `1d` | Expiración del access token |
-| `BCRYPT_ROUNDS` | — | `10` | Rondas de hashing de contraseñas |
-| `NODE_ENV` | — | `development` | `development` habilita `SeedService` |
-| `APP_PORT` | — | `3000` | Puerto HTTP |
+| `DB_HOST` | ✅ | — | PostgreSQL host |
+| `DB_PORT` | ✅ | `5432` | Port |
+| `DB_USERNAME` | ✅ | — | Database user |
+| `DB_PASSWORD` | ✅ | — | Database password |
+| `DB_NAME` | ✅ | — | Database name |
+| `DB_SYNCHRONIZE` | — | `false` | `true` in dev — TypeORM creates/updates tables from entities |
+| `DB_LOGGING` | — | `false` | Logs executed SQL queries |
+| `JWT_SECRET` | ✅ | — | JWT signing secret |
+| `JWT_EXPIRATION` | — | `1d` | Access token expiration |
+| `BCRYPT_ROUNDS` | — | `10` | Password hashing rounds |
+| `NODE_ENV` | — | `development` | `development` enables `SeedService` |
+| `APP_PORT` | — | `3000` | HTTP port |
+| `CORS_ORIGIN` | — | `*` | Allowed CORS origin (monorepo dev setup expects `http://localhost:5173`) |
 
-`envFilePath` en `app.module.ts` solo resuelve `.env`/`.env.local` **dentro de `apps/backend/`** — nunca lee el `.env` de la raíz del repo (ese es solo para `docker-compose.yml`).
+`envFilePath` in `app.module.ts` only resolves `.env`/`.env.local` **inside `apps/backend/`** — it never reads the repo-root `.env` (that one is only for `docker-compose.yml`).
 
 ---
 
-## 📜 Scripts disponibles
+## Available scripts
 
-| Script | Descripción |
+| Script | Description |
 |--------|-------------|
-| `start:dev` | Servidor en modo watch (Webpack + `nest start --watch`) |
-| `build` | Compila con `nest build` → `dist/` |
-| `start:prod` | Inicia desde `dist/main.js` |
-| `test` / `test:watch` / `test:cov` | Tests unitarios (Jest) |
-| `test:e2e` | Tests end-to-end |
-| `migration:generate` / `migration:run` / `migration:revert` | Gestión de migraciones TypeORM |
-| `seed` | Ejecuta el script de seed manual |
-| `format` | Prettier sobre `src/` y `test/` |
-| `lint` | ESLint con `--fix` |
+| `start:dev` | Watch-mode server (Webpack + `nest start --watch`) |
+| `build` | Compiles with `nest build` → `dist/` |
+| `start:prod` | Starts from `dist/main.js` |
+| `test` / `test:watch` / `test:cov` | Unit tests (Jest) |
+| `test:e2e` | End-to-end tests |
+| `migration:generate` / `migration:run` / `migration:revert` | TypeORM migration management |
+| `seed` | Runs the manual seed script |
+| `format` | Prettier over `src/` and `test/` |
+| `lint` | ESLint with `--fix` |
 
 ---
 
-## 🌐 API
+## API
 
-### Prefijo y versión
+### Prefix and versioning
 
-- Prefijo global: **`api/v1`** (`app.setGlobalPrefix`), excepto los endpoints de `health`.
-- Versionado por URI habilitado (`VersioningType.URI`) — preparado para futuras versiones, no usado activamente aún.
-- CORS habilitado según `CORS_ORIGIN` (default `*`; en desarrollo del monorepo se espera `http://localhost:5173`).
-- `ValidationPipe` global con `whitelist`, `forbidNonWhitelisted` y `transform` activados — cualquier propiedad no declarada en el DTO es rechazada.
-- Respuestas envueltas por `ResponseInterceptor` y logueadas por `LoggingInterceptor`; errores centralizados en `AllExceptionsFilter`.
+- Global prefix: **`api/v1`** (`app.setGlobalPrefix`), except `health` endpoints.
+- URI versioning enabled (`VersioningType.URI`) — ready for future versions, not actively used yet.
+- CORS enabled per `CORS_ORIGIN` (default `*`; the monorepo dev setup expects `http://localhost:5173`).
+- Global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, and `transform` — any property not declared in a DTO is rejected.
+- Responses wrapped by `ResponseInterceptor` and logged by `LoggingInterceptor`; errors centralized in `AllExceptionsFilter`.
 
-### Endpoints implementados hoy
+### Endpoints implemented today
 
 #### `auth` (`/api/v1/auth`)
 
-| Método | Ruta | Rol requerido | Descripción |
+| Method | Route | Required role | Description |
 |--------|------|----------------|-------------|
-| `POST` | `/auth/login` | público | Login. Solo acepta emails `@uce.edu.ec`. |
-| `POST` | `/auth/change-password` | autenticado | Cambia la contraseña del usuario actual |
-| `POST` | `/auth/users` | ADMIN | Crea un usuario |
-| `GET` | `/auth/users` | ADMIN | Lista usuarios (paginado, filtros por rol/estado) |
-| `GET` | `/auth/users/:id` | ADMIN | Detalle de usuario |
-| `PATCH` | `/auth/users/:id/activate` | ADMIN | Activa un usuario |
-| `PATCH` | `/auth/users/:id/deactivate` | ADMIN | Desactiva un usuario |
-| `PATCH` | `/auth/users/:id/reset-password` | ADMIN | Genera contraseña temporal |
+| `POST` | `/auth/login` | public | Login. Only accepts `@uce.edu.ec` emails. |
+| `POST` | `/auth/change-password` | authenticated | Changes the current user's password |
+| `PATCH` | `/auth/users/me/onboarding-status` | authenticated | Persists `biometric_registered` / `vehicle_registered` for the current user |
+| `POST` | `/auth/users` | ADMIN | Creates a user |
+| `GET` | `/auth/users` | ADMIN | Lists users (paginated, filterable by role/status) |
+| `GET` | `/auth/users/:id` | ADMIN | User detail |
+| `PATCH` | `/auth/users/:id/activate` | ADMIN | Activates a user |
+| `PATCH` | `/auth/users/:id/deactivate` | ADMIN | Deactivates a user |
+| `PATCH` | `/auth/users/:id/reset-password` | ADMIN | Generates a temporary password |
 
-**Respuesta de `POST /auth/login`** (nota: hoy es un objeto plano, no anida `user`):
+**`POST /auth/login` response:**
 
 ```json
 {
   "access_token": "eyJhbGciOi...",
   "must_change_password": false,
-  "role": "OWNER"
+  "role": "OWNER",
+  "biometric_registered": false,
+  "vehicle_registered": true
 }
 ```
 
-> ⚠️ **Gap conocido:** esta respuesta **no incluye** `email`, `biometric_registered` ni `vehicle_registered`. El frontend rellena `email` con el valor tipeado en el formulario de login y asume `biometric_registered`/`vehicle_registered` en `false` si el backend no los envía — por eso el onboarding se vuelve a pedir después de cada login. Si implementas estos flags en el backend, actualiza `LoginResult` en `auth.service.ts` y el consumo en `apps/frontend/src/pages/auth/Login.tsx`.
+`biometric_registered` and `vehicle_registered` are persisted on the `User` entity and updated through `PATCH /auth/users/me/onboarding-status` when the owner completes each onboarding step (`AuthContext.completeBiometricOnboarding()` / `completeVehicleOnboarding()` on the frontend). Note the response is a flat object — it doesn't nest a `user` field, and doesn't include `email` (the frontend fills it in from the login form).
 
-Roles válidos: `ADMIN`, `GUARD`, `OWNER` (valores exactos en BD y payload JWT). `isActive()` en la entidad `User` acepta `ACTIVE` y `PENDING_PASSWORD_CHANGE`; solo `INACTIVE` bloquea el login.
+Valid roles: `ADMIN`, `GUARD`, `OWNER` (exact values in the DB and JWT payload). `isActive()` on the `User` entity accepts `ACTIVE` and `PENDING_PASSWORD_CHANGE`; only `INACTIVE` blocks login.
 
 #### `registry` (`/api/v1/registry`)
 
-| Método | Ruta | Descripción |
+| Method | Route | Description |
 |--------|------|-------------|
-| `POST` / `GET` | `/registry/personas` | Crear / listar personas |
-| `GET` / `PATCH` / `DELETE` | `/registry/personas/:id` | Detalle / actualizar / eliminar |
-| `PATCH` | `/registry/personas/:id/enrollment-completo` | Marca completado el enrollment biométrico de una persona |
-| `POST` / `GET` | `/registry/vehiculos` | Crear / listar vehículos |
-| `GET` | `/registry/vehiculos/placa/:placa` | Buscar por placa |
-| `GET` | `/registry/vehiculos/:id` | Detalle |
-| `GET` | `/registry/vehiculos/propietario/:propietarioId` | Vehículos de un propietario |
-| `PATCH` / `DELETE` | `/registry/vehiculos/:id` | Actualizar / eliminar |
-| `POST` | `/registry/asignaciones` | Crear asignación de rol (persona ↔ vehículo) |
-| `GET` | `/registry/asignaciones/vehiculo/:vehiculoId` | Asignaciones de un vehículo |
-| `GET` | `/registry/asignaciones/persona/:personaId` | Asignaciones de una persona |
-| `GET` | `/registry/asignaciones/vehiculo/:vehiculoId/grupo-familiar` | Grupo familiar autorizado de un vehículo |
-| `PATCH` | `/registry/asignaciones/:id/desactivar` | Desactiva una asignación |
+| `POST` / `GET` | `/registry/personas` | Create / list people |
+| `GET` / `PATCH` / `DELETE` | `/registry/personas/:id` | Detail / update / delete |
+| `PATCH` | `/registry/personas/:id/enrollment-completo` | Marks a person's biometric enrollment as completed |
+| `POST` / `GET` | `/registry/vehiculos` | Create / list vehicles |
+| `GET` | `/registry/vehiculos/placa/:placa` | Find by plate |
+| `GET` | `/registry/vehiculos/:id` | Detail |
+| `GET` | `/registry/vehiculos/propietario/:propietarioId` | Vehicles belonging to an owner |
+| `PATCH` / `DELETE` | `/registry/vehiculos/:id` | Update / delete |
+| `POST` | `/registry/asignaciones` | Create a role assignment (person ↔ vehicle) |
+| `GET` | `/registry/asignaciones/vehiculo/:vehiculoId` | Assignments for a vehicle |
+| `GET` | `/registry/asignaciones/persona/:personaId` | Assignments for a person |
+| `GET` | `/registry/asignaciones/vehiculo/:vehiculoId/grupo-familiar` | Authorized family group for a vehicle |
+| `PATCH` | `/registry/asignaciones/:id/desactivar` | Deactivates an assignment |
 
-Los demás Bounded Contexts (`authorization`, `biometric`, `access_control`, `alerting`) no exponen controllers todavía — confirmarlo con `find apps/backend/src/modules -name "*.controller.ts"` antes de asumir que un endpoint existe.
+#### `authorization` (`/api/v1/authorization`)
+
+Family group membership is **global per owner** — a `MiembroGrupoFamiliar` links a `personaId` to a `propietarioId` and grants access to every vehicle that owner has, not to a single vehicle.
+
+| Method | Route | Required role | Description |
+|--------|------|----------------|-------------|
+| `POST` | `/authorization/grupo-familiar` | OWNER | Adds a family group member for the authenticated owner |
+| `GET` | `/authorization/grupo-familiar/propietario/:propietarioId` | OWNER, ADMIN | Lists all family group members of an owner |
+| `GET` | `/authorization/grupo-familiar/propietario/:propietarioId/activos` | OWNER, ADMIN, GUARD | Lists only active family group members of an owner |
+| `PATCH` | `/authorization/grupo-familiar/:id/revocar` | OWNER | Revokes a family group member |
+| `POST` | `/authorization/temporales` | OWNER | Creates a temporary permit (validity ≤ 30 days from `vigenciaInicio`) |
+| `GET` | `/authorization/temporales/vehiculo/:vehiculoId` | OWNER, ADMIN, GUARD | Lists currently valid permits for a vehicle |
+| `GET` | `/authorization/temporales/persona/:personaId` | OWNER, ADMIN | Lists permits for a person |
+| `PATCH` | `/authorization/temporales/:id/revocar` | OWNER | Revokes a temporary permit |
+| `POST` | `/authorization/pases` | OWNER | Generates a quick-access pass; returns the plain code once |
+| `GET` | `/authorization/pases/mis-pases` | OWNER | Lists the authenticated owner's passes |
+| `GET` | `/authorization/pases/placa/:placa` | GUARD, ADMIN | Lists active passes for a plate |
+| `POST` | `/authorization/pases/validar` | GUARD | Validates a pass code against a plate |
+| `PATCH` | `/authorization/pases/:id/revocar` | OWNER | Revokes a pass |
+| `PATCH` | `/authorization/pases/:id/consumir` | GUARD, ADMIN | Marks a pass as consumed, linked to an access event |
+| `GET` | `/authorization/conjunto-autorizado/vehiculo/:vehiculoId` | GUARD, ADMIN | Full set of people currently authorized for a vehicle (family group + valid permits) |
+
+**Legacy `/permanentes` aliases:** `POST /authorization/permanentes`, `GET /authorization/permanentes/vehiculo/:vehiculoId`, `GET /authorization/permanentes/vehiculo/:vehiculoId/activas`, and `PATCH /authorization/permanentes/:id/revocar` remain temporarily. They resolve the vehicle's owner and delegate to the same family-group use cases, so the current frontend keeps working while it migrates to the `/grupo-familiar` routes directly.
+
+> ⚠️ **Domain note:** there is no `PROGRAMADO` (scheduled) state for temporary permits. A permit is created directly with an active status; whether it currently applies is determined by comparing `vigenciaInicio`/`vigenciaFin` against the current time, not by a separate lifecycle state.
+
+The remaining Bounded Contexts (`biometric`, `access_control`, `alerting`) don't expose controllers yet — confirm with `find apps/backend/src/modules -name "*.controller.ts"` before assuming an endpoint exists.
 
 ### Health checks
 
-Sin el prefijo `api/v1`:
+Without the `api/v1` prefix:
 
-| Endpoint | Propósito |
+| Endpoint | Purpose |
 |----------|-----------|
-| `GET /health` | Estado completo (DB, memoria, uptime) |
+| `GET /health` | Full status (DB, memory, uptime) |
 | `GET /health/liveness` | Liveness probe |
 | `GET /health/readiness` | Readiness probe |
 
@@ -277,26 +307,37 @@ Sin el prefijo `api/v1`:
 
 ---
 
-## 🗄️ Base de datos
+## Database
 
-| Schema | Tablas | Estado |
+| Schema | Tables | Status |
 |--------|:---:|--------|
-| `auth` | 1 | ✅ En uso |
-| `registry` | 3 | ✅ En uso |
-| `authorization` | 3 | 🚧 Definido, sin endpoints |
-| `biometric` | 3 | 🚧 Definido, sin endpoints (pgvector aún no habilitado — `installExtensions: false`) |
-| `access_control` | 4 | 🚧 Definido, sin endpoints |
-| `alerting` | 2 | 🚧 Definido, sin endpoints |
+| `auth` | 1 | ✅ In use |
+| `registry` | 3 | ✅ In use |
+| `authorization` | 3 | ✅ In use |
+| `biometric` | 3 | 🚧 Defined, no endpoints (pgvector not enabled yet — `installExtensions: false`) |
+| `access_control` | 4 | 🚧 Defined, no endpoints |
+| `alerting` | 2 | 🚧 Defined, no endpoints |
 
-`auth` y `registry` se crean explícitamente por `ensureSchemas()` porque son los únicos con datos reales al día de hoy; el resto de schemas los generará `synchronize: true` en cuanto existan entidades mapeadas a ellos.
+`auth` and `registry` are created explicitly by `ensureSchemas()` since they were the first with real data; the remaining schemas are generated by `synchronize: true` as entities get mapped to them.
 
 ---
 
-## 🤝 Contribución
+## Key technical decisions
 
-1. Cada Bounded Context es independiente — no romper los contratos de `@shared/interfaces/contracts`.
-2. `domain/` no debe importar nada de NestJS ni de TypeORM.
-3. `application/` (casos de uso / services) solo depende de interfaces de `domain/`.
-4. Toda lógica de acceso a base de datos va en `infrastructure/repositories/`.
-5. Antes de dar por hecho que un BC "ya existe", verifica si tiene `presentation/*.controller.ts` — varios están scaffolded pero sin endpoints.
-6. `pnpm --filter frontend build` debe pasar antes de hacer push si tocaste contratos que el frontend consume.
+- **Password hashing:** bcrypt with `BCRYPT_ROUNDS` from `.env` (default `10`).
+- **JWT payload:** `{ sub, email, role, name, mustChangePassword, personaId }` — `personaId` is backfilled on login for users created before the `Persona` ↔ `User` link existed, so it doesn't need to be looked up again on future logins.
+- **pgvector:** reserved for the `biometric` BC's future face-embedding storage; the Docker Compose Postgres image already ships with the extension, but it isn't installed/used by any entity yet (`installExtensions: false`).
+- **Quick-access passes:** the plain access code is only returned once, at creation time (`GenerarPaseResult.codigoPlano`); the entity persists a bcrypt hash, not the plain code.
+- **Family group is global per owner:** `MiembroGrupoFamiliar` links to `propietarioId`, not `vehiculoId` — a member is authorized for every active vehicle the owner has, not a single one.
+- **5-member cap on the family group is enforced by the frontend only** (`FAMILIA_MAX_MIEMBROS` in `apps/frontend/src/config/propietario-personas.config.ts`). `MAX_ACTIVE_AUTHORIZATIONS_PER_VEHICLE` exists as a constant in `src/shared/constants/index.ts` but isn't referenced anywhere in the authorization use cases yet — don't rely on the backend to reject a 6th member today.
+
+---
+
+## Contribution
+
+1. Each Bounded Context is independent — don't break the contracts in `@shared/interfaces/contracts`.
+2. `domain/` must not import anything from NestJS or TypeORM.
+3. `application/` (use cases / services) only depends on `domain/` interfaces.
+4. All database access lives in `infrastructure/repositories/`.
+5. Before assuming a BC "already exists," check whether it has a `presentation/*.controller.ts` — several are scaffolded but have no endpoints.
+6. `pnpm --filter frontend build` must pass before pushing if you touched contracts the frontend consumes.

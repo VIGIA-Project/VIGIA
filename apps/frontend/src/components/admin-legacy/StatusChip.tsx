@@ -37,6 +37,9 @@ const palette: Record<StatusKind, Record<string, { label: string; color: 'defaul
     DESACTIVADO: { label: 'SUSPENDIDO', color: 'error' },
     PENDIENTE_CONTRASEÑA: { label: 'CONTRASEÑA PENDIENTE', color: 'warning' },
     PENDIENTE_BIOMETRIA: { label: 'BIOMETRÍA PENDIENTE', color: 'warning' },
+    ACTIVE: { label: 'ACTIVA', color: 'success' },
+    INACTIVE: { label: 'INACTIVA', color: 'error' },
+    PENDING_PASSWORD_CHANGE: { label: 'CAMBIO DE CONTRASEÑA PENDIENTE', color: 'warning' },
   },
   autorizacion: {
     ACTIVA: { label: 'ACTIVA', color: 'success' },

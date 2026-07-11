@@ -18,7 +18,7 @@ import {
 const SIDEBAR_WIDTH = 260;
 
 // Mapeo de rol → configuración de navegación
-const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: { rol: string; userInitials: string; notificationCount: number } }> = {
+const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: { rol: string; userInitials: string } }> = {
   OWNER: { routes: OWNER_NAV_ROUTES, config: OWNER_CONFIG },
   GUARD: { routes: GUARD_NAV_ROUTES, config: GUARD_CONFIG },
   ADMIN: { routes: ADMIN_NAV_ROUTES, config: ADMIN_CONFIG },
@@ -28,7 +28,6 @@ export interface DashboardTemplateProps {
   rol: 'OWNER' | 'GUARD' | 'ADMIN';
   pageTitle: string;
   userInitials?: string;
-  notificationCount?: number;
   children: React.ReactNode;
 }
 
@@ -36,7 +35,6 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   rol,
   pageTitle,
   userInitials,
-  notificationCount,
   children,
 }) => {
   const location = useLocation();
@@ -96,7 +94,6 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <Header
           pageTitle={pageTitle}
-          notificationCount={notificationCount ?? defaults.notificationCount}
           userInitials={userInitials ?? dynamicInitials ?? defaults.userInitials}
           isMobile={isMobile}
           onMenuClick={() => setMobileOpen(true)}

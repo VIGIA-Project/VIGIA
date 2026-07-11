@@ -34,8 +34,16 @@ export const authorizationService = {
     const res = await apiGet<{ count: number }>('/authorization/temporales/count');
     return res.count;
   },
-  getTemporalesProximosAExpirar: () => apiGet<PermisoTemporal[]>('/authorization/temporales/proximos-expirar?dias=2'),
+  countPasesRapidos: async () => {
+    const res = await apiGet<{ count: number }>('/authorization/pases/count');
+    return res.count;
+  },
+  getTemporalesProximosAExpirar: () => apiGet<PermisoTemporal[]>('/authorization/temporales/proximos-expirar?dias=7'),
   getConjuntoAutorizado: (vehiculoId: string) => apiGet<any>(`/authorization/conjunto-autorizado/vehiculo/${vehiculoId}`),
+  getTodosPasesRapidos: () => apiGet<PaseAccesoRapido[]>('/authorization/pases'),
+  listarPorPersona: (personaId: string) => apiGet<PermisoTemporal[]>(`/authorization/temporales/persona/${personaId}`),
+  revocarPermiso: (id: string) => apiPatchData<any>(`/authorization/temporales/${id}/revocar`, {}),
+  revocarPase: (id: string) => apiPatchData<any>(`/authorization/pases/${id}/revocar`, {}),
 };
 
 // ─── Autorizaciones permanentes ──────────────────────────────────────────
@@ -69,6 +77,9 @@ export const revocarPermiso = (id: string): Promise<PermisoTemporal> =>
 
 // ─── Pases de acceso rápido ────────────────────────────────────────────────
 
+export const getTodosPasesRapidos = (): Promise<PaseAccesoRapido[]> =>
+  apiGetData('/authorization/pases');
+
 export const generarPase = (dto: CrearPaseRapidoDto): Promise<GenerarPaseResult> =>
   apiPostData('/authorization/pases', dto);
 
@@ -76,6 +87,7 @@ export const listarMisPases = (): Promise<PaseAccesoRapido[]> => apiGetData('/au
 
 export const listarActivosPorPlaca = (placa: string): Promise<PaseAccesoRapido[]> =>
   apiGetData(`/authorization/pases/placa/${placa}`);
+
 
 export const validarPase = (codigo: string, placa: string): Promise<ResultadoValidacionPase> =>
   apiPostData('/authorization/pases/validar', { codigo, placa });

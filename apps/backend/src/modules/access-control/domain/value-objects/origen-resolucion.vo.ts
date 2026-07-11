@@ -1,0 +1,6 @@
+export enum OrigenResolucion {
+  AUTOMATICA = 'AUTOMATICA',
+  MANUAL = 'MANUAL',
+  CONTINGENCIA = 'CONTINGENCIA',
+  INVITADO = 'INVITADO',
+}

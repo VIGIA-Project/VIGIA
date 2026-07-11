@@ -43,9 +43,13 @@ const palette: Record<StatusKind, Record<string, { label: string; color: 'defaul
   },
   autorizacion: {
     ACTIVA: { label: 'ACTIVA', color: 'success' },
+    ACTIVO: { label: 'ACTIVO', color: 'success' },
     INACTIVA: { label: 'INACTIVA', color: 'default' },
     REVOCADO: { label: 'REVOCADO', color: 'error' },
+    REVOCADA: { label: 'REVOCADA', color: 'error' },
     EXPIRADO: { label: 'EXPIRADO', color: 'warning' },
+    EXPIRADA: { label: 'EXPIRADA', color: 'warning' },
+    CONSUMIDO: { label: 'CONSUMIDO', color: 'info' },
   },
   disponibilidad: {
     DISPONIBLE: { label: 'DISPONIBLE', color: 'success' },

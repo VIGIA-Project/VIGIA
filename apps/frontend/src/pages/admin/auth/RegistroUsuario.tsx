@@ -5,11 +5,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
-import { loadPersonas } from "../../../config/propietario-personas.config";
 
 export default function RegistroUsuario() {
   const navigate = useNavigate();
-  const personas = loadPersonas();
+  const personas: { id: string; nombre: string; cedula: string }[] = [];
   const [nombre, setNombre] = useState("");
   const [identificacion, setIdentificacion] = useState("");
   const [correo, setCorreo] = useState("");

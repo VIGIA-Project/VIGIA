@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Request, UseGuards, Param } from '@nestjs/common';
 import { BiometricService } from '../application/biometric.service';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 
@@ -33,5 +33,11 @@ export class BiometricController {
     }
     await this.biometricService.registrarPerfil(personaId);
     return { success: true, message: 'Perfil biométrico registrado exitosamente' };
+  }
+
+  @Post('perfiles/persona/:personaId')
+  async registrarPerfilPersona(@Param('personaId') personaId: string) {
+    await this.biometricService.registrarPerfil(personaId);
+    return { success: true, message: 'Perfil biométrico registrado exitosamente para la persona' };
   }
 }

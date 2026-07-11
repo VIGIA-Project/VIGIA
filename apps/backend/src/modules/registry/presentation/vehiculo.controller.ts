@@ -61,7 +61,7 @@ export class VehiculoController {
     }
 
     @Patch(':id')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     async actualizar(
         @Param('id') id: string,
         @Body() dto: ActualizarVehiculoDto,

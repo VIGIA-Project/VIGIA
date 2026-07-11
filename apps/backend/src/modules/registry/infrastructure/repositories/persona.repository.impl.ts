@@ -71,8 +71,7 @@ export class PersonaRepositoryImpl implements IPersonaRepository {
     async findSinPerfilBiometrico(): Promise<Persona[]> {
         const orms = await this.repo
             .createQueryBuilder('p')
-            .leftJoin('biometric.perfiles_biometricos', 'pb', 'pb.persona_id = p.persona_id')
-            .where('pb.perfil_biometrico_id IS NULL')
+            .where('p.estado_biometrico = :estado', { estado: EstadoBiometrico.PENDIENTE })
             .getMany();
         return orms.map((orm) => this.toDomain(orm));
     }

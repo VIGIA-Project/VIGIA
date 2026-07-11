@@ -86,7 +86,7 @@ export class AuthorizationController {
   }
 
   @Patch('permanentes/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarAutorizacionPermanente(@Param('id') id: string) {
     return this.authorizationService.revocarAutorizacion(id);
   }
@@ -133,7 +133,7 @@ export class AuthorizationController {
   }
 
   @Patch('temporales/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarPermisoTemporal(@Param('id') id: string) {
     return this.authorizationService.revocarPermiso(id);
   }
@@ -145,6 +145,19 @@ export class AuthorizationController {
   @HttpCode(HttpStatus.CREATED)
   async generarPase(@Request() req: any, @Body() dto: CrearPaseRapidoDto) {
     return this.authorizationService.generarPase(dto, this.propietarioIdDesdeJwt(req));
+  }
+
+  @Get('pases')
+  @Roles(UserRole.ADMIN)
+  async listarTodosPases() {
+    return this.authorizationService.listarTodosPases();
+  }
+
+  @Get('pases/count')
+  @Roles(UserRole.ADMIN)
+  async contarPasesActivos() {
+    const total = await this.authorizationService.contarPasesActivos();
+    return { count: total };
   }
 
   @Get('pases/mis-pases')
@@ -167,7 +180,7 @@ export class AuthorizationController {
   }
 
   @Patch('pases/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarPase(@Param('id') id: string) {
     return this.authorizationService.revocarPase(id);
   }

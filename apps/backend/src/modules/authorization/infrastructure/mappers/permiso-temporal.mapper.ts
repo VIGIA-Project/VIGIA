@@ -30,6 +30,7 @@ export class PermisoTemporalMapper {
     orm.vigenciaFin = domain.vigencia.fin;
     orm.motivo = domain.motivo;
     orm.fechaRevocacion = domain.fechaRevocacion ?? null;
+    orm.createdAt = domain.fechaCreacion;
     return orm;
   }
 }

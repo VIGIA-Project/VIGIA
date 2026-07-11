@@ -73,7 +73,8 @@ export class AuthorizationService {
     if (!autorizacion) {
       throw new EntityNotFoundException('AutorizacionPermanente', id);
     }
-    autorizacion.revocar();
+    // Para autorizaciones permanentes, la base de datos usa INACTIVA en lugar de REVOCADA
+    autorizacion.desactivar();
     return this.autorizacionPermanenteRepository.guardar(autorizacion);
   }
 
@@ -159,6 +160,14 @@ export class AuthorizationService {
 
   async listarActivosPorPlaca(placa: string): Promise<PaseAccesoRapido[]> {
     return this.paseAccesoRapidoRepository.buscarActivosPorPlaca(placa);
+  }
+
+  async listarTodosPases(limite = 30): Promise<PaseAccesoRapido[]> {
+    return this.paseAccesoRapidoRepository.buscarTodos(limite);
+  }
+
+  async contarPasesActivos(): Promise<number> {
+    return this.paseAccesoRapidoRepository.contarActivos();
   }
 
   async validarPase(codigo: string, placa: string): Promise<ResultadoEvaluacionPase> {

@@ -37,7 +37,7 @@ export class PaseAccesoRapidoMapper {
     orm.motivo = domain.motivo;
     orm.fechaConsumo = domain.fechaConsumo ?? null;
     orm.eventoConsumoId = domain.eventoConsumoId ?? null;
-    // orm.revocadoEn = domain.revocadoEn ?? null; // Domain doesnt track this explicitly
+    orm.createdAt = domain.fechaCreacion;
     return orm;
   }
 }

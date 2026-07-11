@@ -25,6 +25,8 @@ export class AutorizacionPermanenteMapper {
     orm.tipo = domain.tipo;
     orm.estado = domain.estado;
     orm.relacion = domain.relacion;
+    orm.createdAt = domain.fechaCreacion;
+    orm.updatedAt = domain.fechaActualizacion;
     return orm;
   }
 }

@@ -61,4 +61,19 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
       .getMany();
     return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
   }
+
+  async buscarTodos(limite = 30): Promise<PaseAccesoRapido[]> {
+    const orms = await this.repo.find({
+      order: { createdAt: 'DESC' },
+      take: limite,
+    });
+    return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
+  }
+
+  async contarActivos(): Promise<number> {
+    return this.repo
+      .createQueryBuilder('p')
+      .where('p.estado = :estado', { estado: EstadoPase.ACTIVO })
+      .getCount();
+  }
 }

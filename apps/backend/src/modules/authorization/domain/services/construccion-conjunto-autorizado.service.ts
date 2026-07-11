@@ -1,4 +1,4 @@
-import { IAutorizacionPermanenteRepository } from '../repositories/autorizacion-permanente.repository';
+import { IMiembroGrupoFamiliarRepository } from '../repositories/miembro-grupo-familiar.repository';
 import { IPermisoTemporalRepository } from '../repositories/permiso-temporal.repository';
 import { TipoAutorizacion } from '../value-objects/tipo-autorizacion.vo';
 import { EvaluacionVigenciaService } from './evaluacion-vigencia.service';
@@ -22,7 +22,7 @@ export interface ConjuntoAutorizado {
  */
 export class ConstruccionConjuntoAutorizadoService {
   constructor(
-    private readonly autorizacionPermanenteRepository: IAutorizacionPermanenteRepository,
+    private readonly miembroGrupoFamiliarRepository: IMiembroGrupoFamiliarRepository,
     private readonly permisoTemporalRepository: IPermisoTemporalRepository,
     private readonly evaluacionVigenciaService: EvaluacionVigenciaService = new EvaluacionVigenciaService(),
   ) {}
@@ -40,15 +40,17 @@ export class ConstruccionConjuntoAutorizadoService {
       tipo: TipoAutorizacion.PERMANENTE,
     });
 
-    // 2. Autorizaciones permanentes activas.
-    const permanentes = await this.autorizacionPermanenteRepository.buscarActivasPorVehiculo(
-      vehiculoId,
+    // 2. Miembros del grupo familiar activos del propietario — el grupo
+    // familiar autoriza acceso a todos los vehículos activos del propietario,
+    // por lo que no se filtra por vehiculoId.
+    const miembros = await this.miembroGrupoFamiliarRepository.buscarActivosPorPropietario(
+      propietarioId,
     );
-    for (const autorizacion of permanentes) {
-      const { vigente } = this.evaluacionVigenciaService.evaluarPermanente(autorizacion, instante);
+    for (const miembro of miembros) {
+      const { vigente } = this.evaluacionVigenciaService.evaluarMiembroGrupoFamiliar(miembro, instante);
       if (!vigente) continue;
-      autorizados.set(autorizacion.personaId, {
-        personaId: autorizacion.personaId,
+      autorizados.set(miembro.personaId, {
+        personaId: miembro.personaId,
         tipo: TipoAutorizacion.PERMANENTE,
       });
     }

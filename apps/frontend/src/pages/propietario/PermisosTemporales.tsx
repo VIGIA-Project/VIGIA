@@ -10,7 +10,7 @@ import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PermisosGrid } from '../../components/organisms/propietario/PermisosGrid';
 import { CreatePermisoDrawer, CreatePermisoData } from '../../components/organisms/propietario/CreatePermisoDrawer';
 import { RevokePermisoModal } from '../../components/organisms/propietario/RevokePermisoModal';
-import { ErrorState, LoadingSkeleton } from '../../components/atoms';
+import { ErrorState, LoadingSkeleton, PerfilIncompletoState } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
 import { PermisoTemporal, mapPermisoAViewModel } from '../../config/propietario-permisos.config';
@@ -24,7 +24,7 @@ const PermisosTemporalesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo } = usePropietarioVehiculo();
+  const { vehiculo, isLoading: isLoadingVehiculo, isError: isErrorVehiculo, refetch: refetchVehiculo, perfilIncompleto } = usePropietarioVehiculo();
   const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo?.vehiculoId);
   const crearPersonaMutation = useCrearPersona();
   const crearPermisoMutation = useCrearPermiso();
@@ -112,6 +112,14 @@ const PermisosTemporalesPage: React.FC = () => {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Permisos temporales">
         <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+      </DashboardTemplate>
+    );
+  }
+
+  if (perfilIncompleto) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Permisos temporales">
+        <PerfilIncompletoState />
       </DashboardTemplate>
     );
   }

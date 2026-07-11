@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   Request,
   UseGuards,
   HttpCode,
@@ -78,6 +79,13 @@ export class AuthorizationController {
   @Roles(UserRole.OWNER)
   async revocarMiembroGrupoFamiliar(@Param('id') id: string) {
     return this.authorizationService.revocarMiembroGrupoFamiliar(id);
+  }
+
+  @Get('grupo-familiar/count')
+  @Roles(UserRole.ADMIN)
+  async contarMiembrosGrupoFamiliar() {
+    const count = await this.authorizationService.contarMiembrosActivos();
+    return { count };
   }
 
   // ─── Autorizaciones permanentes (legacy aliases) ───────────────────────
@@ -154,6 +162,20 @@ export class AuthorizationController {
     return this.authorizationService.revocarPermiso(id);
   }
 
+  @Get('temporales/count')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async contarPermisosTemporales() {
+    const count = await this.authorizationService.contarPermisosVigentes();
+    return { count };
+  }
+
+  @Get('temporales/proximos-expirar')
+  @Roles(UserRole.ADMIN)
+  async listarProximosAExpirar(@Query('dias') dias?: string) {
+    const diasVentana = dias ? parseInt(dias, 10) : 7;
+    return this.authorizationService.listarProximosAExpirar(diasVentana);
+  }
+
   // ─── Pases de acceso rápido ────────────────────────────────────────────
 
   @Post('pases')
@@ -192,6 +214,13 @@ export class AuthorizationController {
   @Roles(UserRole.GUARD, UserRole.ADMIN)
   async consumirPase(@Param('id') id: string, @Body() dto: ConsumirPaseDto) {
     return this.authorizationService.consumirPase(id, dto.eventoId);
+  }
+
+  @Get('pases/count')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async contarPases() {
+    const count = await this.authorizationService.contarPasesActivos();
+    return { count };
   }
 
   // ─── Conjunto autorizado ────────────────────────────────────────────────

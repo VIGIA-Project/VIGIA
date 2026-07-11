@@ -14,4 +14,6 @@ export interface IPaseAccesoRapidoRepository {
   ): Promise<PaseAccesoRapido[]>;
 
   buscarPorPropietario(propietarioId: string): Promise<PaseAccesoRapido[]>;
+
+  contarActivos(instante?: Date): Promise<number>;
 }

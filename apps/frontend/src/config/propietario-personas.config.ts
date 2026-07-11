@@ -9,7 +9,7 @@ import { Persona } from '../services/types/registry.types';
 
 export type PersonaTipo = 'familia' | 'frecuente';
 export type PersonaBiometria = 'COMPLETADA' | 'PENDIENTE';
-export type PersonaEstado = 'ACTIVA' | 'REVOCADA';
+export type PersonaEstado = 'ACTIVA' | 'REVOCADA' | 'INACTIVA';
 
 export interface PersonaAutorizada {
   /** id de la AutorizacionPermanente — usado para revocar */
@@ -44,7 +44,7 @@ export const mapAutorizacionAPersona = (
   relacion: autorizacion.relacion,
   tipo: tipoFromRelacion(autorizacion.relacion),
   biometria: persona?.estadoBiometrico === 'COMPLETO' ? 'COMPLETADA' : 'PENDIENTE',
-  estado: autorizacion.estado === 'ACTIVA' ? 'ACTIVA' : 'REVOCADA',
+  estado: autorizacion.estado as PersonaEstado,
   telefono: persona?.telefonoContacto,
   autorizadoDesde: format(new Date(autorizacion.fechaCreacion), "dd MMM yyyy"),
 });

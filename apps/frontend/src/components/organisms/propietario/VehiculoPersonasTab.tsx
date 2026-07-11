@@ -8,12 +8,56 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import { staggerContainer, staggerItem } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
-import { MOCK_PERSONAS_AUTORIZADAS, PERSONAS_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { PERSONAS_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { PropietarioVehiculo } from '../../../config/propietario-vehiculos.config';
+import { useConjuntoAutorizado } from '../../../hooks/useAuthorization';
+import { usePersonasDelPropietario } from '../../../hooks/useRegistry';
+import { LoadingSkeleton, ErrorState } from '../../atoms';
 
-export const VehiculoPersonasTab: React.FC = () => {
+export interface VehiculoPersonasTabProps {
+  vehiculo: PropietarioVehiculo;
+}
+
+export const VehiculoPersonasTab: React.FC<VehiculoPersonasTabProps> = ({ vehiculo }) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
-  const personas = MOCK_PERSONAS_AUTORIZADAS;
+  
+  const { data: conjunto, isLoading: isLoadingConjunto, isError } = useConjuntoAutorizado(vehiculo.id);
+  
+  const personaIds = React.useMemo(() => {
+    if (!conjunto) return [];
+    // The set of authorized people including the owner
+    const ids = [conjunto.propietarioId, ...conjunto.autorizados.map((a: any) => a.personaId)];
+    return Array.from(new Set(ids));
+  }, [conjunto]);
+
+  const { personasById, isLoading: isLoadingPersonas } = usePersonasDelPropietario(personaIds);
+
+  const personas = React.useMemo(() => {
+    if (!conjunto) return [];
+    
+    return personaIds.map(id => {
+      const p = personasById.get(id);
+      const isOwner = id === conjunto.propietarioId;
+      const authInfo = isOwner ? null : conjunto.autorizados.find((a: any) => a.personaId === id);
+      
+      return {
+        id,
+        nombre: p ? `${p.nombres} ${p.apellidos}` : 'Usuario Desconocido',
+        relacion: isOwner ? 'Propietario' : (authInfo?.tipo === 'PERMANENTE' ? 'Familiar' : 'Temporal'),
+        biometria: p?.estadoBiometrico === 'COMPLETO' ? 'COMPLETADA' : 'PENDIENTE',
+        tipo: isOwner ? 'PERMANENTE' : authInfo?.tipo,
+      };
+    });
+  }, [personaIds, personasById, conjunto]);
+
+  if (isLoadingConjunto || isLoadingPersonas) {
+    return <LoadingSkeleton variant="cards" rows={2} />;
+  }
+
+  if (isError) {
+    return <ErrorState mensaje="No se pudieron cargar las personas autorizadas." />;
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -60,64 +104,86 @@ export const VehiculoPersonasTab: React.FC = () => {
         </Box>
       ) : (
         <motion.div variants={shouldReduceMotion ? undefined : staggerContainer} initial="hidden" animate="visible">
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-            {personas.map((persona) => {
-              const bioCompleta = persona.biometria === 'COMPLETADA';
-              return (
-                <motion.div key={persona.id} variants={shouldReduceMotion ? undefined : staggerItem}>
-                  <Box sx={{ p: 2.25, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', boxShadow: vigiaShadows.sm, backgroundColor: vigiaColors.bgCard }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
-                      <Box sx={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '1rem', color: '#0F172A' }}>
-                          {persona.nombre}
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: 'inline-block',
-                            mt: 0.25,
-                            px: 1,
-                            py: 0.1,
-                            borderRadius: vigiaRadius.full,
-                            backgroundColor: '#F1F5F9',
-                            color: '#475569',
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {persona.relacion}
+          
+          {['PROPIETARIO', 'PERMANENTE', 'TEMPORAL'].map((tipoGrupo) => {
+            const grupo = personas.filter((p) => {
+              if (tipoGrupo === 'PROPIETARIO') return p.relacion === 'Propietario';
+              if (tipoGrupo === 'PERMANENTE') return p.tipo === 'PERMANENTE' && p.relacion !== 'Propietario';
+              return p.tipo === 'TEMPORAL';
+            });
+
+            if (grupo.length === 0) return null;
+
+            const titulo = tipoGrupo === 'PROPIETARIO' ? 'Propietario del Vehículo' 
+                        : tipoGrupo === 'PERMANENTE' ? 'Conductores Permanentes (Familia)'
+                        : 'Permisos Temporales';
+
+            return (
+              <Box key={tipoGrupo} sx={{ mb: 3 }}>
+                <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, fontSize: '1.05rem', color: '#0F172A', mb: 1.5, pb: 0.5, borderBottom: '1px solid #E2E8F0' }}>
+                  {titulo}
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+                  {grupo.map((persona) => {
+                    const bioCompleta = persona.biometria === 'COMPLETADA';
+                    return (
+                      <motion.div key={persona.id} variants={shouldReduceMotion ? undefined : staggerItem}>
+                        <Box sx={{ p: 2.25, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', boxShadow: vigiaShadows.sm, backgroundColor: vigiaColors.bgCard }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
+                            <Box sx={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <PersonOutlineOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} />
+                            </Box>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '1rem', color: '#0F172A' }}>
+                                {persona.nombre}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: 'inline-block',
+                                  mt: 0.25,
+                                  px: 1,
+                                  py: 0.1,
+                                  borderRadius: vigiaRadius.full,
+                                  backgroundColor: '#F1F5F9',
+                                  color: '#475569',
+                                  fontFamily: '"Inter", sans-serif',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {persona.relacion}
+                              </Box>
+                            </Box>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              display: 'inline-block',
+                              px: 1.25,
+                              py: 0.3,
+                              borderRadius: vigiaRadius.full,
+                              backgroundColor: bioCompleta ? '#DCFCE7' : '#FEF3C7',
+                              color: bioCompleta ? '#166534' : '#92400E',
+                              fontFamily: '"Inter", sans-serif',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              mb: 1,
+                            }}
+                          >
+                            {bioCompleta ? PERSONAS_TAB_COPY.bioCompleta : PERSONAS_TAB_COPY.bioPendiente}
+                          </Box>
+
+                          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B' }}>
+                            {persona.relacion === 'Propietario' ? 'Dueño del vehículo' : PERSONAS_TAB_COPY.accessText}
+                          </Typography>
                         </Box>
-                      </Box>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: 'inline-block',
-                        px: 1.25,
-                        py: 0.3,
-                        borderRadius: vigiaRadius.full,
-                        backgroundColor: bioCompleta ? '#DCFCE7' : '#FEF3C7',
-                        color: bioCompleta ? '#166534' : '#92400E',
-                        fontFamily: '"Inter", sans-serif',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        mb: 1,
-                      }}
-                    >
-                      {bioCompleta ? PERSONAS_TAB_COPY.bioCompleta : PERSONAS_TAB_COPY.bioPendiente}
-                    </Box>
-
-                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B' }}>
-                      {PERSONAS_TAB_COPY.accessText}
-                    </Typography>
-                  </Box>
-                </motion.div>
-              );
-            })}
-          </Box>
+                      </motion.div>
+                    );
+                  })}
+                </Box>
+              </Box>
+            );
+          })}
         </motion.div>
       )}
     </Box>

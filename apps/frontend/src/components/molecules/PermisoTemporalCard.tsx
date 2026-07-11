@@ -49,7 +49,6 @@ export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permis
           height: '100%',
           transition: 'box-shadow 180ms ease, transform 180ms ease',
           '&:hover': { boxShadow: '0 6px 18px rgba(10,47,134,0.14)' },
-          '&:hover .permiso-card-revoke, &:focus-within .permiso-card-revoke': { opacity: 1 },
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5, mb: 1.5 }}>
@@ -97,7 +96,7 @@ export const PermisoTemporalCard: React.FC<PermisoTemporalCardProps> = ({ permis
               component="button"
               className="permiso-card-revoke"
               onClick={() => onRevoke?.(permiso.id)}
-              sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0, opacity: { xs: 1, sm: 0 }, transition: 'opacity 180ms ease', '&:hover': { textDecoration: 'underline' } }}
+              sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.8rem', p: 0, transition: 'opacity 180ms ease', '&:hover': { textDecoration: 'underline' } }}
             >
               Revocar
             </Box>

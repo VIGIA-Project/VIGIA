@@ -47,6 +47,6 @@ export const mapPermisoAViewModel = (
   vehiculo: { marca: vehiculo?.marca ?? '—', modelo: vehiculo?.modelo ?? '', placa: vehiculo?.placa ?? '—' },
   fechaInicio: format(new Date(permiso.vigenciaInicio), 'yyyy-MM-dd'),
   fechaFin: format(new Date(permiso.vigenciaFin), 'yyyy-MM-dd'),
-  estado: ESTADO_MAP[permiso.estado],
+  estado: (ESTADO_MAP[permiso.estado] === 'ACTIVO' && new Date(permiso.vigenciaFin) < new Date()) ? 'EXPIRADO' : ESTADO_MAP[permiso.estado],
   motivo: permiso.motivo,
 });

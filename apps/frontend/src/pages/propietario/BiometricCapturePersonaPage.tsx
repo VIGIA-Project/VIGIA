@@ -11,6 +11,7 @@ import { LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
 import { usePropietarioVehiculo, usePersona, useMarcarEnrollmentCompleto } from '../../hooks/useRegistry';
+import { biometricService } from '../../services/biometric.service';
 import { useAutorizacionesPorVehiculo } from '../../hooks/useAuthorization';
 import { PERSONA_BIOMETRIC_CAPTURE_COPY as COPY } from '../../config/propietario-personas.config';
 
@@ -33,6 +34,7 @@ const BiometricCapturePersonaPage: React.FC = () => {
   const handleAllCaptured = async () => {
     if (!autorizacion) return;
     try {
+      await biometricService.registrarPerfilPersona(autorizacion.personaId);
       await marcarEnrollmentMutation.mutateAsync(autorizacion.personaId);
     } catch (err) {
       // El BC Biometric real (pgvector) no existe todavía — solo persistimos

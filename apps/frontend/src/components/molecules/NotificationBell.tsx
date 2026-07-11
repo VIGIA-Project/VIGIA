@@ -15,15 +15,17 @@ import {
 import { useNavigate } from 'react-router-dom';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import CircleIcon from '@mui/icons-material/Circle';
+import { useQuery } from '@tanstack/react-query';
+import { notificationService } from '../../services/notification.service';
 
 type SeveridadNotificacion = 'ALTA' | 'MEDIA' | 'INFORMATIVA';
 
-interface NotificacionMock {
-    alerta_id: string;
-    severidad: SeveridadNotificacion;
-    titulo: string;
-    subtitulo: string;
-}
+//interface NotificacionMock {
+//    alerta_id: string;
+//    severidad: SeveridadNotificacion;
+//    titulo: string;
+//    subtitulo: string;
+//}
 
 const SEVERIDAD_COLOR: Record<SeveridadNotificacion, string> = {
     ALTA: '#C62828',
@@ -31,26 +33,6 @@ const SEVERIDAD_COLOR: Record<SeveridadNotificacion, string> = {
     INFORMATIVA: '#16A34A',
 };
 
-const MOCK_NOTIFICACIONES: NotificacionMock[] = [
-    {
-        alerta_id: 'al-001',
-        severidad: 'ALTA',
-        titulo: 'Acceso denegado · PBW-1234',
-        subtitulo: 'Garita Sur · hace 2h',
-    },
-    {
-        alerta_id: 'al-002',
-        severidad: 'MEDIA',
-        titulo: 'Permiso por expirar · PBB-3456',
-        subtitulo: 'Expira en 4h',
-    },
-    {
-        alerta_id: 'al-003',
-        severidad: 'INFORMATIVA',
-        titulo: 'Pase consumido · A7K3M2',
-        subtitulo: 'Garita Norte · ayer',
-    },
-];
 
 interface NotificationBellProps {
     count: number;
@@ -58,9 +40,24 @@ interface NotificationBellProps {
     alertasPath?: string;
 }
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alertasPath = '/propietario/alertas' }) => {
+export const NotificationBell: React.FC<NotificationBellProps> = ({ alertasPath = '/propietario/alertas' }) => {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+    const { data: notificacionesAPI = [] } = useQuery({
+        queryKey: ['notificaciones'],
+        queryFn: () => notificationService.obtenerNotificaciones()
+    });
+
+    const notificaciones = notificacionesAPI.slice(0, 5).map((n: any) => ({
+        id: n.id,
+        severidad: n.severidad,
+        titulo: n.titulo,
+        subtitulo: n.subtitulo,
+        leida: n.leida,
+    }));
+
+    const displayCount = notificaciones.filter((n: any) => !n.leida).length;
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
@@ -81,10 +78,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alert
         <>
             <IconButton onClick={handleClick} aria-label="notificaciones">
                 <Badge
-                    badgeContent={count}
+                    badgeContent={displayCount}
                     sx={{
                         '& .MuiBadge-badge': {
-                            backgroundColor: count > 0 ? '#F2B51F' : undefined,
+                            backgroundColor: displayCount > 0 ? '#F2B51F' : undefined,
                             color: '#0A2F86',
                             fontWeight: 700,
                         },
@@ -127,21 +124,30 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alert
                     </Box>
                     <Divider />
                     <List disablePadding>
-                        {MOCK_NOTIFICACIONES.map((n) => (
-                            <ListItem key={n.alerta_id} divider disablePadding>
-                                <ListItemButton onClick={goToAlertas} sx={{ alignItems: 'flex-start', py: 1.25 }}>
-                                    <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                                        <CircleIcon sx={{ fontSize: 12, color: SEVERIDAD_COLOR[n.severidad] }} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={n.titulo}
-                                        secondary={n.subtitulo}
-                                        primaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#0F172A' } }}
-                                        secondaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#6B7280' } }}
-                                    />
-                                </ListItemButton>
+                        {notificaciones.length === 0 ? (
+                            <ListItem>
+                                <ListItemText
+                                    primary="No hay notificaciones recientes"
+                                    primaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: '#6B7280', textAlign: 'center', py: 2 } }}
+                                />
                             </ListItem>
-                        ))}
+                        ) : (
+                            notificaciones.map((n: any) => (
+                                <ListItem key={n.id} divider disablePadding>
+                                    <ListItemButton onClick={goToAlertas} sx={{ alignItems: 'flex-start', py: 1.25, backgroundColor: n.leida ? 'transparent' : 'rgba(13,92,207,0.04)' }}>
+                                        <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
+                                            <CircleIcon sx={{ fontSize: 12, color: SEVERIDAD_COLOR[n.severidad as SeveridadNotificacion] || SEVERIDAD_COLOR['INFORMATIVA'] }} />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={n.titulo}
+                                            secondary={n.subtitulo}
+                                            primaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontWeight: n.leida ? 500 : 600, fontSize: '0.85rem', color: '#0F172A' } }}
+                                            secondaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#6B7280' } }}
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+                            ))
+                        )}
                     </List>
                     <Box
                         onClick={goToAlertas}

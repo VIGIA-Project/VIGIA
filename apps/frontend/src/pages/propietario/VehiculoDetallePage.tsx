@@ -194,7 +194,7 @@ const VehiculoDetallePage: React.FC = () => {
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'resumen' && <VehiculoResumenTab vehiculo={vehiculo} onNavigateTab={setActiveTab} />}
-            {activeTab === 'personas' && <VehiculoPersonasTab />}
+            {activeTab === 'personas' && <VehiculoPersonasTab vehiculo={vehiculo} />}
             {activeTab === 'permisos' && <VehiculoPermisosTab vehiculo={vehiculo} />}
             {activeTab === 'pases' && <VehiculoPasesTab />}
             {activeTab === 'actividad' && <VehiculoActividadTab />}

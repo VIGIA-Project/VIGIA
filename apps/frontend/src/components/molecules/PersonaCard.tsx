@@ -27,7 +27,7 @@ const getIniciales = (nombre: string) => {
 const maskCedula = (cedula: string) => cedula.replace(/X/g, '•');
 
 export const PersonaCard: React.FC<PersonaCardProps> = ({ persona, onViewDetail, onRegisterBio, onRevoke }) => {
-  const isRevocada = persona.estado === 'REVOCADA';
+  const isRevocada = persona.estado === 'REVOCADA' || persona.estado === 'INACTIVA';
   const bioCompleta = persona.biometria === 'COMPLETADA';
 
   return (
@@ -44,7 +44,6 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({ persona, onViewDetail,
           opacity: isRevocada ? 0.65 : 1,
           transition: 'transform 0.18s ease, box-shadow 0.18s ease',
           '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 18px rgba(10,47,134,0.14)' },
-          '&:hover .persona-revoke-btn': { opacity: 1 },
         }}
       >
         <Box sx={{ p: 2.25, flex: 1 }}>
@@ -206,10 +205,9 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({ persona, onViewDetail,
                 fontFamily: '"Inter", sans-serif',
                 fontWeight: 600,
                 fontSize: '0.8rem',
-                opacity: 0,
                 transition: 'opacity 0.18s ease',
                 '&:hover': { textDecoration: 'underline' },
-                '&:focus-visible': { opacity: 1, outline: `2px solid ${vigiaColors.greenIA}`, outlineOffset: '2px' },
+                '&:focus-visible': { outline: `2px solid ${vigiaColors.greenIA}`, outlineOffset: '2px' },
               }}
             >
               {PERSONA_CARD_COPY.revoke}

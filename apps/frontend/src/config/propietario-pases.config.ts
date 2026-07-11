@@ -39,7 +39,7 @@ export const mapPaseAViewModel = (pase: PaseAccesoRapido, vehiculo?: Vehiculo, c
   vehiculo: { marca: vehiculo?.marca ?? '—', modelo: vehiculo?.modelo ?? '', placa: vehiculo?.placa ?? pase.placa },
   generadoEn: pase.fechaCreacion,
   duracionHoras: Math.max(1, differenceInHours(new Date(pase.vigenciaFin), new Date(pase.vigenciaInicio))),
-  estado: pase.estado,
+  estado: (pase.estado === 'ACTIVA' || pase.estado === 'ACTIVO') && new Date(pase.vigenciaFin) < new Date() ? 'EXPIRADO' : pase.estado as PaseRapido['estado'],
   motivo: pase.motivo,
   usadoEn: pase.fechaConsumo,
 });

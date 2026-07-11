@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography, Button, Snackbar, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { EmptyState } from '../../components/atoms';
 import { AlertCard, FilterChips } from '../../components/molecules';
 import { useQuery } from '@tanstack/react-query';
@@ -17,21 +18,9 @@ import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
 import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined';
-import FingerprintOutlinedIcon from '@mui/icons-material/FingerprintOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
-// === RESUMEN DE ATENCIÓN (mock) ===
-const RESUMEN_ATENCION = [
-  { icon: <ReportGmailerrorredIcon sx={{ fontSize: 20, color: vigiaColors.error }} />, text: '1 acceso denegado reciente' },
-  { icon: <EventBusyOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.warning }} />, text: '1 pase expirado sin usar' },
-  { icon: <FingerprintOutlinedIcon sx={{ fontSize: 20, color: '#F59E0B' }} />, text: '1 persona con biometría pendiente' },
-];
 
-const ACCIONES_RECOMENDADAS = [
-  { text: 'Revise permisos de PBW-1234', route: '/propietario/permisos-temporales' },
-  { text: 'Coordine biometría de Stalin Coello', route: '/propietario/personas' },
-  { text: 'Renueve permiso de Jorge Mendoza', route: '/propietario/permisos-temporales' },
-];
 
 // === TIPOS ===
 type Severidad = 'ALTA' | 'MEDIA' | 'INFORMATIVA';
@@ -119,6 +108,34 @@ const AlertasPage: React.FC = () => {
   });
 
   const noLeidas = alertas.filter((a) => !a.leida).length;
+
+  // Calculos dinamicos para Resumen de Atencion
+  const alertasAlta = alertas.filter(a => a.severidad === 'ALTA' && !a.leida).length;
+  const alertasMedia = alertas.filter(a => a.severidad === 'MEDIA' && !a.leida).length;
+  const alertasInformativa = alertas.filter(a => a.severidad === 'INFORMATIVA' && !a.leida).length;
+
+  const resumenAtencion = [
+    { icon: <ReportGmailerrorredIcon sx={{ fontSize: 20, color: vigiaColors.error }} />, text: `${alertasAlta} alerta(s) de alta prioridad` },
+    { icon: <EventBusyOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.warning }} />, text: `${alertasMedia} alerta(s) de media prioridad` },
+    { icon: <InfoOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} />, text: `${alertasInformativa} notificaciones informativas` },
+  ].filter(item => parseInt(item.text.split(' ')[0]) > 0);
+
+  if (resumenAtencion.length === 0) {
+    resumenAtencion.push({ icon: <DoneAllIcon sx={{ fontSize: 20, color: vigiaColors.primary }} />, text: 'Todo está al día' });
+  }
+
+  // Calculos dinamicos para Acciones Recomendadas
+  const accionesRecomendadas = alertas
+    .filter(a => a.accion_sugerida && !a.leida)
+    .slice(0, 3)
+    .map(a => ({
+      text: `${a.accion_sugerida} - ${a.vehiculo_placa || a.titulo}`,
+      route: a.tipo === 'ACCESO' ? '/propietario/historial' : '/propietario/alertas'
+    }));
+
+  if (accionesRecomendadas.length === 0) {
+    accionesRecomendadas.push({ text: 'Ninguna acción pendiente', route: '#' });
+  }
 
   // Handlers
   const handleMarcarLeida = (id: string) => {
@@ -216,7 +233,7 @@ const AlertasPage: React.FC = () => {
                 Resumen de atención
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {RESUMEN_ATENCION.map((item) => (
+                {resumenAtencion.map((item) => (
                   <Box key={item.text} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {item.icon}
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: vigiaColors.textBody }}>
@@ -232,28 +249,28 @@ const AlertasPage: React.FC = () => {
                 Acciones recomendadas
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {ACCIONES_RECOMENDADAS.map((accion) => (
+                {accionesRecomendadas.map((accion) => (
                   <Box
                     key={accion.text}
-                    onClick={() => navigate(accion.route)}
+                    onClick={() => accion.route !== '#' && navigate(accion.route)}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      cursor: 'pointer',
+                      cursor: accion.route !== '#' ? 'pointer' : 'default',
                       borderLeft: `3px solid ${vigiaColors.primary}`,
                       borderRadius: '8px',
                       p: 2,
                       backgroundColor: '#FFFFFF',
                       boxShadow: '0 1px 2px rgba(10,47,134,0.04)',
                       transition: 'background-color 0.15s ease',
-                      '&:hover': { backgroundColor: 'rgba(13,92,207,0.04)' },
+                      '&:hover': { backgroundColor: accion.route !== '#' ? 'rgba(13,92,207,0.04)' : '#FFFFFF' },
                     }}
                   >
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', fontWeight: 500, color: vigiaColors.textBody }}>
                       {accion.text}
                     </Typography>
-                    <ChevronRightIcon sx={{ fontSize: 18, color: vigiaColors.primary }} />
+                    {accion.route !== '#' && <ChevronRightIcon sx={{ fontSize: 18, color: vigiaColors.primary }} />}
                   </Box>
                 ))}
               </Box>

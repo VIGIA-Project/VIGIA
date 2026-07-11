@@ -14,6 +14,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
 import { VehiclePreviewCard } from '../../molecules/VehiclePreviewCard';
+import { registryService } from '../../../services/registry.service';
+import { useAuth } from '../../../context';
 import {
   PropietarioVehiculo,
   VEHICLE_COLOR_OPTIONS,
@@ -55,6 +57,8 @@ export interface RegisterVehicleDrawerProps {
 export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ open, onClose, onRegistered, onUpdated, mode = 'create', vehiculo }) => {
   const isEdit = mode === 'edit';
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorSubmit, setErrorSubmit] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const {
     control,
@@ -93,11 +97,18 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
   const anio = watch('anio');
   const placaValid = PLACA_REGEX.test(placa);
 
-  const onSubmit = (data: RegisterVehicleFormValues) => {
+  const onSubmit = async (data: RegisterVehicleFormValues) => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setErrorSubmit(null);
+    try {
       if (isEdit && vehiculo) {
+        await registryService.updateVehiculo(vehiculo.id, {
+          marca: data.marca,
+          modelo: data.modelo,
+          anio: data.anio,
+          color: data.color,
+          // tipo is not in ActualizarVehiculoDto yet in backend, but we can send what's allowed.
+        });
         onUpdated?.({
           ...vehiculo,
           marca: data.marca,
@@ -107,24 +118,39 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
           tipo: data.tipo,
           observacion: data.observacion,
         });
-        return;
+      } else {
+        const payload = {
+          propietarioPersonaId: user?.personaId,
+          placa: data.placa,
+          marca: data.marca,
+          modelo: data.modelo,
+          anio: data.anio,
+          color: data.color,
+        };
+        const res = await registryService.createVehiculo(payload);
+        
+        onRegistered?.({
+          id: res.vehiculoId || `veh-${Date.now()}`,
+          placa: data.placa,
+          marca: data.marca,
+          modelo: data.modelo,
+          anio: data.anio,
+          color: data.color,
+          tipo: data.tipo,
+          estado: 'ACTIVO',
+          permisosActivos: 0,
+          alertas: 0,
+          personasAsignadas: 0,
+          personasSinBiometria: 0,
+          observacion: data.observacion,
+        });
       }
-      onRegistered?.({
-        id: `veh-${Date.now()}`,
-        placa: data.placa,
-        marca: data.marca,
-        modelo: data.modelo,
-        anio: data.anio,
-        color: data.color,
-        tipo: data.tipo,
-        estado: 'ACTIVO',
-        permisosActivos: 0,
-        alertas: 0,
-        personasAsignadas: 0,
-        personasSinBiometria: 0,
-        observacion: data.observacion,
-      });
-    }, SUBMIT_DELAY_MS);
+    } catch (err: any) {
+      console.error(err);
+      setErrorSubmit(err.response?.data?.message || 'Error al guardar el vehículo');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const iconSx = { fontSize: 18, color: vigiaColors.textTertiary };
@@ -164,6 +190,12 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
           <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', color: vigiaColors.textTertiary }}>
             {COPY.sectionVehiculo}
           </Typography>
+
+          {errorSubmit && (
+            <Typography color="error" variant="body2" sx={{ fontWeight: 600 }}>
+              {errorSubmit}
+            </Typography>
+          )}
 
           <Controller
             name="placa"

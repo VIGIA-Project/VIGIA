@@ -5,15 +5,17 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
-import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { staggerContainer } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
-import { MiniKpiCard, EventoTimeline } from '../../molecules';
+import { MiniKpiCard } from '../../molecules';
+import { accessControlService } from '../../../services/access-control.service';
 import { PropietarioVehiculo } from '../../../config/propietario-vehiculos.config';
+import { useQuery } from '@tanstack/react-query';
 import { RESUMEN_TAB_COPY, ESTADO_VEHICULO_STYLES, FAMILIA_MAX_MIEMBROS, TabKey } from '../../../config/propietario-vehiculo-detalle.config';
 
 export interface VehiculoResumenTabProps {
@@ -25,6 +27,16 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const estadoStyle = ESTADO_VEHICULO_STYLES[vehiculo.estado];
+
+  const { data: eventosRecientes = [] } = useQuery({
+    queryKey: ['eventos', 'recientes', 'propietario', vehiculo.placa],
+    queryFn: () => accessControlService.obtenerEventosRecientes(20),
+  });
+
+  const ultimoEvento = eventosRecientes.find((e: any) => e.placaCapturada === vehiculo.placa);
+  const ultimoEventoDisplay = ultimoEvento
+    ? `Acceso ${ultimoEvento.decision === 'SUCCESSFUL' ? 'permitido' : 'denegado'} · ${ultimoEvento.origenResolucion || 'Sistema'} · ${new Date(ultimoEvento.timestampEvento || ultimoEvento.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : 'No hay eventos recientes';
 
   const acciones = [
     {
@@ -85,7 +97,7 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
 
           <MiniKpiCard icon={<AccessTimeOutlinedIcon sx={{ fontSize: 18 }} />} label={RESUMEN_TAB_COPY.kpiUltimoEvento}>
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textBody, lineHeight: 1.4 }}>
-              {RESUMEN_TAB_COPY.ultimoEventoLabel}
+              {ultimoEventoDisplay}
             </Typography>
           </MiniKpiCard>
         </Box>

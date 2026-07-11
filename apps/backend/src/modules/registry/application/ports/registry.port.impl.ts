@@ -84,6 +84,24 @@ export class RegistryPortImpl implements IRegistryPort {
         };
     }
 
+    async findPersonaByCorreo(correoInstitucional: string): Promise<PersonaResponseDto | null> {
+        const persona = await this.personaRepo.findByCorreo(correoInstitucional);
+        if (!persona) return null;
+        return {
+            personaId: persona.personaId,
+            identificacionTipo: persona.identificacionTipo,
+            identificacionNumero: persona.identificacionNumero,
+            nombres: persona.nombres,
+            apellidos: persona.apellidos,
+            nombreCompleto: persona.getNombreCompleto(),
+            correoInstitucional: persona.correoInstitucional,
+            telefonoContacto: persona.telefonoContacto,
+            estadoRegistro: persona.estadoRegistro,
+            estadoBiometrico: persona.estadoBiometrico,
+            createdAt: persona.createdAt,
+        };
+    }
+
     async findPropietarioByVehiculo(vehiculoId: string): Promise<PersonaResponseDto | null> {
         const propietarios = await this.asignacionRepo.findByVehiculoYRol(
             vehiculoId,

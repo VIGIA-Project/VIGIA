@@ -17,6 +17,8 @@ import {
     PaginatedUsers,
 } from '../domain/user.repository';
 import { User, UserRole, UserStatus } from '../domain/user.entity';
+import { REGISTRY_PORT } from '../../../modules/registry/application/ports/registry.port';
+import type { IRegistryPort } from '../../../modules/registry/application/ports/registry.port';
 
 export interface LoginResult {
     access_token: string;
@@ -52,6 +54,8 @@ export class AuthService {
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
+        @Inject(REGISTRY_PORT)
+        private readonly registryPort: IRegistryPort,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
     ) {}
@@ -77,13 +81,25 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        // Compatibilidad con usuarios creados antes de que el seed vinculara Persona → User:
+        // si el JWT no tiene personaId, se busca la persona por correo institucional y se
+        // persiste el vínculo para no repetir esta búsqueda en logins futuros.
+        let personaId = user.personaId;
+        if (!personaId) {
+            const persona = await this.registryPort.findPersonaByCorreo(user.email);
+            if (persona) {
+                personaId = persona.personaId;
+                await this.userRepository.update(user.id, { personaId });
+            }
+        }
+
         const payload = {
             sub: user.id,
             email: user.email,
             role: user.role,
             name: user.email.split('@')[0],
             mustChangePassword: user.mustChangePassword,
-            personaId: user.personaId,
+            personaId,
         };
 
         return {

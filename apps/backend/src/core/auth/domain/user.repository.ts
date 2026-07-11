@@ -28,6 +28,7 @@ export interface IUserRepository {
             mustChangePassword: boolean;
             biometricRegistered: boolean;
             vehicleRegistered: boolean;
+            personaId: string;
             updatedBy: string;
         }>,
     ): Promise<User>;

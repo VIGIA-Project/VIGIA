@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -28,11 +28,18 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import GavelIcon from '@mui/icons-material/Gavel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+
+import { accessControlService } from '../../services/access-control.service';
+import { authorizationService } from '../../services/authorization.service';
 
 export const RevisionManualPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [actionTab, setActionTab] = useState(0);
+  const [placaCapturada, setPlacaCapturada] = useState('');
+  const [tipoMovimiento, setTipoMovimiento] = useState('ENTRADA');
 
   // Flow 1: Resolución
   const [estadoFinal, setEstadoFinal] = useState('');
@@ -46,6 +53,13 @@ export const RevisionManualPage: React.FC = () => {
   const [paseDuracion, setPaseDuracion] = useState('');
   const [visitanteDescripcion, setVisitanteDescripcion] = useState('');
 
+  // Contexto y validación
+  const [contextoVehiculo, setContextoVehiculo] = useState<any>(null);
+  const [pasesActivos, setPasesActivos] = useState<any[]>([]);
+  const [codigoValidacion, setCodigoValidacion] = useState('');
+  const [validandoPase, setValidandoPase] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+
   const [timeLeft, setTimeLeft] = useState(262); // 04:22 in seconds
 
   useEffect(() => {
@@ -55,15 +69,103 @@ export const RevisionManualPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const fetchContexto = async () => {
+      if (placaCapturada.length >= 5) {
+        try {
+          const vehiculo = await accessControlService.buscarVehiculoPorPlaca(placaCapturada);
+          setContextoVehiculo(vehiculo);
+          
+          const pases = await authorizationService.listarActivosPorPlaca(placaCapturada);
+          setPasesActivos(pases || []);
+        } catch (err) {
+          setContextoVehiculo(null);
+          setPasesActivos([]);
+        }
+      } else {
+        setContextoVehiculo(null);
+        setPasesActivos([]);
+      }
+    };
+    
+    const debounce = setTimeout(fetchContexto, 500);
+    return () => clearTimeout(debounce);
+  }, [placaCapturada]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleConfirmar = () => {
+  const handleConfirmar = async () => {
     if (!estadoFinal || !justificacion) return;
-    navigate('/guardia/cola-eventos');
+    setGuardando(true);
+    try {
+      await accessControlService.registrarEventoManual({
+        placaCapturada: placaCapturada || 'DESCONOCIDA',
+        tipoMovimiento: tipoMovimiento,
+        decision: estadoFinal,
+        detalles: justificacion,
+        vehiculoId: contextoVehiculo?.id,
+        personaId: contextoVehiculo?.propietario?.id,
+      });
+      navigate('/guardia/cola-eventos');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleGenerarPase = async () => {
+    if (!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion) return;
+    setGuardando(true);
+    try {
+      const duracionHoras = parseInt(paseDuracion.replace('h', '').replace('m', '')) / (paseDuracion.includes('m') ? 60 : 1);
+      await accessControlService.crearPaseGarita({
+        placaVehiculo: placaCapturada || 'DESCONOCIDA',
+        tipoMovimiento: tipoMovimiento,
+        tipoVisitante: visitanteTipo,
+        nombreVisitante: visitanteNombre,
+        documentoVisitante: visitanteDoc,
+        destino: visitanteDestino,
+        duracionHoras: duracionHoras,
+        descripcion: visitanteDescripcion,
+      });
+      navigate('/guardia/cola-eventos');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleValidarCodigo = async () => {
+    if (!codigoValidacion) return;
+    setValidandoPase(true);
+    try {
+      const resultado = await authorizationService.validarPase(codigoValidacion, placaCapturada);
+      if (resultado.valido && resultado.paseId) {
+        await authorizationService.consumirPase(resultado.paseId, 'MANUAL_AUTH');
+        await accessControlService.registrarEventoManual({
+          placaCapturada: placaCapturada,
+          tipoMovimiento: tipoMovimiento,
+          decision: 'SUCCESSFUL',
+          detalles: `Código de pase rápido ${codigoValidacion} validado correctamente.`,
+          vehiculoId: contextoVehiculo?.id,
+          personaId: contextoVehiculo?.propietario?.id,
+        });
+        navigate('/guardia/cola-eventos');
+      } else {
+        alert(`Código inválido: ${resultado.motivo}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al validar el código');
+    } finally {
+      setValidandoPase(false);
+    }
   };
 
   const handleContingencia = () => {
@@ -122,35 +224,41 @@ export const RevisionManualPage: React.FC = () => {
                       <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
                         PLACA DETECTADA
                       </Typography>
-                      <Box sx={{ backgroundColor: '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center' }}>
-                        <Typography sx={{ fontSize: '2rem', fontWeight: 800, fontFamily: '"Exo 2", sans-serif', color: '#1F2937', letterSpacing: 2 }}>
-                          ABC-1234
-                        </Typography>
-                      </Box>
+                      <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Escriba la placa..."
+                        value={placaCapturada}
+                        onChange={(e) => setPlacaCapturada(e.target.value.toUpperCase())}
+                        sx={{
+                          backgroundColor: '#F3F4F6',
+                          '& .MuiOutlinedInput-root': { fontWeight: 800, fontSize: '1.5rem', fontFamily: '"Exo 2", sans-serif', letterSpacing: 2, textAlign: 'center' },
+                          '& input': { textAlign: 'center' }
+                        }}
+                      />
                     </Grid>
                     <Grid item xs={4}>
                       <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
                         MOVIMIENTO
                       </Typography>
-                      <Box
+                      <Select
+                        fullWidth
+                        value={tipoMovimiento}
+                        onChange={(e) => setTipoMovimiento(e.target.value)}
                         sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          justifyContent: 'center',
-                          backgroundColor: '#1E3A8A', // Dark blue background for ENTRADA
+                          backgroundColor: tipoMovimiento === 'ENTRADA' ? '#1E3A8A' : '#475569',
                           color: '#FFFFFF',
-                          p: 2,
-                          borderRadius: vigiaRadius.sm,
-                          height: '100%',
-                          maxHeight: '75px', // Match the height of the plate box
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          letterSpacing: 1,
+                          height: '56px',
+                          '& .MuiSelect-icon': { color: '#FFFFFF' }
                         }}
+                        startAdornment={tipoMovimiento === 'ENTRADA' ? <ArrowRightAltIcon sx={{mr:1}}/> : <ArrowBackIcon sx={{mr:1}}/>}
                       >
-                        <ArrowRightAltIcon />
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: 1 }}>
-                          ENTRADA
-                        </Typography>
-                      </Box>
+                        <MenuItem value="ENTRADA">ENTRADA</MenuItem>
+                        <MenuItem value="SALIDA">SALIDA</MenuItem>
+                      </Select>
                     </Grid>
                   </Grid>
                 </Paper>
@@ -212,36 +320,49 @@ export const RevisionManualPage: React.FC = () => {
                   </Box>
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* Vehiculo */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(0,0,0,0.05)', borderRadius: vigiaRadius.sm, backgroundColor: '#FAFBFC' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E0E7FF', borderRadius: vigiaRadius.sm, color: '#4F46E5', display: 'flex' }}>
-                        <DirectionsCarIcon />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Toyota Corolla
-                        </Typography>
-                        <Typography sx={{ color: vigiaColors.textSecondary, fontSize: '0.8rem' }}>
-                          Blanco • 2020
-                        </Typography>
-                      </Box>
-                    </Box>
+                    {contextoVehiculo ? (
+                      <>
+                        {/* Vehiculo */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(0,0,0,0.05)', borderRadius: vigiaRadius.sm, backgroundColor: '#FAFBFC' }}>
+                          <Box sx={{ p: 1, backgroundColor: '#E0E7FF', borderRadius: vigiaRadius.sm, color: '#4F46E5', display: 'flex' }}>
+                            <DirectionsCarIcon />
+                          </Box>
+                          <Box>
+                            <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
+                              {contextoVehiculo.marca} {contextoVehiculo.modelo}
+                            </Typography>
+                            <Typography sx={{ color: vigiaColors.textSecondary, fontSize: '0.8rem' }}>
+                              {contextoVehiculo.color} • {contextoVehiculo.anio}
+                            </Typography>
+                          </Box>
+                        </Box>
 
-                    {/* Propietario */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(46,125,50,0.2)', borderRadius: vigiaRadius.sm, backgroundColor: '#F6FBF6' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E8F5E9', borderRadius: vigiaRadius.sm, color: '#2E7D32', display: 'flex' }}>
-                        <PersonOutlineIcon />
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Lenin David
+                        {/* Propietario */}
+                        {contextoVehiculo.propietario && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(46,125,50,0.2)', borderRadius: vigiaRadius.sm, backgroundColor: '#F6FBF6' }}>
+                            <Box sx={{ p: 1, backgroundColor: '#E8F5E9', borderRadius: vigiaRadius.sm, color: '#2E7D32', display: 'flex' }}>
+                              <PersonOutlineIcon />
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
+                                {contextoVehiculo.propietario.nombres} {contextoVehiculo.propietario.apellidos}
+                              </Typography>
+                              <Typography sx={{ color: '#2E7D32', fontSize: '0.75rem', fontWeight: 700 }}>
+                                PROPIETARIO
+                              </Typography>
+                            </Box>
+                            <CheckCircleIcon sx={{ color: '#2E7D32' }} />
+                          </Box>
+                        )}
+                      </>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(0,0,0,0.05)', borderRadius: vigiaRadius.sm, backgroundColor: '#FFF5F5' }}>
+                        <WarningAmberIcon sx={{ color: '#E53E3E' }} />
+                        <Typography sx={{ color: '#E53E3E', fontSize: '0.9rem', fontWeight: 600 }}>
+                          Vehículo no registrado en el sistema o placa incompleta.
                         </Typography>
-                        <Typography sx={{ color: '#2E7D32', fontSize: '0.75rem', fontWeight: 700 }}>
-                          PROPIETARIO
-                        </Typography>
                       </Box>
-                      <CheckCircleIcon sx={{ color: '#2E7D32' }} />
-                    </Box>
+                    )}
                   </Box>
                 </Paper>
               </Box>
@@ -278,6 +399,42 @@ export const RevisionManualPage: React.FC = () => {
                 </Box>
 
                 <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                  
+                  {/* BANNER Y VALIDACIÓN DE PASES ACTIVOS */}
+                  {pasesActivos.length > 0 && (
+                    <Box sx={{ mb: 3, p: 2, borderRadius: vigiaRadius.md, backgroundColor: '#ECFDF5', border: '1px solid #10B981' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <VpnKeyIcon sx={{ color: '#059669' }} />
+                        <Typography sx={{ color: '#065F46', fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
+                          Este vehículo tiene {pasesActivos.length} pase(s) rápido(s) activo(s)
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField 
+                          size="small" 
+                          placeholder="Ingrese el código de pase" 
+                          value={codigoValidacion}
+                          onChange={(e) => setCodigoValidacion(e.target.value)}
+                          sx={{ flex: 1, backgroundColor: vigiaColors.white }}
+                        />
+                        <Button 
+                          variant="contained"
+                          disabled={validandoPase || !codigoValidacion}
+                          onClick={handleValidarCodigo}
+                          sx={{ 
+                            backgroundColor: '#059669', 
+                            color: 'white',
+                            '&:hover': { backgroundColor: '#047857' },
+                            fontWeight: 600,
+                            textTransform: 'none'
+                          }}
+                        >
+                          {validandoPase ? 'Validando...' : 'Validar Código'}
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
+
                   {actionTab === 0 ? (
                     // FLOW 1: RESOLUCIÓN ESTÁNDAR
                     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -339,7 +496,7 @@ export const RevisionManualPage: React.FC = () => {
                         <Button
                           variant="contained"
                           onClick={handleConfirmar}
-                          disabled={!estadoFinal || !justificacion}
+                          disabled={!estadoFinal || !justificacion || guardando || !placaCapturada}
                           startIcon={<CheckCircleOutlineIcon />}
                           sx={{
                             backgroundColor: '#0A2F86',
@@ -353,7 +510,7 @@ export const RevisionManualPage: React.FC = () => {
                             '&.Mui-disabled': { backgroundColor: 'rgba(10, 47, 134, 0.4)', color: 'rgba(255,255,255,0.7)' }
                           }}
                         >
-                          Confirmar Resolución
+                          {guardando ? 'Guardando...' : 'Confirmar Resolución'}
                         </Button>
 
                         <Button
@@ -476,11 +633,8 @@ export const RevisionManualPage: React.FC = () => {
                       <Box sx={{ mt: 'auto', pt: 1 }}>
                         <Button
                           variant="contained"
-                          onClick={() => {
-                            if (!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion) return;
-                            navigate('/guardia/cola-eventos');
-                          }}
-                          disabled={!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion}
+                          onClick={handleGenerarPase}
+                          disabled={!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion || guardando || !placaCapturada}
                           startIcon={<CheckCircleOutlineIcon />}
                           fullWidth
                           sx={{
@@ -495,7 +649,7 @@ export const RevisionManualPage: React.FC = () => {
                             '&.Mui-disabled': { backgroundColor: 'rgba(5, 150, 105, 0.4)', color: 'rgba(255,255,255,0.7)' }
                           }}
                         >
-                          Generar Pase y Permitir
+                          {guardando ? 'Generando Pase...' : 'Generar Pase y Permitir'}
                         </Button>
                       </Box>
                     </Box>

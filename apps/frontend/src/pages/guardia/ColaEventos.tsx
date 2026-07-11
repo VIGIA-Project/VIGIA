@@ -9,62 +9,10 @@ import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { useQuery } from '@tanstack/react-query';
+import { accessControlService } from '../../services/access-control.service';
 
-// MOCK DATA BASED ON THE DOCUMENTATION
-const MOCK_EVENTS = [
-  {
-    id: 1,
-    placa: 'PCB-1234',
-    timeAgo: 'hace 3 min',
-    timeAgoUrgent: false,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:24:15',
-    alertTitle: 'SIN_PERFILES_BIOMETRICOS',
-    alertDescription: 'No existen perfiles biométricos disponibles para el conjunto autorizado',
-    alertType: 'error' as const,
-    vehiculo: 'Toyota Corolla (Blanco)',
-    propietario: 'Lenin David',
-  },
-  {
-    id: 2,
-    placa: 'DEF-5678',
-    timeAgo: 'hace 5 min',
-    timeAgoUrgent: false,
-    direction: 'SALIDA' as const,
-    timestamp: '13:22:00',
-    alertTitle: 'FALLO_OCR',
-    alertDescription: 'Lectura parcial de placa',
-    alertType: 'error' as const,
-    vehiculo: 'Honda Civic (Gris)',
-    propietario: 'María Fernanda',
-  },
-  {
-    id: 3,
-    placa: 'GHI-9012',
-    timeAgo: 'hace 8 min',
-    timeAgoUrgent: true,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:16:30',
-    alertTitle: 'EVIDENCIA_INSUFICIENTE',
-    alertDescription: 'El nivel de coincidencia no supera el umbral requerido',
-    alertType: 'error' as const,
-    vehiculo: 'Ford Explorer (Negro)',
-    propietario: 'Carlos Ruiz',
-  },
-  {
-    id: 4,
-    placa: 'XTR-4455',
-    timeAgo: 'hace 10 min',
-    timeAgoUrgent: true,
-    direction: 'ENTRADA' as const,
-    timestamp: '13:14:00',
-    alertTitle: 'FALLO_BIOMETRICO',
-    alertDescription: 'El servicio biométrico no está respondiendo',
-    alertType: 'warning' as const,
-    vehiculo: 'Nissan Versa (Plata)',
-    propietario: 'Ana López',
-  },
-];
+
 
 export const ColaEventosPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,10 +22,32 @@ export const ColaEventosPage: React.FC = () => {
   const [filterTipo, setFilterTipo] = useState('Todos');
   const [filterMotivo, setFilterMotivo] = useState('Todos');
   const [sortOrder, setSortOrder] = useState('MasAntiguo');
-  const [selectedEvent, setSelectedEvent] = useState<typeof MOCK_EVENTS[0] | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+
+  const { data: eventosRaw = [] } = useQuery({
+    queryKey: ['eventos', 'cola', 'guardia'],
+    queryFn: () => accessControlService.obtenerEventosRecientes(50)
+  });
+
+  const colaEvents = eventosRaw
+    .filter((e: any) => e.decision !== 'SUCCESSFUL')
+    .map((e: any) => ({
+      id: e.id,
+      placa: e.placaCapturada || 'S/N',
+      timeAgo: 'Reciente',
+      timeAgoUrgent: e.decision === 'DENIED',
+      direction: 'ENTRADA' as const, // We don't have direction in standard event yet
+      timestamp: new Date(e.timestampEvento || e.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      alertTitle: e.origenResolucion || 'REVISIÓN MANUAL',
+      alertDescription: e.detalles || 'El evento requiere atención del guardia',
+      alertType: e.decision === 'DENIED' ? 'error' as const : 'warning' as const,
+      vehiculo: 'Desconocido',
+      propietario: 'Desconocido',
+      _timestampRaw: new Date(e.timestampEvento || e.createdAt || new Date()).getTime()
+    }));
 
   // Simple filtering and sorting logic
-  const filteredEvents = MOCK_EVENTS.filter((event) => {
+  const filteredEvents = colaEvents.filter((event: any) => {
     // Tipo Filter
     if (filterTipo !== 'Todos' && event.direction !== filterTipo.toUpperCase()) return false;
     
@@ -85,10 +55,10 @@ export const ColaEventosPage: React.FC = () => {
     if (filterMotivo !== 'Todos' && event.alertTitle !== filterMotivo) return false;
     
     return true;
-  }).sort((a, b) => {
+  }).sort((a: any, b: any) => {
     // Basic mock sort logic (by ID since it matches antiquity here)
-    if (sortOrder === 'MasAntiguo') return a.id - b.id;
-    return b.id - a.id; // MasReciente
+    if (sortOrder === 'MasAntiguo') return a._timestampRaw - b._timestampRaw;
+    return b._timestampRaw - a._timestampRaw; // MasReciente
   });
 
   return (
@@ -209,7 +179,7 @@ export const ColaEventosPage: React.FC = () => {
         <motion.div variants={staggerContainer} initial="hidden" animate="visible">
           {filteredEvents.length > 0 ? (
             <Grid container spacing={3}>
-              {filteredEvents.map((event) => (
+              {filteredEvents.map((event: any) => (
                 <Grid item xs={12} sm={6} md={4} key={event.id}>
                   <EventQueueCard
                     {...event}

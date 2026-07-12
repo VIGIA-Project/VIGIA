@@ -49,8 +49,12 @@ export class AlertingController {
   @Get('notificaciones')
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarNotificaciones(@Request() req: any) {
+    const personaId = req.user?.personaId;
+    if (!personaId) {
+      return [];
+    }
     const notificaciones = await this.alertingService.listarPorDestinatario(
-      this.personaIdDesdeJwt(req),
+      personaId,
     );
     return notificaciones.map((n) => n.toJSON());
   }

@@ -21,6 +21,7 @@ export class EventoAcceso {
     public readonly origenResolucion: OrigenResolucion,
     public readonly capturadoEn: Date,
     public readonly resueltoEn: Date | undefined,
+    public readonly duracionAutorizadaMin: number | undefined,
   ) {}
 
   static crear(props: {
@@ -35,6 +36,7 @@ export class EventoAcceso {
     origenResolucion: OrigenResolucion;
     capturadoEn?: Date;
     resueltoEn?: Date;
+    duracionAutorizadaMin?: number;
   }): EventoAcceso {
     if (!props.placaObservada?.trim()) {
       throw new BusinessRuleViolationException(
@@ -60,6 +62,7 @@ export class EventoAcceso {
       props.origenResolucion,
       props.capturadoEn ?? new Date(),
       props.resueltoEn,
+      props.duracionAutorizadaMin,
     );
   }
 
@@ -76,6 +79,7 @@ export class EventoAcceso {
       origenResolucion: this.origenResolucion,
       capturadoEn: this.capturadoEn,
       resueltoEn: this.resueltoEn,
+      duracionAutorizadaMin: this.duracionAutorizadaMin,
     };
   }
 }

@@ -37,4 +37,32 @@ export class TypeOrmEventoAccesoRepository implements IEventoAccesoRepository {
       where: { capturadoEn: Between(desde, hasta) },
     });
   }
+
+  async buscarInvitadosActivos(): Promise<EventoAcceso[]> {
+    const ahora = new Date();
+    const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+    const orms = await this.repo
+      .createQueryBuilder('e')
+      .where('e.tipo_movimiento = :entrada', { entrada: 'ENTRADA' })
+      .andWhere('e.decision_operativa = :aprobado', { aprobado: 'SUCCESSFUL' })
+      .andWhere('e.motivo_codigo = :contingencia', { contingencia: 'CONTINGENCIA' })
+      .andWhere('e.capturado_en >= :inicioDia', { inicioDia })
+      .andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('1')
+          .from(EventoAccesoOrmEntity, 's')
+          .where('s.placa_observada = e.placa_observada')
+          .andWhere('s.tipo_movimiento = :salida')
+          .andWhere('s.capturado_en > e.capturado_en')
+          .getQuery();
+        return `NOT EXISTS ${subQuery}`;
+      })
+      .setParameter('salida', 'SALIDA')
+      .orderBy('e.capturado_en', 'DESC')
+      .getMany();
+
+    return orms.map((orm) => EventoAccesoMapper.toDomain(orm));
+  }
 }

@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsIn, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsEnum, IsIn, IsInt, IsOptional, Min, Max, MinLength } from 'class-validator';
 import { TipoMovimiento } from '../../domain/value-objects/tipo-movimiento.vo';
 import { DecisionOperativa } from '../../domain/value-objects/decision-operativa.vo';
 
@@ -28,4 +28,11 @@ export class RegistrarEventoManualDto {
   @IsOptional()
   @IsString()
   personaId?: string;
+
+  /** Solo aplica cuando motivoCodigo = 'CONTINGENCIA' */
+  @IsOptional()
+  @IsInt()
+  @Min(15)
+  @Max(480)
+  duracionAutorizadaMin?: number;
 }

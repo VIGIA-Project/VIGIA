@@ -18,6 +18,7 @@ export class EventoAccesoMapper {
       origenResolucion: orm.origenResolucion as OrigenResolucion,
       capturadoEn: orm.capturadoEn,
       resueltoEn: orm.resueltoEn ?? undefined,
+      duracionAutorizadaMin: orm.duracionAutorizadaMin ?? undefined,
     });
   }
 
@@ -34,6 +35,7 @@ export class EventoAccesoMapper {
     orm.origenResolucion = domain.origenResolucion;
     orm.capturadoEn = domain.capturadoEn;
     orm.resueltoEn = domain.resueltoEn ?? null;
+    orm.duracionAutorizadaMin = domain.duracionAutorizadaMin ?? null;
     return orm;
   }
 }

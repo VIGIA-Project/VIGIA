@@ -5,6 +5,7 @@ import { Roles } from '@core/auth/presentation/roles.decorator';
 import { UserRole } from '@core/auth/domain/user.entity';
 import { AccessControlService } from '../application/access-control.service';
 import { RegistrarEventoManualDto } from '../application/dtos/registrar-evento-manual.dto';
+import { InvitadoActivoDto } from '../application/dtos/invitado-activo.dto';
 
 @Controller('access-control')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,6 +32,19 @@ export class AccessControlController {
   @Roles(UserRole.ADMIN, UserRole.GUARD)
   async contarEventosHoy() {
     const count = await this.accessControlService.contarHoy();
+    return { count };
+  }
+
+  @Get('invitados-activos')
+  @Roles(UserRole.GUARD, UserRole.ADMIN)
+  async listarInvitadosActivos(): Promise<InvitadoActivoDto[]> {
+    return this.accessControlService.listarInvitadosActivos();
+  }
+
+  @Get('invitados-activos/count')
+  @Roles(UserRole.GUARD, UserRole.ADMIN)
+  async contarInvitadosActivos(): Promise<{ count: number }> {
+    const count = await this.accessControlService.contarInvitadosActivos();
     return { count };
   }
 }

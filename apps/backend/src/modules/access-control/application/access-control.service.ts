@@ -5,6 +5,7 @@ import { IEventoAccesoRepository } from '../domain/repositories/evento-acceso.re
 import { EventoAcceso } from '../domain/entities/evento-acceso.entity';
 import { OrigenResolucion } from '../domain/value-objects/origen-resolucion.vo';
 import { RegistrarEventoManualDto } from './dtos/registrar-evento-manual.dto';
+import { InvitadoActivoDto } from './dtos/invitado-activo.dto';
 
 /**
  * Servicio de aplicación — orquesta los casos de uso del BC Access Control.
@@ -32,6 +33,7 @@ export class AccessControlService {
       origenResolucion: OrigenResolucion.MANUAL,
       capturadoEn: ahora,
       resueltoEn: ahora,
+      duracionAutorizadaMin: dto.duracionAutorizadaMin,
     });
     return this.eventoAccesoRepository.guardar(evento);
   }
@@ -45,5 +47,29 @@ export class AccessControlService {
     const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     const finDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1);
     return this.eventoAccesoRepository.contarPorRangoFecha(inicioDia, finDia);
+  }
+
+  async listarInvitadosActivos(): Promise<InvitadoActivoDto[]> {
+    const eventos = await this.eventoAccesoRepository.buscarInvitadosActivos();
+    return eventos.map((evento) => this.aInvitadoActivoDto(evento));
+  }
+
+  async contarInvitadosActivos(): Promise<number> {
+    const invitados = await this.listarInvitadosActivos();
+    return invitados.length;
+  }
+
+  private aInvitadoActivoDto(evento: EventoAcceso): InvitadoActivoDto {
+    const duracion = evento.duracionAutorizadaMin ?? null;
+    const estaExcedido =
+      duracion != null && Date.now() - evento.capturadoEn.getTime() > duracion * 60000;
+    return {
+      eventoId: evento.id,
+      placaObservada: evento.placaObservada,
+      motivoDetalle: evento.motivoDetalle ?? '',
+      capturadoEn: evento.capturadoEn,
+      duracionAutorizadaMin: duracion,
+      estaExcedido,
+    };
   }
 }

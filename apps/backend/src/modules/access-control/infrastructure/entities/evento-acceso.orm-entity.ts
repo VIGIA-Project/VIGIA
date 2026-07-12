@@ -56,6 +56,13 @@ export class EventoAccesoOrmEntity {
   @Column({ name: 'resuelto_en', type: 'timestamptz', nullable: true })
   resueltoEn: Date | null;
 
+  @Column({
+    name: 'duracion_autorizada_min',
+    type: 'int',
+    nullable: true,
+  })
+  duracionAutorizadaMin: number | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

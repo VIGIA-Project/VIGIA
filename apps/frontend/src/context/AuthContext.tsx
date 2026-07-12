@@ -1,3 +1,5 @@
+// apps/frontend/src/context/AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { actualizarOnboardingStatus } from '../services/auth.service';
 
@@ -22,10 +24,10 @@ const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
     if (!base64Url) return null;
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const json = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-        .join('')
+        atob(base64)
+            .split('')
+            .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+            .join('')
     );
     return JSON.parse(json);
   } catch {
@@ -70,6 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [sessionExpired, setSessionExpired] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
+  // 1. Cargar estado inicial desde localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -85,6 +88,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setIsLoading(false);
+  }, []);
+
+  // 2. Interceptor reactivo para capturar cierres de sesión 401 desde api.ts
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setToken(null);
+      setSessionExpired(true);
+      setAuthNotice('Su sesión ha expirado por inactividad.');
+
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.assign('/login');
+      }
+    };
+
+    window.addEventListener('vigia_unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('vigia_unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const login = (userData: AuthUser, authToken?: string) => {
@@ -150,25 +172,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated: !!user && !!token,
-        isLoading,
-        sessionExpired,
-        authNotice,
-        login,
-        logout,
-        completePasswordChange,
-        completeBiometricOnboarding,
-        completeVehicleOnboarding,
-        clearSessionExpired,
-        setAuthNotice,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider
+          value={{
+            user,
+            token,
+            isAuthenticated: !!user && !!token,
+            isLoading,
+            sessionExpired,
+            authNotice,
+            login,
+            logout,
+            completePasswordChange,
+            completeBiometricOnboarding,
+            completeVehicleOnboarding,
+            clearSessionExpired,
+            setAuthNotice,
+          }}
+      >
+        {children}
+      </AuthContext.Provider>
   );
 };
 

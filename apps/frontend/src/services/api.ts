@@ -9,23 +9,9 @@ import axios, {
   AxiosResponse,
 } from 'axios';
 
-// ══════════════════════════════════════════════════════════════
-// CONFIGURACIÓN BASE
-// ══════════════════════════════════════════════════════════════
-
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
-/**
- * Instancia Axios configurada para el backend VIGIA.
- *
- * Características:
- * - Base URL desde variable de entorno VITE_API_BASE_URL
- * - Timeout de 15 segundos
- * - Content-Type JSON por defecto
- * - Interceptor de request para inyectar JWT (cuando auth esté implementada)
- * - Interceptor de response para manejo centralizado de errores
- */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
@@ -38,115 +24,85 @@ export const apiClient: AxiosInstance = axios.create({
 // ══════════════════════════════════════════════════════════════
 // INTERCEPTOR DE REQUEST — Inyección de JWT
 // ══════════════════════════════════════════════════════════════
-
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // TODO: Cuando autenticación esté implementada, obtener token del store/context
-    const token = localStorage.getItem('vigia_access_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
+    (config: InternalAxiosRequestConfig) => {
+      const token = localStorage.getItem('vigia_access_token');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error: AxiosError) => Promise.reject(error)
 );
 
 // ══════════════════════════════════════════════════════════════
 // INTERCEPTOR DE RESPONSE — Manejo centralizado de errores
 // ══════════════════════════════════════════════════════════════
-
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error: AxiosError) => {
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          localStorage.removeItem('vigia_access_token');
-          localStorage.removeItem('vigia_auth_user');
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.assign('/login');
-          }
-          console.warn('[VIGIA API] 401 — Sesión expirada');
-          break;
-        case 403:
-          console.warn('[VIGIA API] 403 — Acceso denegado');
-          break;
-        case 404:
-          console.warn('[VIGIA API] 404 — Recurso no encontrado');
-          break;
-        case 500:
-          console.error('[VIGIA API] 500 — Error interno del servidor');
-          break;
-        default:
-          console.error(
-            `[VIGIA API] ${error.response.status} — Error no manejado`
-          );
+    (response: AxiosResponse) => response,
+    (error: AxiosError) => {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            localStorage.removeItem('vigia_access_token');
+            localStorage.removeItem('vigia_auth_user');
+            console.warn('[VIGIA API] 401 — Sesión expirada');
+
+            // Desencadenar evento para avisar a los contextos reactivos de la expiración
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('vigia_unauthorized'));
+            }
+            break;
+          case 403:
+            console.warn('[VIGIA API] 403 — Acceso denegado');
+            break;
+          case 404:
+            console.warn('[VIGIA API] 404 — Recurso no encontrado');
+            break;
+          case 500:
+            console.error('[VIGIA API] 500 — Error interno del servidor');
+            break;
+          default:
+            console.error(`[VIGIA API] ${error.response.status} — Error no manejado`);
+        }
+      } else if (error.request) {
+        console.error('[VIGIA API] Sin respuesta del servidor — verificar conectividad');
       }
-    } else if (error.request) {
-      console.error(
-        '[VIGIA API] Sin respuesta del servidor — verificar conectividad'
-      );
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 // ══════════════════════════════════════════════════════════════
 // HELPERS TIPADOS
 // ══════════════════════════════════════════════════════════════
-
-/**
- * GET tipado
- */
-export const apiGet = async <T>(
-  url: string,
-  params?: Record<string, unknown>
-): Promise<T> => {
+export const apiGet = async <T>(url: string, params?: Record<string, unknown>): Promise<T> => {
   const response = await apiClient.get<T>(url, { params });
   return response.data;
 };
 
-/**
- * POST tipado
- */
 export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
   const response = await apiClient.post<T>(url, data);
   return response.data;
 };
 
-/**
- * PUT tipado
- */
 export const apiPut = async <T>(url: string, data?: unknown): Promise<T> => {
   const response = await apiClient.put<T>(url, data);
   return response.data;
 };
 
-/**
- * PATCH tipado
- */
 export const apiPatch = async <T>(url: string, data?: unknown): Promise<T> => {
   const response = await apiClient.patch<T>(url, data);
   return response.data;
 };
 
-/**
- * DELETE tipado
- */
 export const apiDelete = async <T>(url: string): Promise<T> => {
   const response = await apiClient.delete<T>(url);
   return response.data;
 };
 
 // ══════════════════════════════════════════════════════════════
-// ENVOLTORIO DE RESPUESTA — ResponseInterceptor del backend
+// ENVOLTORIO DE RESPUESTA
 // ══════════════════════════════════════════════════════════════
-// Todas las respuestas del backend NestJS vienen envueltas como
-// { success, data, timestamp, path }. Los helpers *Data desenvuelven
-// automáticamente y retornan únicamente el payload.
-
 export interface ApiEnvelope<T> {
   success: boolean;
   data: T;

@@ -1,4 +1,3 @@
-// src/pages/propietario/PasesRapidos.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -7,6 +6,7 @@ import { AxiosError } from 'axios';
 import { addHours } from 'date-fns';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { PasesGrid } from '../../components/organisms/propietario/PasesGrid';
 import { GenerarPaseDrawer, GenerarPaseData } from '../../components/organisms/propietario/GenerarPaseDrawer';
@@ -36,15 +36,14 @@ const PasesRapidosPage: React.FC = () => {
   const [detailTarget, setDetailTarget] = useState<PaseRapido | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [ultimoCodigoGenerado, setUltimoCodigoGenerado] = useState<{ paseId: string; codigo: string } | null>(null);
+
+  // Estado para capturar el código visible una sola vez en un flujo destacado
+  const [codigoDestacado, setCodigoDestacado] = useState<string | null>(null);
 
   const pasesApi = pasesQuery.data ?? [];
   const pases: PaseRapido[] = useMemo(
-    () =>
-      pasesApi.map((p) =>
-        mapPaseAViewModel(p, vehiculo, ultimoCodigoGenerado?.paseId === p.id ? ultimoCodigoGenerado.codigo : undefined)
-      ),
-    [pasesApi, vehiculo, ultimoCodigoGenerado]
+      () => pasesApi.map((p) => mapPaseAViewModel(p, vehiculo, undefined)),
+      [pasesApi, vehiculo]
   );
 
   useEffect(() => {
@@ -74,13 +73,18 @@ const PasesRapidosPage: React.FC = () => {
       motivo: data.motivo,
     });
 
-    setUltimoCodigoGenerado({ paseId: result.pase.id, codigo: result.codigoPlano });
+    // Desplegamos el código en pantalla de forma prominente e inmediata
+    if (result?.codigoPlano) {
+      setCodigoDestacado(result.codigoPlano);
+    }
+
+    setDrawerOpen(false);
     return result;
   };
 
   const handleCopy = (codigo: string) => {
     navigator.clipboard?.writeText(codigo);
-    setSnackbarMessage('Código copiado');
+    setSnackbarMessage('Código copiado al portapapeles');
     setSnackbarOpen(true);
   };
 
@@ -88,7 +92,7 @@ const PasesRapidosPage: React.FC = () => {
     try {
       await revocarPaseMutation.mutateAsync(id);
       setRevokeTarget(null);
-      setSnackbarMessage('Pase revocado');
+      setSnackbarMessage('Pase revocado exitosamente');
       setSnackbarOpen(true);
     } catch (err) {
       setSnackbarMessage(extractErrorMessage(err, 'No se pudo revocar el pase.'));
@@ -98,144 +102,217 @@ const PasesRapidosPage: React.FC = () => {
 
   if (isLoadingVehiculo) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
-        <LoadingSkeleton variant="cards" rows={3} />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+          <LoadingSkeleton variant="cards" rows={3} />
+        </DashboardTemplate>
     );
   }
 
   if (isErrorVehiculo) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
-        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+          <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+        </DashboardTemplate>
     );
   }
 
   if (perfilIncompleto) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
-        <PerfilIncompletoState />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+          <PerfilIncompletoState />
+        </DashboardTemplate>
     );
   }
 
   if (!vehiculo) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
-        <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
-          <BoltOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
-          <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
-            Necesitas al menos un vehículo registrado
-          </Typography>
-          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 3 }}>
-            Registra tu primer vehículo para poder generar pases de acceso rápido.
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => navigate('/propietario/vehiculos')}
-            sx={{ background: vigiaColors.gradientIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, px: 3, minHeight: 44 }}
-          >
-            Registrar vehículo
-          </Button>
-        </Box>
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+          <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
+            <BoltOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
+            <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
+              Necesitas al menos un vehículo registrado
+            </Typography>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 3 }}>
+              Registra tu primer vehículo para poder generar pases de acceso rápido.
+            </Typography>
+            <Button
+                variant="contained"
+                onClick={() => navigate('/propietario/vehiculos')}
+                sx={{ background: vigiaColors.gradientIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, px: 3, minHeight: 44 }}
+            >
+              Registrar vehículo
+            </Button>
+          </Box>
+        </DashboardTemplate>
     );
   }
 
   return (
-    <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <motion.div variants={shouldReduceMotion ? undefined : fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 1.5 }}>
-            <Box>
-              <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: { xs: '1.75rem', sm: '2rem' }, color: '#0F172A' }}>
-                Pases de acceso rápido
-              </Typography>
-              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '1rem', color: '#64748B', mt: 0.5 }}>
-                Genera códigos temporales para acceso puntual sin biometría
-              </Typography>
+      <DashboardTemplate rol="OWNER" pageTitle="Pases de acceso rápido">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <motion.div variants={shouldReduceMotion ? undefined : fadeInUp} initial="hidden" animate="visible">
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 1.5 }}>
+              <Box>
+                <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: { xs: '1.75rem', sm: '2rem' }, color: '#0F172A' }}>
+                  Pases de acceso rápido
+                </Typography>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '1rem', color: '#64748B', mt: 0.5 }}>
+                  Genera códigos temporales para acceso puntual sin biometría
+                </Typography>
+              </Box>
+              <Button
+                  onClick={() => setDrawerOpen(true)}
+                  fullWidth={isMobile}
+                  startIcon={<BoltOutlinedIcon />}
+                  sx={{
+                    background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
+                    color: '#FFFFFF',
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    borderRadius: '12px',
+                    height: 48,
+                    px: 3,
+                    flexShrink: 0,
+                    boxShadow: '0 4px 14px rgba(13, 92, 207, 0.3)',
+                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
+                      boxShadow: '0 8px 22px rgba(13, 92, 207, 0.4)',
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+              >
+                Generar pase
+              </Button>
             </Box>
-            <Button
-              onClick={() => setDrawerOpen(true)}
-              fullWidth={isMobile}
-              startIcon={<BoltOutlinedIcon />}
-              sx={{
-                background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
-                color: '#FFFFFF',
-                fontFamily: '"Inter", sans-serif',
-                fontWeight: 600,
-                textTransform: 'none',
-                borderRadius: '12px',
-                height: 48,
-                px: 3,
-                flexShrink: 0,
-                boxShadow: '0 4px 14px rgba(13, 92, 207, 0.3)',
-                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #19D6C4, #0D5CCF)',
-                  boxShadow: '0 8px 22px rgba(13, 92, 207, 0.4)',
-                  transform: 'translateY(-2px)',
-                },
-              }}
-            >
-              Generar pase
-            </Button>
-          </Box>
-        </motion.div>
+          </motion.div>
 
-        {pasesQuery.isLoading ? (
-          <LoadingSkeleton variant="cards" rows={3} />
-        ) : pasesQuery.isError ? (
-          <ErrorState mensaje="No se pudieron cargar los pases de acceso rápido." onRetry={() => pasesQuery.refetch()} />
-        ) : (
-          <PasesGrid
-            pases={pases}
-            onCopy={handleCopy}
-            onRevoke={(id) => setRevokeTarget(pases.find((p) => p.id === id) || null)}
-            onViewDetail={(id) => setDetailTarget(pases.find((p) => p.id === id) || null)}
-            onGenerateClick={() => setDrawerOpen(true)}
-          />
-        )}
-      </Box>
-
-      <GenerarPaseDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} vehiculo={vehiculo} onConfirmed={handleConfirmed} />
-      <RevokePaseModal pase={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
-
-      <Dialog open={!!detailTarget} onClose={() => setDetailTarget(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '16px' } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: '#0F172A' }}>
-          Detalle del pase
-          <IconButton onClick={() => setDetailTarget(null)} size="small" aria-label="Cerrar">
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pb: 3 }}>
-          {detailTarget && (
-            <Box sx={{ borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', p: 2 }}>
-              {[
-                ['Persona', detailTarget.persona],
-                ['Cédula', detailTarget.cedula],
-                ['Vehículo', `${detailTarget.vehiculo.marca} ${detailTarget.vehiculo.modelo} · ${detailTarget.vehiculo.placa}`],
-                ['Motivo', detailTarget.motivo],
-                ...(detailTarget.usadoEn ? [['Usado en', `${detailTarget.usadoEn} · ${detailTarget.puntoAcceso || '—'}`]] : []),
-                ...(detailTarget.motivoRevocacion ? [['Motivo de revocación', detailTarget.motivoRevocacion]] : []),
-              ].map(([label, value], idx) => (
-                <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.75, borderTop: idx === 0 ? 'none' : '1px solid #F1F5F9' }}>
-                  <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B', flexShrink: 0 }}>{label}</Typography>
-                  <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.82rem', color: '#0F172A', textAlign: 'right' }}>{value}</Typography>
-                </Box>
-              ))}
-            </Box>
+          {pasesQuery.isLoading ? (
+              <LoadingSkeleton variant="cards" rows={3} />
+          ) : pasesQuery.isError ? (
+              <ErrorState mensaje="No se pudieron cargar los pases de acceso rápido." onRetry={() => pasesQuery.refetch()} />
+          ) : (
+              <PasesGrid
+                  pases={pases}
+                  onCopy={handleCopy}
+                  onRevoke={(id) => setRevokeTarget(pases.find((p) => p.id === id) || null)}
+                  onViewDetail={(id) => setDetailTarget(pases.find((p) => p.id === id) || null)}
+                  onGenerateClick={() => setDrawerOpen(true)}
+              />
           )}
-        </DialogContent>
-      </Dialog>
+        </Box>
 
-      <Snackbar open={snackbarOpen} autoHideDuration={3500} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </DashboardTemplate>
+        <GenerarPaseDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} vehiculo={vehiculo} onConfirmed={handleConfirmed} />
+        <RevokePaseModal pase={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
+
+        {/* MODAL DE VISUALIZACIÓN ÚNICA DEL CÓDIGO DE ACCESO (REQUERIMIENTO PRINCIPAL) */}
+        <Dialog
+            open={!!codigoDestacado}
+            onClose={() => setCodigoDestacado(null)}
+            fullWidth
+            maxWidth="xs"
+            PaperProps={{ sx: { borderRadius: '20px', p: 1 } }}
+        >
+          <DialogTitle sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 800, color: '#0F172A', textAlign: 'center', pb: 0 }}>
+            ¡Pase Generado con Éxito!
+          </DialogTitle>
+          <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: '#64748B', mb: 3 }}>
+              Por motivos de seguridad, este código **solo se mostrará una vez**. Cópialo y compártelo con tu visitante.
+            </Typography>
+
+            <Box sx={{
+              backgroundColor: '#F8FAFC',
+              border: '2px dashed #0D5CCF',
+              borderRadius: '12px',
+              p: 2.5,
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1.5
+            }}>
+              <Typography sx={{
+                fontFamily: '"Exo 2", sans-serif',
+                fontWeight: 800,
+                fontSize: '2rem',
+                letterSpacing: '4px',
+                color: '#0D5CCF'
+              }}>
+                {codigoDestacado}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<ContentCopyIcon />}
+                  onClick={() => codigoDestacado && handleCopy(codigoDestacado)}
+                  sx={{
+                    background: vigiaColors.gradientIA,
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    borderRadius: vigiaRadius.md,
+                    height: 46
+                  }}
+              >
+                Copiar Código
+              </Button>
+              <Button
+                  variant="text"
+                  fullWidth
+                  onClick={() => setCodigoDestacado(null)}
+                  sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    color: '#64748B',
+                    height: 40
+                  }}
+              >
+                Entendido, Cerrar
+              </Button>
+            </Box>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!detailTarget} onClose={() => setDetailTarget(null)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '16px' } }}>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: '#0F172A' }}>
+            Detalle del pase
+            <IconButton onClick={() => setDetailTarget(null)} size="small" aria-label="Cerrar">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ pb: 3 }}>
+            {detailTarget && (
+                <Box sx={{ borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0', p: 2 }}>
+                  {[
+                    ['Persona', detailTarget.persona],
+                    ['Cédula', detailTarget.cedula],
+                    ['Vehículo', `${detailTarget.vehiculo.marca} ${detailTarget.vehiculo.modelo} · ${detailTarget.vehiculo.placa}`],
+                    ['Motivo', detailTarget.motivo],
+                    ...(detailTarget.usadoEn ? [['Usado en', `${detailTarget.usadoEn} · ${detailTarget.puntoAcceso || '—'}`]] : []),
+                    ...(detailTarget.motivoRevocacion ? [['Motivo de revocación', detailTarget.motivoRevocacion]] : []),
+                  ].map(([label, value], idx) => (
+                      <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.75, borderTop: idx === 0 ? 'none' : '1px solid #F1F5F9' }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#64748B', flexShrink: 0 }}>{label}</Typography>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.82rem', color: '#0F172A', textAlign: 'right' }}>{value}</Typography>
+                      </Box>
+                  ))}
+                </Box>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Snackbar open={snackbarOpen} autoHideDuration={3500} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+          <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
+      </DashboardTemplate>
   );
 };
 

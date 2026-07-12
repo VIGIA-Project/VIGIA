@@ -18,3 +18,6 @@ export const listarInvitadosActivos = (): Promise<InvitadoActivo[]> =>
 
 export const contarInvitadosActivos = (): Promise<{ count: number }> =>
   apiGetData('/access-control/invitados-activos/count');
+
+export const validarPase = (codigo: string, placa: string): Promise<{ valido: boolean; motivo?: string }> =>
+    apiPostData('/authorization/pases/validar', { codigo, placa });

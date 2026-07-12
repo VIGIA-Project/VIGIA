@@ -41,6 +41,11 @@ export const useInvitadosActivosCount = () =>
         queryFn: () => guardService.contarInvitadosActivos().then((r) => r.count),
         refetchInterval: 15000,
     });
+export const useValidarPase = () =>
+    useMutation({
+        mutationFn: ({ codigo, placa }: { codigo: string; placa: string }) =>
+            guardService.validarPase(codigo, placa),
+    });
 
 export const useRegistrarEventoManual = () => {
     const queryClient = useQueryClient();

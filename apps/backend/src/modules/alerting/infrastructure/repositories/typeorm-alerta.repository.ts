@@ -14,6 +14,12 @@ export class TypeOrmAlertaRepository implements IAlertaRepository {
     private readonly repo: Repository<AlertaOrmEntity>,
   ) {}
 
+  async guardar(alerta: Alerta): Promise<Alerta> {
+    const orm = AlertaMapper.toOrm(alerta);
+    const saved = await this.repo.save(orm);
+    return AlertaMapper.toDomain(saved);
+  }
+
   async buscarPorId(id: string): Promise<Alerta | null> {
     const orm = await this.repo.findOne({ where: { alertaId: id } });
     return orm ? AlertaMapper.toDomain(orm) : null;
@@ -31,5 +37,19 @@ export class TypeOrmAlertaRepository implements IAlertaRepository {
     return this.repo.count({
       where: { estadoAtencion: Not(EstadoAtencionAlerta.ATENDIDA) },
     });
+  }
+
+  async buscarPendientePorCausaYReferencia(
+    causaOrigen: string,
+    referenciaOrigenId: string,
+  ): Promise<Alerta | null> {
+    const orm = await this.repo.findOne({
+      where: {
+        causaOrigen,
+        referenciaOrigenId,
+        estadoAtencion: Not(EstadoAtencionAlerta.ATENDIDA),
+      },
+    });
+    return orm ? AlertaMapper.toDomain(orm) : null;
   }
 }

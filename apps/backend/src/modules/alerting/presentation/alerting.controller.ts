@@ -10,14 +10,8 @@ import { AlertingService } from '../application/alerting.service';
 export class AlertingController {
   constructor(private readonly alertingService: AlertingService) {}
 
-  private personaIdDesdeJwt(req: any): string {
-    const personaId = req.user?.personaId;
-    if (!personaId) {
-      throw new BadRequestException(
-        'El usuario autenticado no tiene una persona asociada (personaId ausente en el token)',
-      );
-    }
-    return personaId;
+  private personaIdDesdeJwt(req: any): string | null {
+    return req.user?.personaId || null;
   }
 
   // ─── Alertas ────────────────────────────────────────────────────────────
@@ -42,15 +36,21 @@ export class AlertingController {
   @Get('notificaciones')
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarNotificaciones(@Request() req: any) {
-    const notificaciones = await this.alertingService.listarPorDestinatario(
-      this.personaIdDesdeJwt(req),
-    );
+    const personaId = this.personaIdDesdeJwt(req);
+    if (!personaId) {
+      return [];
+    }
+    const notificaciones = await this.alertingService.listarPorDestinatario(personaId);
     return notificaciones.map((n) => n.toJSON());
   }
 
   @Patch('notificaciones/:id/leer')
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
-  async marcarNotificacionLeida(@Param('id') id: string) {
+  async marcarNotificacionLeida(@Request() req: any, @Param('id') id: string) {
+    const personaId = this.personaIdDesdeJwt(req);
+    if (!personaId) {
+      throw new BadRequestException('El usuario autenticado no tiene una persona asociada');
+    }
     const notificacion = await this.alertingService.marcarLeida(id);
     return notificacion.toJSON();
   }

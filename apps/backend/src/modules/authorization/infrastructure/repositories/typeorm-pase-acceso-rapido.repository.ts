@@ -34,8 +34,8 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
       .createQueryBuilder('p')
       .where('p.placa = :placa', { placa: placaNormalizada })
       .andWhere('p.estado = :estado', { estado: EstadoPase.ACTIVO })
-      .andWhere('p.vigencia_inicio <= :instante', { instante })
-      .andWhere('p.vigencia_fin >= :instante', { instante })
+      .andWhere('p.vigenciaInicio <= :instante', { instante })
+      .andWhere('p.vigenciaFin >= :instante', { instante })
       .getMany();
     return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
   }
@@ -46,9 +46,9 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
   ): Promise<PaseAccesoRapido[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.vehiculo_id = :vehiculoId', { vehiculoId })
+      .where('p.vehiculoId = :vehiculoId', { vehiculoId })
       .andWhere('p.estado = :estado', { estado })
-      .orderBy('p.created_at', 'DESC')
+      .orderBy('p.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
   }
@@ -56,8 +56,8 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
   async buscarPorPropietario(propietarioId: string): Promise<PaseAccesoRapido[]> {
     const orms = await this.repo
       .createQueryBuilder('p')
-      .where('p.propietario_id = :propietarioId', { propietarioId })
-      .orderBy('p.created_at', 'DESC')
+      .where('p.propietarioId = :propietarioId', { propietarioId })
+      .orderBy('p.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
   }
@@ -66,8 +66,8 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
     return this.repo
       .createQueryBuilder('p')
       .where('p.estado = :estado', { estado: EstadoPase.ACTIVO })
-      .andWhere('p.vigencia_inicio <= :instante', { instante })
-      .andWhere('p.vigencia_fin >= :instante', { instante })
+      .andWhere('p.vigenciaInicio <= :instante', { instante })
+      .andWhere('p.vigenciaFin >= :instante', { instante })
       .getCount();
   }
 }

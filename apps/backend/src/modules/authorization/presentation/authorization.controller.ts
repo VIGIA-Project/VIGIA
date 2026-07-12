@@ -63,6 +63,13 @@ export class AuthorizationController {
     );
   }
 
+  @Get('grupo-familiar')
+  @Roles(UserRole.ADMIN)
+  async listarTodosGrupoFamiliar() {
+    const todos = await this.authorizationService.listarTodosGrupoFamiliar();
+    return todos.map(m => m.toJSON ? m.toJSON() : m);
+  }
+
   @Get('grupo-familiar/propietario/:propietarioId')
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   async listarGrupoFamiliarPorPropietario(@Param('propietarioId') propietarioId: string) {
@@ -144,6 +151,13 @@ export class AuthorizationController {
     return this.authorizationService.crearPermisoTemporal(dto, this.propietarioIdDesdeJwt(req));
   }
 
+  @Get('temporales/propietario/:propietarioId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async listarTemporalesPorPropietario(@Param('propietarioId') propietarioId: string) {
+    const temporales = await this.authorizationService.listarTemporalesPorPropietario(propietarioId);
+    return temporales.map((t) => t.toJSON ? t.toJSON() : t);
+  }
+
   @Get('temporales/vehiculo/:vehiculoId')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.GUARD)
   async listarTemporalesVigentesPorVehiculo(@Param('vehiculoId') vehiculoId: string) {
@@ -188,7 +202,15 @@ export class AuthorizationController {
   @Get('pases/mis-pases')
   @Roles(UserRole.OWNER)
   async misPases(@Request() req: any) {
-    return this.authorizationService.listarPorPropietario(this.propietarioIdDesdeJwt(req));
+    const pases = await this.authorizationService.listarPorPropietario(this.propietarioIdDesdeJwt(req));
+    return pases.map((p) => p.toJSON ? p.toJSON() : p);
+  }
+
+  @Get('pases/propietario/:propietarioId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async listarPasesPorPropietario(@Param('propietarioId') propietarioId: string) {
+    const pases = await this.authorizationService.listarPorPropietario(propietarioId);
+    return pases.map((p) => p.toJSON ? p.toJSON() : p);
   }
 
   @Get('pases/placa/:placa')
@@ -198,10 +220,10 @@ export class AuthorizationController {
   }
 
   @Post('pases/validar')
-  @Roles(UserRole.GUARD)
+  @Roles(UserRole.GUARD, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async validarPase(@Body() dto: ValidarPaseDto) {
-    return this.authorizationService.validarPase(dto.codigo, dto.placa);
+    return this.authorizationService.validarYConsumirPase(dto.codigo, dto.placa);
   }
 
   @Patch('pases/:id/revocar')
@@ -226,7 +248,7 @@ export class AuthorizationController {
   // ─── Conjunto autorizado ────────────────────────────────────────────────
 
   @Get('conjunto-autorizado/vehiculo/:vehiculoId')
-  @Roles(UserRole.GUARD, UserRole.ADMIN)
+  @Roles(UserRole.GUARD, UserRole.ADMIN, UserRole.OWNER)
   async obtenerConjuntoAutorizado(@Param('vehiculoId') vehiculoId: string) {
     const vehiculo = await this.registryPort.findVehiculoById(vehiculoId);
     if (!vehiculo) {

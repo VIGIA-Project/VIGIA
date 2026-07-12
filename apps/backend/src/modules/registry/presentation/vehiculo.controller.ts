@@ -23,7 +23,7 @@ export class VehiculoController {
     constructor(private readonly vehiculoUseCases: VehiculoUseCases) {}
 
     @Post()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     @HttpCode(HttpStatus.CREATED)
     async crear(@Body() dto: CrearVehiculoDto) {
         return this.vehiculoUseCases.crear(dto);
@@ -42,9 +42,15 @@ export class VehiculoController {
     }
 
     @Get('placa/:placa')
-    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
     async buscarPorPlaca(@Param('placa') placa: string) {
         return this.vehiculoUseCases.buscarPorPlaca(placa);
+    }
+
+    @Get('propietario/:propietarioId')
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
+    async listarPorPropietario(@Param('propietarioId') propietarioId: string) {
+        return this.vehiculoUseCases.listarPorPropietario(propietarioId);
     }
 
     @Get(':id')
@@ -53,14 +59,8 @@ export class VehiculoController {
         return this.vehiculoUseCases.buscarPorId(id);
     }
 
-    @Get('propietario/:propietarioId')
-    @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
-    async listarPorPropietario(@Param('propietarioId') propietarioId: string) {
-        return this.vehiculoUseCases.listarPorPropietario(propietarioId);
-    }
-
     @Patch(':id')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     async actualizar(
         @Param('id') id: string,
         @Body() dto: ActualizarVehiculoDto,

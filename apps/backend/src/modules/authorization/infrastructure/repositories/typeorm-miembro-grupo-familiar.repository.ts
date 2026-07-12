@@ -27,11 +27,19 @@ export class TypeOrmMiembroGrupoFamiliarRepository
     return orm ? MiembroGrupoFamiliarMapper.toDomain(orm) : null;
   }
 
+  async buscarTodos(): Promise<MiembroGrupoFamiliar[]> {
+    const orms = await this.repo
+      .createQueryBuilder('m')
+      .orderBy('m.createdAt', 'DESC')
+      .getMany();
+    return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
+  }
+
   async buscarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     const orms = await this.repo
       .createQueryBuilder('m')
-      .where('m.propietario_id = :propietarioId', { propietarioId })
-      .orderBy('m.created_at', 'DESC')
+      .where('m.propietarioId = :propietarioId', { propietarioId })
+      .orderBy('m.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
   }
@@ -39,9 +47,9 @@ export class TypeOrmMiembroGrupoFamiliarRepository
   async buscarActivosPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     const orms = await this.repo
       .createQueryBuilder('m')
-      .where('m.propietario_id = :propietarioId', { propietarioId })
+      .where('m.propietarioId = :propietarioId', { propietarioId })
       .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
-      .orderBy('m.created_at', 'DESC')
+      .orderBy('m.createdAt', 'DESC')
       .getMany();
     return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
   }
@@ -49,7 +57,7 @@ export class TypeOrmMiembroGrupoFamiliarRepository
   async contarActivosPorPropietario(propietarioId: string): Promise<number> {
     return this.repo
       .createQueryBuilder('m')
-      .where('m.propietario_id = :propietarioId', { propietarioId })
+      .where('m.propietarioId = :propietarioId', { propietarioId })
       .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
       .getCount();
   }
@@ -64,8 +72,8 @@ export class TypeOrmMiembroGrupoFamiliarRepository
   async existeMiembroActivo(personaId: string, propietarioId: string): Promise<boolean> {
     const count = await this.repo
       .createQueryBuilder('m')
-      .where('m.persona_id = :personaId', { personaId })
-      .andWhere('m.propietario_id = :propietarioId', { propietarioId })
+      .where('m.personaId = :personaId', { personaId })
+      .andWhere('m.propietarioId = :propietarioId', { propietarioId })
       .andWhere('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
       .getCount();
     return count > 0;

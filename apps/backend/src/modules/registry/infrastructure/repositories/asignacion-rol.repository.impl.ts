@@ -30,6 +30,11 @@ export class AsignacionRolRepositoryImpl implements IAsignacionRolRepository {
         return this.toDomain(saved);
     }
 
+    async findAll(): Promise<AsignacionRol[]> {
+        const orms = await this.repo.find();
+        return orms.map((orm) => this.toDomain(orm));
+    }
+
     async findByVehiculo(vehiculoId: string): Promise<AsignacionRol[]> {
         const orms = await this.repo.find({
             where: { vehiculoId, estadoAsignacion: 'ACTIVA' as any },

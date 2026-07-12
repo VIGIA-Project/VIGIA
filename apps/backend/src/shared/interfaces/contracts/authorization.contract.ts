@@ -26,6 +26,15 @@ export interface IAuthorizationContract {
   ): Promise<ResultadoValidacionPaseDTO>;
 
   /**
+   * Obtiene el pase de acceso rápido activo y válido para una placa dada.
+   * Útil para consumir el pase cuando el guardia lo valida manualmente por placa.
+   */
+  obtenerPaseValidoPorPlaca(
+    placa: string,
+    instante?: Date,
+  ): Promise<{ paseId: string } | null>;
+
+  /**
    * Marca un pase como consumido, asociándolo al evento de acceso que lo usó.
    */
   consumirPase(paseId: string, eventoId: string): Promise<void>;

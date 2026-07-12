@@ -142,4 +142,21 @@ export class RegistryPortImpl implements IRegistryPort {
         if (!persona) return null;
         return persona.estadoBiometrico as 'PENDIENTE' | 'COMPLETO';
     }
+
+    async findAllPersonas(): Promise<PersonaResponseDto[]> {
+        const personas = await this.personaRepo.findAll();
+        return personas.map((persona) => ({
+            personaId: persona.personaId,
+            identificacionTipo: persona.identificacionTipo,
+            identificacionNumero: persona.identificacionNumero,
+            nombres: persona.nombres,
+            apellidos: persona.apellidos,
+            nombreCompleto: persona.getNombreCompleto(),
+            correoInstitucional: persona.correoInstitucional,
+            telefonoContacto: persona.telefonoContacto,
+            estadoRegistro: persona.estadoRegistro,
+            estadoBiometrico: persona.estadoBiometrico,
+            createdAt: persona.createdAt,
+        }));
+    }
 }

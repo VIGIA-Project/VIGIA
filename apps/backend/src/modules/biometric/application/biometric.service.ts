@@ -49,15 +49,31 @@ export class BiometricService {
   }
 
   async listarConNombrePersona(): Promise<PerfilBiometricoResponseDto[]> {
-    const perfiles = await this.perfilBiometricoRepository.listarTodos();
-    return Promise.all(
-      perfiles.map(async (perfil) => {
-        const persona = await this.registryPort.findPersonaById(perfil.personaId);
+    const todasPersonas = await this.registryPort.findAllPersonas();
+    const perfilesActivos = await this.perfilBiometricoRepository.listarTodos();
+
+    const perfilesMap = new Map(perfilesActivos.map((p) => [p.personaId, p]));
+
+    return todasPersonas.map((persona) => {
+      const perfil = perfilesMap.get(persona.personaId);
+      if (perfil) {
         return {
           ...perfil.toJSON(),
-          personaNombre: persona?.nombreCompleto,
+          personaNombre: persona.nombreCompleto,
         };
-      }),
-    );
+      }
+      
+      // Si la persona no tiene un perfil biométrico creado en el BC Biometric,
+      // la proyectamos como PENDIENTE_CAPTURA para la UI.
+      return {
+        perfilBiometricoId: `pending-${persona.personaId}`,
+        personaId: persona.personaId,
+        personaNombre: persona.nombreCompleto,
+        estadoDisponibilidad: 'PENDIENTE_CAPTURA',
+        ultimaActualizacionBiometrica: undefined,
+        fechaCreacion: new Date(persona.createdAt),
+        fechaActualizacion: new Date(persona.createdAt),
+      } as PerfilBiometricoResponseDto;
+    });
   }
 }

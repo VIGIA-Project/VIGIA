@@ -17,6 +17,7 @@ export interface IRegistryPort {
     findPersonasAutorizadasByVehiculo(vehiculoId: string): Promise<AsignacionRolResponseDto[]>;
     findGrupoFamiliarByVehiculo(vehiculoId: string): Promise<AsignacionRolResponseDto[]>;
     getEstadoBiometrico(personaId: string): Promise<'PENDIENTE' | 'COMPLETO' | null>;
+    findAllPersonas(): Promise<PersonaResponseDto[]>;
 }
 
 export const REGISTRY_PORT = 'REGISTRY_PORT';

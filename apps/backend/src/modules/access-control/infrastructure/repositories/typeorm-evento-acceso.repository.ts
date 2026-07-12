@@ -44,25 +44,34 @@ export class TypeOrmEventoAccesoRepository implements IEventoAccesoRepository {
 
     const orms = await this.repo
       .createQueryBuilder('e')
-      .where('e.tipo_movimiento = :entrada', { entrada: 'ENTRADA' })
-      .andWhere('e.decision_operativa = :aprobado', { aprobado: 'SUCCESSFUL' })
-      .andWhere('e.motivo_codigo = :contingencia', { contingencia: 'CONTINGENCIA' })
-      .andWhere('e.capturado_en >= :inicioDia', { inicioDia })
+      .where('e.tipoMovimiento = :entrada', { entrada: 'ENTRADA' })
+      .andWhere('e.decisionOperativa = :aprobado', { aprobado: 'SUCCESSFUL' })
+      .andWhere('e.motivoCodigo = :contingencia', { contingencia: 'CONTINGENCIA' })
+      .andWhere('e.capturadoEn >= :inicioDia', { inicioDia })
       .andWhere((qb) => {
         const subQuery = qb
           .subQuery()
           .select('1')
           .from(EventoAccesoOrmEntity, 's')
-          .where('s.placa_observada = e.placa_observada')
-          .andWhere('s.tipo_movimiento = :salida')
-          .andWhere('s.capturado_en > e.capturado_en')
+          .where('s.placaObservada = e.placaObservada')
+          .andWhere('s.tipoMovimiento = :salida')
+          .andWhere('s.capturadoEn > e.capturadoEn')
           .getQuery();
         return `NOT EXISTS ${subQuery}`;
       })
       .setParameter('salida', 'SALIDA')
-      .orderBy('e.capturado_en', 'DESC')
+      .orderBy('e.capturadoEn', 'DESC')
       .getMany();
 
+    return orms.map((orm) => EventoAccesoMapper.toDomain(orm));
+  }
+
+  async buscarPorVehiculo(vehiculoId: string, limite?: number): Promise<EventoAcceso[]> {
+    const orms = await this.repo.find({
+      where: { vehiculoId },
+      order: { capturadoEn: 'DESC' },
+      take: limite ?? 20,
+    });
     return orms.map((orm) => EventoAccesoMapper.toDomain(orm));
   }
 }

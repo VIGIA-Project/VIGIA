@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
@@ -17,6 +17,17 @@ export class AccessControlController {
   async listarEventosRecientes(@Query('limite') limite?: string) {
     const cantidad = limite ? parseInt(limite, 10) : 10;
     const eventos = await this.accessControlService.listarRecientes(cantidad);
+    return eventos.map((e) => e.toJSON());
+  }
+
+  @Get('eventos/vehiculo/:vehiculoId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.GUARD)
+  async listarEventosPorVehiculo(
+    @Param('vehiculoId') vehiculoId: string,
+    @Query('limite') limite?: string,
+  ) {
+    const cantidad = limite ? parseInt(limite, 10) : 20;
+    const eventos = await this.accessControlService.listarEventosPorVehiculo(vehiculoId, cantidad);
     return eventos.map((e) => e.toJSON());
   }
 

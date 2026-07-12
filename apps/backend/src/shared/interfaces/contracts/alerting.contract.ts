@@ -26,4 +26,3 @@ export interface EmitAlertResult {
   channels: AlertChannel[];
 }
 
-export const ALERTING_CONTRACT = Symbol('ALERTING_CONTRACT');

@@ -31,7 +31,7 @@ export class VehiculoRepositoryImpl implements IVehiculoRepository {
     async findById(vehiculoId: string): Promise<Vehiculo | null> {
         const orm = await this.repo
             .createQueryBuilder('v')
-            .where('v.vehiculo_id = :vehiculoId', { vehiculoId })
+            .where('v.vehiculoId = :vehiculoId', { vehiculoId })
             .getOne();
         return orm ? this.toDomain(orm) : null;
     }
@@ -70,7 +70,7 @@ export class VehiculoRepositoryImpl implements IVehiculoRepository {
             .createQueryBuilder()
             .update(VehiculoOrmEntity)
             .set(data)
-            .where('vehiculo_id = :vehiculoId', { vehiculoId })
+            .where('vehiculoId = :vehiculoId', { vehiculoId })
             .execute();
         const updated = await this.findById(vehiculoId);
         if (!updated) throw new Error('Vehículo no encontrado después de update');
@@ -82,7 +82,7 @@ export class VehiculoRepositoryImpl implements IVehiculoRepository {
             .createQueryBuilder()
             .update(VehiculoOrmEntity)
             .set({ estadoRegistro: 'INACTIVO' })
-            .where('vehiculo_id = :vehiculoId', { vehiculoId })
+            .where('vehiculoId = :vehiculoId', { vehiculoId })
             .execute();
     }
 

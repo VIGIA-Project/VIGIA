@@ -14,4 +14,6 @@ export interface IEventoAccesoRepository {
    * una SALIDA posterior — es decir, "invitados" activos dentro del campus.
    */
   buscarInvitadosActivos(): Promise<EventoAcceso[]>;
+
+  buscarPorVehiculo(vehiculoId: string, limite?: number): Promise<EventoAcceso[]>;
 }

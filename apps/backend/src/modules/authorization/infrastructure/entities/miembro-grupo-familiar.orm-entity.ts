@@ -20,7 +20,7 @@ export class MiembroGrupoFamiliarOrmEntity {
   @Column({
     type: 'enum',
     enum: ['ACTIVA', 'INACTIVA', 'REVOCADA', 'EXPIRADA'],
-    enumName: 'estado_autorizacion_enum',
+    enumName: 'estado_autorizacion_permanente_enum',
     default: 'ACTIVA',
   })
   estado: string;

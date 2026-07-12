@@ -34,6 +34,13 @@ export class AuthorizationContractImpl implements IAuthorizationContract {
     return this.authorizationService.validarPase(codigo, placa);
   }
 
+  async obtenerPaseValidoPorPlaca(
+    placa: string,
+    instante?: Date,
+  ): Promise<{ paseId: string } | null> {
+    return this.authorizationService.obtenerPaseValidoPorPlaca(placa, instante);
+  }
+
   async consumirPase(paseId: string, eventoId: string): Promise<void> {
     await this.authorizationService.consumirPase(paseId, eventoId);
   }

@@ -21,6 +21,17 @@ import { EvaluacionPaseService, ResultadoEvaluacionPase } from '../domain/servic
 import { CrearMiembroGrupoFamiliarDto } from './dto/crear-miembro-grupo-familiar.dto';
 import { CrearPermisoTemporalDto } from './dto/crear-permiso-temporal.dto';
 import { CrearPaseRapidoDto } from './dto/crear-pase-rapido.dto';
+import { REGISTRY_PORT, IRegistryPort } from '../../registry/application/ports/registry.port';
+
+export interface ResultadoValidacionConsumo {
+  valido: boolean;
+  motivo: string;
+  paseId: string | null;
+  vehiculoId: string | null;
+  propietarioId: string | null;
+  placa: string;
+  estado: string | null;
+}
 
 /**
  * Servicio de aplicación — orquesta los casos de uso del BC Authorization.
@@ -38,6 +49,8 @@ export class AuthorizationService {
     private readonly paseAccesoRapidoRepository: IPaseAccesoRapidoRepository,
     private readonly construccionConjuntoAutorizadoService: ConstruccionConjuntoAutorizadoService,
     private readonly evaluacionPaseService: EvaluacionPaseService,
+    @Inject(REGISTRY_PORT)
+    private readonly registryPort: IRegistryPort,
   ) {}
 
   // ─── Grupo familiar ─────────────────────────────────────────────────
@@ -74,6 +87,10 @@ export class AuthorizationService {
       relacion: dto.relacion,
     });
     return this.miembroGrupoFamiliarRepository.guardar(miembro);
+  }
+
+  async listarTodosGrupoFamiliar(): Promise<MiembroGrupoFamiliar[]> {
+    return this.miembroGrupoFamiliarRepository.buscarTodos();
   }
 
   async listarGrupoFamiliarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
@@ -123,6 +140,10 @@ export class AuthorizationService {
 
   async listarPorPersona(personaId: string): Promise<PermisoTemporal[]> {
     return this.permisoTemporalRepository.buscarPorPersona(personaId);
+  }
+
+  async listarTemporalesPorPropietario(propietarioId: string): Promise<PermisoTemporal[]> {
+    return this.permisoTemporalRepository.buscarPorPropietario(propietarioId);
   }
 
   async revocarPermiso(id: string): Promise<PermisoTemporal> {
@@ -175,8 +196,74 @@ export class AuthorizationService {
     return this.paseAccesoRapidoRepository.buscarActivosPorPlaca(placa);
   }
 
+  async obtenerPaseValidoPorPlaca(placa: string, instante?: Date): Promise<{ paseId: string } | null> {
+    const pasesActivos = await this.paseAccesoRapidoRepository.buscarActivosPorPlaca(placa);
+    const ahora = instante || new Date();
+    
+    // Find the first active pass that is within its validity period
+    const paseValido = pasesActivos.find(
+      (p) => p.estado === 'ACTIVO' && p.vigencia.estaVigente(ahora)
+    );
+
+    if (paseValido) {
+      return { paseId: paseValido.id };
+    }
+    return null;
+  }
+
+  /**
+   * Valida el código de un pase de acceso rápido contra una placa.
+   * Solo para consultas inter-BC (no consume el pase).
+   */
   async validarPase(codigo: string, placa: string): Promise<ResultadoEvaluacionPase> {
     return this.evaluacionPaseService.evaluar(codigo, placa);
+  }
+
+  /**
+   * Valida y consume un pase de acceso rápido.
+   * Para uso directo desde el endpoint del guardia (contrato 6.4).
+   */
+  async validarYConsumirPase(codigo: string, placa: string): Promise<ResultadoValidacionConsumo> {
+    const placaNorm = placa.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    const resultado = await this.evaluacionPaseService.evaluar(codigo.trim(), placaNorm);
+
+    if (!resultado.valido || !resultado.paseId) {
+      return {
+        valido: false,
+        motivo: 'CODIGO_INVALIDO_O_EXPIRADO',
+        paseId: null,
+        vehiculoId: null,
+        propietarioId: null,
+        placa: placaNorm,
+        estado: null,
+      };
+    }
+
+    const pase = await this.paseAccesoRapidoRepository.buscarPorId(resultado.paseId);
+    if (!pase) {
+      return {
+        valido: false,
+        motivo: 'CODIGO_INVALIDO_O_EXPIRADO',
+        paseId: null,
+        vehiculoId: null,
+        propietarioId: null,
+        placa: placaNorm,
+        estado: null,
+      };
+    }
+
+    pase.consumir('VALIDACION-DIRECTA-GUARDIA');
+    const paseConsumed = await this.paseAccesoRapidoRepository.guardar(pase);
+
+    return {
+      valido: true,
+      motivo: 'PASE_VALIDO',
+      paseId: paseConsumed.id,
+      vehiculoId: paseConsumed.vehiculoId,
+      propietarioId: paseConsumed.propietarioId,
+      placa: paseConsumed.placa,
+      estado: paseConsumed.estado,
+    };
   }
 
   async revocarPase(id: string): Promise<PaseAccesoRapido> {
@@ -207,11 +294,26 @@ export class AuthorizationService {
     vehiculoId: string,
     propietarioId: string,
     instante?: Date,
-  ): Promise<ConjuntoAutorizado> {
-    return this.construccionConjuntoAutorizadoService.construir(
+  ): Promise<any> {
+    const conjunto = await this.construccionConjuntoAutorizadoService.construir(
       vehiculoId,
       propietarioId,
       instante,
     );
+
+    const autorizadosEnriquecidos = await Promise.all(
+      conjunto.autorizados.map(async (auth) => {
+        const persona = await this.registryPort.findPersonaById(auth.personaId);
+        return {
+          ...auth,
+          nombreCompleto: persona?.nombreCompleto || 'Usuario Desconocido',
+        };
+      }),
+    );
+
+    return {
+      ...conjunto,
+      autorizados: autorizadosEnriquecidos,
+    };
   }
 }

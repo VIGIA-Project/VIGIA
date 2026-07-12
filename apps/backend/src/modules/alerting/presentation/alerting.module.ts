@@ -6,7 +6,8 @@ import { TypeOrmAlertaRepository } from '../infrastructure/repositories/typeorm-
 import { TypeOrmNotificacionRepository } from '../infrastructure/repositories/typeorm-notificacion.repository';
 import { AlertaOrmEntity } from '../infrastructure/entities/alerta.orm-entity';
 import { NotificacionOrmEntity } from '../infrastructure/entities/notificacion.orm-entity';
-import { ALERTA_REPOSITORY, NOTIFICACION_REPOSITORY } from '@shared/constants/injection-tokens';
+import { ALERTA_REPOSITORY, NOTIFICACION_REPOSITORY, ALERTING_CONTRACT } from '@shared/constants/injection-tokens';
+import { AlertingContractImpl } from '../application/alerting-contract.impl';
 
 @Module({
   imports: [TypeOrmModule.forFeature([AlertaOrmEntity, NotificacionOrmEntity])],
@@ -21,7 +22,11 @@ import { ALERTA_REPOSITORY, NOTIFICACION_REPOSITORY } from '@shared/constants/in
       provide: NOTIFICACION_REPOSITORY,
       useClass: TypeOrmNotificacionRepository,
     },
+    {
+      provide: ALERTING_CONTRACT,
+      useClass: AlertingContractImpl,
+    }
   ],
-  exports: [AlertingService],
+  exports: [AlertingService, ALERTING_CONTRACT],
 })
 export class AlertingModule {}

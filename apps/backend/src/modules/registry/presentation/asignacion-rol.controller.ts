@@ -28,6 +28,12 @@ export class AsignacionRolController {
         return this.asignacionUseCases.crear(dto);
     }
 
+    @Get()
+    @Roles(UserRole.ADMIN)
+    async listarTodas() {
+        return this.asignacionUseCases.listarTodas();
+    }
+
     @Get('vehiculo/:vehiculoId')
     @Roles(UserRole.ADMIN, UserRole.GUARD)
     async listarPorVehiculo(@Param('vehiculoId') vehiculoId: string) {

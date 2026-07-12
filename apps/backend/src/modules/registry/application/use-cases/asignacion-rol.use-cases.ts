@@ -67,6 +67,11 @@ export class AsignacionRolUseCases {
         return this.toResponse(saved);
     }
 
+    async listarTodas(): Promise<AsignacionRolResponseDto[]> {
+        const asignaciones = await this.asignacionRepo.findAll();
+        return asignaciones.map((a) => this.toResponse(a));
+    }
+
     async listarPorVehiculo(vehiculoId: string): Promise<AsignacionRolResponseDto[]> {
         const asignaciones = await this.asignacionRepo.findByVehiculo(vehiculoId);
         return asignaciones.map((a) => this.toResponse(a));

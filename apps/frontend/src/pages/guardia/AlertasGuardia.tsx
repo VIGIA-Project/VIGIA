@@ -44,7 +44,7 @@ export const AlertasGuardiaPage: React.FC = () => {
 
   const handleAccion = (alerta: Alerta) => {
     switch(alerta.accion) {
-      case 'ver_evento':         navigate('/guardia/revision-manual'); break;
+      case 'ver_evento':         navigate('/guardia/revision'); break;
       case 'registrar_invitado': navigate('/guardia/registro-invitado', { state:{ placa:alerta.placa } }); break;
       case 'ver_invitado':       navigate('/guardia/invitados'); break;
     }
@@ -151,7 +151,7 @@ export const AlertasGuardiaPage: React.FC = () => {
             <div style={{ background:'#EEF2FF', borderRadius:12, border:'1px solid #C7D2FE', padding:'14px 16px' }}>
               <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86', marginBottom:8 }}>Accesos rápidos</div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <button onClick={() => navigate('/guardia/cola-eventos')}
+                <button onClick={() => navigate('/guardia/cola')}
                   style={{ padding:'9px 14px', borderRadius:8, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
                   ⏱ Ver cola de eventos
                 </button>

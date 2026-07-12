@@ -36,7 +36,7 @@ export const ContingenciaPage: React.FC = () => {
             <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:22, fontWeight:700, color:'#1F2A44', marginBottom:8 }}>Contingencia registrada</div>
             <div style={{ fontSize:14, color:'#6B7280', marginBottom:6 }}>Causa: <strong>{causa}</strong></div>
             <div style={{ fontSize:14, color:'#6B7280', marginBottom:24 }}>Decisión: <strong style={{ color: decision==='AUTORIZAR'?'#2E7D32':'#C62828' }}>{decision}</strong></div>
-            <button onClick={() => navigate('/guardia/cola-eventos')}
+            <button onClick={() => navigate('/guardia/cola')}
               style={{ padding:'12px 28px', borderRadius:10, background:'#0D5CCF', color:'#fff', fontSize:14, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
               Volver a la cola
             </button>
@@ -49,7 +49,7 @@ export const ContingenciaPage: React.FC = () => {
   return (
     <DashboardTemplate rol="GUARD" pageTitle="Registro de contingencia">
       <Box sx={{ fontFamily:'Inter,sans-serif' }}>
-        <div onClick={() => navigate('/guardia/cola-eventos')}
+        <div onClick={() => navigate('/guardia/cola')}
           style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:13, color:'#0D5CCF', fontWeight:500, cursor:'pointer', padding:'5px 12px', borderRadius:8, border:'1px solid #C7D2FE', background:'#EEF2FF', marginBottom:18 }}>
           ← Cola de eventos
         </div>
@@ -113,7 +113,7 @@ export const ContingenciaPage: React.FC = () => {
                   ⚠ Esta contingencia quedará registrada con tu nombre y timestamp. Es trazable e irrevocable.
                 </div>
                 <div style={{ display:'flex', gap:10 }}>
-                  <button onClick={() => navigate('/guardia/cola-eventos')}
+                  <button onClick={() => navigate('/guardia/cola')}
                     style={{ flex:1, padding:11, borderRadius:8, background:'#fff', color:'#555', fontSize:13, fontWeight:500, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
                     Cancelar
                   </button>

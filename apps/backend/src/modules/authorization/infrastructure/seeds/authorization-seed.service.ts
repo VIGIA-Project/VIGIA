@@ -136,7 +136,8 @@ export class AuthorizationSeedService implements OnModuleInit {
       estado: 'REVOCADA',
     });
     if (permisoRevocado && !permisoRevocado.fechaRevocacion) {
-      await this.permisoRepo.update(permisoRevocado.id, { fechaRevocacion: new Date(ahora.getTime() - 20 * 86400000) });
+      // Usar Date.now() + 1000 para evitar que revocado_en sea menor a created_at (violación de ck_perm_temp_revocado)
+      await this.permisoRepo.update(permisoRevocado.id, { fechaRevocacion: new Date(Date.now() + 1000) });
     }
 
     // ─── Pases de acceso rápido ───────────────────────────────────────
@@ -368,25 +369,25 @@ export class AuthorizationSeedService implements OnModuleInit {
 
     const eventos = [
       // Entradas exitosas propietario vehículo 1
-      { id: 'seed-ev-001', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso por propietario',          origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 3 * 3600000) },
-      { id: 'seed-ev-002', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Salida normal',                   origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 2 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000001', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso por propietario',          origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 3 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000002', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Salida normal',                   origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 2 * 3600000) },
       // Entrada familiar
-      { id: 'seed-ev-003', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso familiar autorizado',      origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 1 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000003', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso familiar autorizado',      origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 1 * 3600000) },
       // Vehículo 2 propietario
-      { id: 'seed-ev-004', vidId: vehiculo2Id, placa: PLACA_PROPIETARIO_2, tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso por propietario vehículo 2', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 6 * 3600000) },
-      { id: 'seed-ev-005', vidId: vehiculo2Id, placa: PLACA_PROPIETARIO_2, tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Salida vehículo 2',                origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 5 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000004', vidId: vehiculo2Id, placa: PLACA_PROPIETARIO_2, tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Acceso por propietario vehículo 2', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 6 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000005', vidId: vehiculo2Id, placa: PLACA_PROPIETARIO_2, tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'CONDUCTOR_AUTORIZADO',    detalle: 'Salida vehículo 2',                origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 5 * 3600000) },
       // Pase de acceso rápido usado
-      { id: 'seed-ev-006', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'PASE_VALIDADO',           detalle: 'Acceso con pase rápido',          origen: 'MANUAL',     ts: new Date(ahora.getTime() - 26 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000006', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'PASE_VALIDADO',           detalle: 'Acceso con pase rápido',          origen: 'MANUAL',     ts: new Date(ahora.getTime() - 26 * 3600000) },
       // Denegados
-      { id: 'seed-ev-007', vidId: null,        placa: PLACA_CONTINGENCIA,  tipo: 'ENTRADA', dec: 'DENIED',     motivo: 'VEHICULO_NO_REGISTRADO',  detalle: 'Vehículo no registrado en el sistema', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 4 * 3600000) },
-      { id: 'seed-ev-008', vidId: null,        placa: 'XYZ9999',           tipo: 'ENTRADA', dec: 'DENIED',     motivo: 'VEHICULO_NO_REGISTRADO',  detalle: 'Placa desconocida',               origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 7 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000007', vidId: null,        placa: PLACA_CONTINGENCIA,  tipo: 'ENTRADA', dec: 'DENIED',     motivo: 'VEHICULO_NO_REGISTRADO',  detalle: 'Vehículo no registrado en el sistema', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 4 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000008', vidId: null,        placa: 'XYZ9999',           tipo: 'ENTRADA', dec: 'DENIED',     motivo: 'VEHICULO_NO_REGISTRADO',  detalle: 'Placa desconocida',               origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 7 * 3600000) },
       // Contingencia activa (ENTRADA sin SALIDA posterior) — ABC0912
-      { id: 'seed-ev-009', vidId: null,        placa: PLACA_CONTINGENCIA,  tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONTINGENCIA',            detalle: 'Acceso por contingencia manual', origen: 'MANUAL',     ts: new Date(ahora.getTime() - 90 * 60000), dur: 60 },
+      { id: '00000000-0000-4000-a000-000000000009', vidId: null,        placa: PLACA_CONTINGENCIA,  tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'CONTINGENCIA',            detalle: 'Acceso por contingencia manual', origen: 'MANUAL',     ts: new Date(ahora.getTime() - 90 * 60000), dur: 60 },
       // Permiso temporal vigente
-      { id: 'seed-ev-010', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'PERMISO_TEMPORAL_VIGENTE', detalle: 'Acceso con permiso temporal',    origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 8 * 3600000) },
-      { id: 'seed-ev-011', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'PERMISO_TEMPORAL_VIGENTE', detalle: 'Salida con permiso temporal',    origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 7 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000010', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'SUCCESSFUL', motivo: 'PERMISO_TEMPORAL_VIGENTE', detalle: 'Acceso con permiso temporal',    origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 8 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000011', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'SALIDA',  dec: 'SUCCESSFUL', motivo: 'PERMISO_TEMPORAL_VIGENTE', detalle: 'Salida con permiso temporal',    origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 7 * 3600000) },
       // Verificación pendiente
-      { id: 'seed-ev-012', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'PENDING_VERIFY', motivo: 'DOCUMENTO_INVALIDO', detalle: 'Documento no pudo ser verificado', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 10 * 3600000) },
+      { id: '00000000-0000-4000-a000-000000000012', vidId: vehiculo1Id, placa: PLACA_PROPIETARIO,   tipo: 'ENTRADA', dec: 'PENDING_VERIFY', motivo: 'DOCUMENTO_INVALIDO', detalle: 'Documento no pudo ser verificado', origen: 'AUTOMATICA', ts: new Date(ahora.getTime() - 10 * 3600000) },
     ];
 
     for (const ev of eventos) {
@@ -426,11 +427,11 @@ export class AuthorizationSeedService implements OnModuleInit {
     const ahora = new Date();
 
     const alertas = [
-      { id: 'seed-al-001', causa: 'ACCESO_DENEGADO',       ref: 'seed-ev-007', sev: 'ALTA',       msg: 'Acceso denegado para placa ABC0912: VEHICULO_NO_REGISTRADO' },
-      { id: 'seed-al-002', causa: 'ACCESO_DENEGADO',       ref: 'seed-ev-008', sev: 'ALTA',       msg: 'Acceso denegado para placa XYZ9999: VEHICULO_NO_REGISTRADO' },
-      { id: 'seed-al-003', causa: 'PERMISO_POR_EXPIRAR',   ref: 'seed-pm-002', sev: 'MEDIA',      msg: 'Permiso temporal próximo a expirar en 2 día(s)' },
-      { id: 'seed-al-004', causa: 'INVITADO_EXCEDIO_TIEMPO', ref: 'seed-ev-009', sev: 'MEDIA',    msg: 'Invitado con placa ABC0912 excedió el tiempo autorizado por 30 minuto(s)' },
-      { id: 'seed-al-005', causa: 'ACCESO_DENEGADO',       ref: 'seed-ev-012', sev: 'ALTA',       msg: 'Acceso denegado para placa PBW1234: DOCUMENTO_INVALIDO' },
+      { id: '11111111-0000-4000-a000-000000000001', causa: 'ACCESO_DENEGADO',       ref: '00000000-0000-4000-a000-000000000007', sev: 'ALTA',       msg: 'Acceso denegado para placa ABC0912: VEHICULO_NO_REGISTRADO' },
+      { id: '11111111-0000-4000-a000-000000000002', causa: 'ACCESO_DENEGADO',       ref: '00000000-0000-4000-a000-000000000008', sev: 'ALTA',       msg: 'Acceso denegado para placa XYZ9999: VEHICULO_NO_REGISTRADO' },
+      { id: '11111111-0000-4000-a000-000000000003', causa: 'PERMISO_POR_EXPIRAR',   ref: '33333333-0000-4000-a000-000000000002', sev: 'MEDIA',      msg: 'Permiso temporal próximo a expirar en 2 día(s)' },
+      { id: '11111111-0000-4000-a000-000000000004', causa: 'INVITADO_EXCEDIO_TIEMPO', ref: '00000000-0000-4000-a000-000000000009', sev: 'MEDIA',    msg: 'Invitado con placa ABC0912 excedió el tiempo autorizado por 30 minuto(s)' },
+      { id: '11111111-0000-4000-a000-000000000005', causa: 'ACCESO_DENEGADO',       ref: '00000000-0000-4000-a000-000000000012', sev: 'ALTA',       msg: 'Acceso denegado para placa PBW1234: DOCUMENTO_INVALIDO' },
     ];
 
     for (const al of alertas) {
@@ -454,11 +455,11 @@ export class AuthorizationSeedService implements OnModuleInit {
     const mgr = this.vehiculoRepo.manager;
 
     const notificaciones = [
-      { id: 'seed-not-001', alertaId: 'seed-al-001', titulo: 'Acceso denegado', contenido: 'Se denegó el acceso al vehículo ABC0912', leida: false },
-      { id: 'seed-not-002', alertaId: 'seed-al-003', titulo: 'Permiso por expirar', contenido: 'Un permiso temporal vence en 2 días', leida: false },
-      { id: 'seed-not-003', alertaId: 'seed-al-004', titulo: 'Invitado excedió tiempo', contenido: 'El invitado ABC0912 superó la duración autorizada', leida: true },
-      { id: 'seed-not-004', alertaId: 'seed-al-002', titulo: 'Acceso denegado', contenido: 'Placa desconocida XYZ9999 intentó acceder', leida: true },
-      { id: 'seed-not-005', alertaId: 'seed-al-005', titulo: 'Documento inválido', contenido: 'Documento no pudo ser verificado para PBW1234', leida: false },
+      { id: '22222222-0000-4000-a000-000000000001', alertaId: '11111111-0000-4000-a000-000000000001', titulo: 'Acceso denegado', contenido: 'Se denegó el acceso al vehículo ABC0912', leida: false },
+      { id: '22222222-0000-4000-a000-000000000002', alertaId: '11111111-0000-4000-a000-000000000003', titulo: 'Permiso por expirar', contenido: 'Un permiso temporal vence en 2 días', leida: false },
+      { id: '22222222-0000-4000-a000-000000000003', alertaId: '11111111-0000-4000-a000-000000000004', titulo: 'Invitado excedió tiempo', contenido: 'El invitado ABC0912 superó la duración autorizada', leida: true },
+      { id: '22222222-0000-4000-a000-000000000004', alertaId: '11111111-0000-4000-a000-000000000002', titulo: 'Acceso denegado', contenido: 'Placa desconocida XYZ9999 intentó acceder', leida: true },
+      { id: '22222222-0000-4000-a000-000000000005', alertaId: '11111111-0000-4000-a000-000000000005', titulo: 'Documento inválido', contenido: 'Documento no pudo ser verificado para PBW1234', leida: false },
     ];
 
     for (const not of notificaciones) {

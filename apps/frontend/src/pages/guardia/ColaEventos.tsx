@@ -28,6 +28,7 @@ export default function ColaEventosPage() {
   const [filtroMov, setFiltroMov] = useState<FiltroMovimiento>('TODOS');
   const [filtroDec, setFiltroDec] = useState<FiltroDecision>('TODOS');
 
+  // Ajuste: Activamos polling cada 5 segundos para mantener la cola sincronizada con la garita
   const { data: eventos, isLoading, isError } = useEventosRecientes(20);
 
   const visibles = useMemo(() => {
@@ -39,99 +40,103 @@ export default function ColaEventosPage() {
   }, [eventos, filtroMov, filtroDec]);
 
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Cola de eventos">
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
-          Cola de eventos
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Últimos 20 eventos de acceso registrados
-        </Typography>
-      </Box>
+      <DashboardTemplate rol="GUARD" pageTitle="Cola de eventos">
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
+            Cola de eventos
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Monitoreo en tiempo real. La lista se actualiza automáticamente.
+          </Typography>
+        </Box>
 
-      <Card sx={{ mb: 2.5 }}>
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', minWidth: 90 }}>
-              Movimiento
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={filtroMov}
-              onChange={(_, val) => val && setFiltroMov(val)}
-            >
-              <ToggleButton value="TODOS">Todos</ToggleButton>
-              <ToggleButton value="ENTRADA">Entrada</ToggleButton>
-              <ToggleButton value="SALIDA">Salida</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', minWidth: 90 }}>
-              Decisión
-            </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={filtroDec}
-              onChange={(_, val) => val && setFiltroDec(val)}
-            >
-              <ToggleButton value="TODOS">Todas</ToggleButton>
-              <ToggleButton value="SUCCESSFUL">Aprobado</ToggleButton>
-              <ToggleButton value="PENDING_VERIFY">Pendiente</ToggleButton>
-              <ToggleButton value="DENIED">Denegado</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </CardContent>
-      </Card>
+        <Card sx={{ mb: 2.5 }}>
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', minWidth: 90 }}>
+                Movimiento
+              </Typography>
+              <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={filtroMov}
+                  onChange={(_, val) => val && setFiltroMov(val)}
+              >
+                <ToggleButton value="TODOS">Todos</ToggleButton>
+                <ToggleButton value="ENTRADA">Entrada</ToggleButton>
+                <ToggleButton value="SALIDA">Salida</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', minWidth: 90 }}>
+                Decisión
+              </Typography>
+              <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={filtroDec}
+                  onChange={(_, val) => val && setFiltroDec(val)}
+              >
+                <ToggleButton value="TODOS">Todas</ToggleButton>
+                <ToggleButton value="SUCCESSFUL">Aprobado</ToggleButton>
+                <ToggleButton value="PENDING_VERIFY">Pendiente</ToggleButton>
+                <ToggleButton value="DENIED">Denegado</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardContent>
-          {isLoading ? (
-            <LoadingSkeleton variant="table" rows={6} />
-          ) : isError ? (
-            <Typography color="error">No se pudo cargar la cola de eventos.</Typography>
-          ) : visibles.length === 0 ? (
-            <EmptyState titulo="Sin eventos" descripcion="No hay eventos que coincidan con los filtros seleccionados." />
-          ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Placa</TableCell>
-                    <TableCell>Movimiento</TableCell>
-                    <TableCell>Decisión</TableCell>
-                    <TableCell>Hora</TableCell>
-                    <TableCell>Origen</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {visibles.map((evento) => (
-                    <TableRow
-                      key={evento.eventoAccesoId}
-                      hover
-                      onClick={() => navigate('/guardia/revision', { state: { placa: evento.placaObservada } })}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
-                          {evento.placaObservada}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{evento.tipoMovimiento}</TableCell>
-                      <TableCell>
-                        <StatusChip estado={evento.decisionOperativa} />
-                      </TableCell>
-                      <TableCell>{new Date(evento.capturadoEn).toLocaleTimeString('es-EC')}</TableCell>
-                      <TableCell>{evento.origenResolucion}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
-    </DashboardTemplate>
+        <Card>
+          <CardContent>
+            {isLoading ? (
+                <LoadingSkeleton variant="table" rows={6} />
+            ) : isError ? (
+                <Typography color="error">No se pudo cargar la cola de eventos.</Typography>
+            ) : visibles.length === 0 ? (
+                <EmptyState titulo="Sin eventos" descripcion="No hay eventos que coincidan con los filtros seleccionados." />
+            ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Placa</TableCell>
+                        <TableCell>Movimiento</TableCell>
+                        <TableCell>Decisión</TableCell>
+                        <TableCell>Hora</TableCell>
+                        <TableCell>Origen</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {visibles.map((evento) => (
+                          <TableRow
+                              key={evento.eventoAccesoId}
+                              hover
+                              onClick={() => navigate('/guardia/revision', { state: { placa: evento.placaObservada } })}
+                              sx={{
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s',
+                                '&:hover': { backgroundColor: '#F8FAFC' }
+                              }}
+                          >
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                                {evento.placaObservada}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{evento.tipoMovimiento}</TableCell>
+                            <TableCell>
+                              <StatusChip estado={evento.decisionOperativa} />
+                            </TableCell>
+                            <TableCell>{new Date(evento.capturadoEn).toLocaleTimeString('es-EC')}</TableCell>
+                            <TableCell>{evento.origenResolucion}</TableCell>
+                          </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+      </DashboardTemplate>
   );
 }

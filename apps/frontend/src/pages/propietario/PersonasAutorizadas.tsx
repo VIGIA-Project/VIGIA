@@ -42,15 +42,14 @@ const PersonasAutorizadasPage: React.FC = () => {
   const [revokeTarget, setRevokeTarget] = useState<PersonaAutorizada | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Las autorizaciones de Authorization solo traen personaId — se resuelven
-  // nombre/cédula/teléfono/biometría vía Registry en un solo lote.
   const autorizaciones = autorizacionesQuery.data ?? [];
   const personaIds = useMemo(() => autorizaciones.map((a) => a.personaId), [autorizaciones]);
   const { personasById, isLoading: isLoadingPersonas } = usePersonasResolver(personaIds);
 
+  // Adaptación de contratos forzando el tipado nativo para el compilador de producción
   const personas: PersonaAutorizada[] = useMemo(
-    () => autorizaciones.map((a) => mapAutorizacionAPersona(a, personasById.get(a.personaId))),
-    [autorizaciones, personasById]
+      () => autorizaciones.map((a) => mapAutorizacionAPersona(a, personasById.get(a.personaId))) as PersonaAutorizada[],
+      [autorizaciones, personasById]
   );
 
   useEffect(() => {
@@ -58,7 +57,7 @@ const PersonasAutorizadasPage: React.FC = () => {
       setDrawerOpen(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, tieneVehiculos]);
+  }, [location.state, tieneVehiculos, navigate, location.pathname]);
 
   const activas = personas.filter((p) => p.estado === 'ACTIVA').length;
   const limitReached = activas >= FAMILIA_MAX_MIEMBROS;
@@ -70,8 +69,8 @@ const PersonasAutorizadasPage: React.FC = () => {
   };
 
   const handleConfirmed = async (
-    nueva: Omit<PersonaAutorizada, 'id' | 'personaId' | 'estado' | 'autorizadoDesde'>,
-    biometriaPresencial: boolean
+      nueva: Omit<PersonaAutorizada, 'id' | 'personaId' | 'estado' | 'autorizadoDesde'>,
+      biometriaPresencial: boolean
   ) => {
     if (!vehiculo) return;
     const [nombres, ...resto] = nueva.nombre.trim().split(/\s+/);
@@ -116,121 +115,121 @@ const PersonasAutorizadasPage: React.FC = () => {
 
   if (isLoadingVehiculo) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
-        <LoadingSkeleton variant="cards" rows={3} />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+          <LoadingSkeleton variant="cards" rows={3} />
+        </DashboardTemplate>
     );
   }
 
   if (isErrorVehiculo) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
-        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+          <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => refetchVehiculo()} />
+        </DashboardTemplate>
     );
   }
 
   if (perfilIncompleto) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
-        <PerfilIncompletoState />
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+          <PerfilIncompletoState />
+        </DashboardTemplate>
     );
   }
 
   if (!tieneVehiculos) {
     return (
-      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
-        <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
-          <DirectionsCarFilledOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
-          <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
-            {PERSONAS_HEADER_COPY.requiresVehicleTitle}
-          </Typography>
-          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 3 }}>
-            {PERSONAS_HEADER_COPY.requiresVehicleDescription}
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => navigate('/propietario/vehiculos')}
-            sx={{ background: vigiaColors.gradientIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, px: 3, minHeight: 44 }}
-          >
-            {PERSONAS_HEADER_COPY.requiresVehicleCta}
-          </Button>
-        </Box>
-      </DashboardTemplate>
+        <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+          <Box sx={{ textAlign: 'center', py: 8, px: 3, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
+            <DirectionsCarFilledOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.primary, mb: 2 }} />
+            <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.2rem', color: '#0F172A', mb: 1 }}>
+              {PERSONAS_HEADER_COPY.requiresVehicleTitle}
+            </Typography>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 3 }}>
+              {PERSONAS_HEADER_COPY.requiresVehicleDescription}
+            </Typography>
+            <Button
+                variant="contained"
+                onClick={() => navigate('/propietario/vehiculos')}
+                sx={{ background: vigiaColors.gradientIA, fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, px: 3, minHeight: 44 }}
+            >
+              {PERSONAS_HEADER_COPY.requiresVehicleCta}
+            </Button>
+          </Box>
+        </DashboardTemplate>
     );
   }
 
   return (
-    <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
-        {/* Header de sección */}
-        <motion.div variants={shouldReduceMotion ? undefined : fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 1.5 }}>
-            <Box>
-              <Box component="h1" sx={{ m: 0, fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: '#0F172A' }}>
-                {PERSONAS_HEADER_COPY.title}
+      <DashboardTemplate rol="OWNER" pageTitle="Personas autorizadas">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
+          {/* Header de sección */}
+          <motion.div variants={shouldReduceMotion ? undefined : fadeInUp} initial="hidden" animate="visible">
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 1.5 }}>
+              <Box>
+                <Box component="h1" sx={{ m: 0, fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: '#0F172A' }}>
+                  {PERSONAS_HEADER_COPY.title}
+                </Box>
+                <Box sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B', mt: 0.5 }}>
+                  {PERSONAS_HEADER_COPY.subtitle(activas)}
+                </Box>
               </Box>
-              <Box sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B', mt: 0.5 }}>
-                {PERSONAS_HEADER_COPY.subtitle(activas)}
+              <Box>
+                <Button
+                    variant="contained"
+                    startIcon={<PersonAddAlt1Icon />}
+                    onClick={() => setDrawerOpen(true)}
+                    disabled={limitReached}
+                    fullWidth={isMobile}
+                    sx={{
+                      background: limitReached ? 'rgba(13,92,207,0.3)' : vigiaColors.gradientIA,
+                      fontFamily: '"Inter", sans-serif',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      textTransform: 'none',
+                      borderRadius: vigiaRadius.sm,
+                      px: 3,
+                      minHeight: 48,
+                      boxShadow: limitReached ? 'none' : vigiaShadows.sm,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': { boxShadow: limitReached ? 'none' : vigiaShadows.md, transform: shouldReduceMotion || limitReached ? 'none' : 'translateY(-1px)' },
+                    }}
+                >
+                  {PERSONAS_HEADER_COPY.addCta}
+                </Button>
+                {limitReached && (
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.72rem', color: vigiaColors.textTertiary, mt: 0.5, maxWidth: 220, textAlign: { xs: 'left', sm: 'right' } }}>
+                      {PERSONAS_HEADER_COPY.limitHelper}
+                    </Typography>
+                )}
               </Box>
             </Box>
-            <Box>
-              <Button
-                variant="contained"
-                startIcon={<PersonAddAlt1Icon />}
-                onClick={() => setDrawerOpen(true)}
-                disabled={limitReached}
-                fullWidth={isMobile}
-                sx={{
-                  background: limitReached ? 'rgba(13,92,207,0.3)' : vigiaColors.gradientIA,
-                  fontFamily: '"Inter", sans-serif',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  textTransform: 'none',
-                  borderRadius: vigiaRadius.sm,
-                  px: 3,
-                  minHeight: 48,
-                  boxShadow: limitReached ? 'none' : vigiaShadows.sm,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': { boxShadow: limitReached ? 'none' : vigiaShadows.md, transform: shouldReduceMotion || limitReached ? 'none' : 'translateY(-1px)' },
-                }}
-              >
-                {PERSONAS_HEADER_COPY.addCta}
-              </Button>
-              {limitReached && (
-                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.72rem', color: vigiaColors.textTertiary, mt: 0.5, maxWidth: 220, textAlign: { xs: 'left', sm: 'right' } }}>
-                  {PERSONAS_HEADER_COPY.limitHelper}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        </motion.div>
+          </motion.div>
 
-        {autorizacionesQuery.isLoading || isLoadingPersonas ? (
-          <LoadingSkeleton variant="cards" rows={3} />
-        ) : autorizacionesQuery.isError ? (
-          <ErrorState mensaje="No se pudieron cargar las personas autorizadas." onRetry={() => autorizacionesQuery.refetch()} />
-        ) : (
-          <PersonasGrid
-            personas={personas}
-            onAdd={() => setDrawerOpen(true)}
-            onViewDetail={(id) => navigate(`/propietario/personas/${id}`)}
-            onRegisterBio={(id) => navigate(`/propietario/personas/${id}/biometria`)}
-            onRevoke={(persona) => setRevokeTarget(persona)}
-          />
-        )}
-      </Box>
+          {autorizacionesQuery.isLoading || isLoadingPersonas ? (
+              <LoadingSkeleton variant="cards" rows={3} />
+          ) : autorizacionesQuery.isError ? (
+              <ErrorState mensaje="No se pudieron cargar las personas autorizadas." onRetry={() => autorizacionesQuery.refetch()} />
+          ) : (
+              <PersonasGrid
+                  personas={personas}
+                  onAdd={() => setDrawerOpen(true)}
+                  onViewDetail={(id) => navigate(`/propietario/personas/${id}`)}
+                  onRegisterBio={(id) => navigate(`/propietario/personas/${id}/biometria`)}
+                  onRevoke={(persona) => setRevokeTarget(persona)}
+              />
+          )}
+        </Box>
 
-      <AddPersonaDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onConfirmed={handleConfirmed} cuposUsados={activas} />
-      <RevokePersonaModal persona={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
+        <AddPersonaDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onConfirmed={handleConfirmed} cuposUsados={activas} />
+        <RevokePersonaModal persona={revokeTarget} onClose={() => setRevokeTarget(null)} onConfirm={handleRevoke} />
 
-      <Snackbar open={!!toastMessage} autoHideDuration={4000} onClose={() => setToastMessage(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert severity="success" variant="filled" onClose={() => setToastMessage(null)} sx={{ borderRadius: vigiaRadius.sm }}>
-          {toastMessage}
-        </Alert>
-      </Snackbar>
-    </DashboardTemplate>
+        <Snackbar open={!!toastMessage} autoHideDuration={4000} onClose={() => setToastMessage(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+          <Alert severity={toastMessage?.includes('No se pudo') ? 'error' : 'success'} variant="filled" onClose={() => setToastMessage(null)} sx={{ borderRadius: vigiaRadius.sm }}>
+            {toastMessage}
+          </Alert>
+        </Snackbar>
+      </DashboardTemplate>
   );
 };
 

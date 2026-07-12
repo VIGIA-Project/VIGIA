@@ -30,6 +30,7 @@ export const adminKeys = {
   notificaciones: () => ['admin', 'notificaciones'] as const,
   eventosRecientes: (limite: number) => ['admin', 'eventos', 'recientes', limite] as const,
   eventosCount: () => ['admin', 'eventos', 'count'] as const,
+  metricasAccesosHoy: () => ['admin', 'eventos', 'metrics'] as const,
 };
 
 // ─── Auth — usuarios ────────────────────────────────────────────────────────
@@ -221,6 +222,17 @@ export const useAlertasCountAdmin = () =>
     queryFn: () => adminService.contarAlertasNoAtendidas().then((r) => r.count),
   });
 
+export const useMarcarAlertaAtendidaAdmin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminService.marcarAlertaAtendida(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'alertas'] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.alertasCount() });
+    },
+  });
+};
+
 export const useNotificacionesAdmin = () =>
   useQuery({
     queryKey: adminKeys.notificaciones(),
@@ -249,10 +261,19 @@ export const useEventosCountAdmin = () =>
     queryFn: () => adminService.contarEventosHoy().then((r) => r.count),
   });
 
+export const useMetricasAccesosHoyAdmin = () =>
+  useQuery({
+    queryKey: adminKeys.metricasAccesosHoy(),
+    queryFn: () => adminService.obtenerMetricasAccesosHoy(),
+  });
+
 export const useRegistrarEventoManualAdmin = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (dto: RegistrarEventoManualDto) => adminService.registrarEventoManual(dto),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'eventos'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'eventos'] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.metricasAccesosHoy() });
+    },
   });
 };

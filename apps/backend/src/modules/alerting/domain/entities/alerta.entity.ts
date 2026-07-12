@@ -51,6 +51,11 @@ export class Alerta {
     return this._atendidaEn;
   }
 
+  marcarAtendida(): void {
+    this._estadoAtencion = EstadoAtencionAlerta.ATENDIDA;
+    this._atendidaEn = new Date();
+  }
+
   toJSON() {
     return {
       alertaId: this.id,

@@ -30,6 +30,15 @@ export class AlertingService {
     return this.alertaRepository.contarNoResueltas();
   }
 
+  async marcarAlertaAtendida(id: string): Promise<Alerta> {
+    const alerta = await this.alertaRepository.buscarPorId(id);
+    if (!alerta) {
+      throw new EntityNotFoundException('Alerta', id);
+    }
+    alerta.marcarAtendida();
+    return this.alertaRepository.guardar(alerta);
+  }
+
   // ─── Notificaciones ─────────────────────────────────────────────────────
 
   async listarPorDestinatario(destinatarioPersonaId: string): Promise<Notificacion[]> {

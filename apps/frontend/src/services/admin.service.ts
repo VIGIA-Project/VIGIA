@@ -98,6 +98,9 @@ export const listarAlertasRecientes = (limite = 10): Promise<Alerta[]> =>
 
 export const contarAlertasNoAtendidas = (): Promise<{ count: number }> => apiGetData('/alerting/alertas/count');
 
+export const marcarAlertaAtendida = (id: string): Promise<Alerta> =>
+  apiPatchData(`/alerting/alertas/${id}/atender`);
+
 export const listarNotificaciones = (): Promise<Notificacion[]> => apiGetData('/alerting/notificaciones');
 
 export const marcarNotificacionLeida = (id: string): Promise<Notificacion> =>
@@ -109,6 +112,9 @@ export const listarEventosRecientes = (limite = 10): Promise<EventoAcceso[]> =>
   apiGetData('/access-control/eventos/recientes', { limite });
 
 export const contarEventosHoy = (): Promise<{ count: number }> => apiGetData('/access-control/eventos/count');
+
+export const obtenerMetricasAccesosHoy = (): Promise<{ exitosos: number; pendientes: number; denegados: number }> =>
+  apiGetData('/access-control/eventos/metrics');
 
 export const registrarEventoManual = (dto: RegistrarEventoManualDto): Promise<EventoAcceso> =>
   apiPostData('/access-control/eventos/manual', dto);

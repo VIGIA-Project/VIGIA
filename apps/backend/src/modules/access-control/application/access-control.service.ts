@@ -49,6 +49,20 @@ export class AccessControlService {
     return this.eventoAccesoRepository.contarPorRangoFecha(inicioDia, finDia);
   }
 
+  async obtenerMetricasHoy(): Promise<{ exitosos: number; pendientes: number; denegados: number }> {
+    const ahora = new Date();
+    const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const finDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1);
+
+    const [exitosos, pendientes, denegados] = await Promise.all([
+      this.eventoAccesoRepository.contarPorRangoYDecision(inicioDia, finDia, 'SUCCESSFUL'),
+      this.eventoAccesoRepository.contarPorRangoYDecision(inicioDia, finDia, 'PENDING_VERIFY'),
+      this.eventoAccesoRepository.contarPorRangoYDecision(inicioDia, finDia, 'DENIED'),
+    ]);
+
+    return { exitosos, pendientes, denegados };
+  }
+
   async listarInvitadosActivos(): Promise<InvitadoActivoDto[]> {
     const eventos = await this.eventoAccesoRepository.buscarInvitadosActivos();
     return eventos.map((evento) => this.aInvitadoActivoDto(evento));

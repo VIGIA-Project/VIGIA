@@ -35,6 +35,12 @@ export class AccessControlController {
     return { count };
   }
 
+  @Get('eventos/metrics')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async obtenerMetricasHoy() {
+    return this.accessControlService.obtenerMetricasHoy();
+  }
+
   @Get('invitados-activos')
   @Roles(UserRole.GUARD, UserRole.ADMIN)
   async listarInvitadosActivos(): Promise<InvitadoActivoDto[]> {

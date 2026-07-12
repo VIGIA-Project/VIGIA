@@ -37,6 +37,13 @@ export class AlertingController {
     return { count };
   }
 
+  @Patch('alertas/:id/atender')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async marcarAlertaAtendida(@Param('id') id: string) {
+    const alerta = await this.alertingService.marcarAlertaAtendida(id);
+    return alerta.toJSON();
+  }
+
   // ─── Notificaciones ─────────────────────────────────────────────────────
 
   @Get('notificaciones')

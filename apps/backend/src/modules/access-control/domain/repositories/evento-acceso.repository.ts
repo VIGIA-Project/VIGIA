@@ -9,6 +9,8 @@ export interface IEventoAccesoRepository {
 
   contarPorRangoFecha(desde: Date, hasta: Date): Promise<number>;
 
+  contarPorRangoYDecision(desde: Date, hasta: Date, decision?: string): Promise<number>;
+
   /**
    * Vehículos que ingresaron por contingencia hoy y todavía no registran
    * una SALIDA posterior — es decir, "invitados" activos dentro del campus.

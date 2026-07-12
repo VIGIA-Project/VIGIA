@@ -35,6 +35,18 @@ export class PersonaController {
         return this.personaUseCases.listar();
     }
 
+    @Get('count')
+    @Roles(UserRole.ADMIN, UserRole.GUARD)
+    async contar() {
+        return this.personaUseCases.contar();
+    }
+
+    @Get('sin-biometria')
+    @Roles(UserRole.ADMIN)
+    async listarSinBiometria() {
+        return this.personaUseCases.listarSinBiometria();
+    }
+
     @Get(':id')
     @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
     async buscarPorId(@Param('id') id: string) {

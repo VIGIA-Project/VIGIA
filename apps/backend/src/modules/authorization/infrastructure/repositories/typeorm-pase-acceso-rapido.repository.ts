@@ -61,4 +61,13 @@ export class TypeOrmPaseAccesoRapidoRepository implements IPaseAccesoRapidoRepos
       .getMany();
     return orms.map((orm) => PaseAccesoRapidoMapper.toDomain(orm));
   }
+
+  async contarActivos(instante: Date = new Date()): Promise<number> {
+    return this.repo
+      .createQueryBuilder('p')
+      .where('p.estado = :estado', { estado: EstadoPase.ACTIVO })
+      .andWhere('p.vigencia_inicio <= :instante', { instante })
+      .andWhere('p.vigencia_fin >= :instante', { instante })
+      .getCount();
+  }
 }

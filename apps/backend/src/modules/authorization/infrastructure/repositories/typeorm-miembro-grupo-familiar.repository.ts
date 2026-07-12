@@ -54,6 +54,13 @@ export class TypeOrmMiembroGrupoFamiliarRepository
       .getCount();
   }
 
+  async contarActivosTotal(): Promise<number> {
+    return this.repo
+      .createQueryBuilder('m')
+      .where('m.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .getCount();
+  }
+
   async existeMiembroActivo(personaId: string, propietarioId: string): Promise<boolean> {
     const count = await this.repo
       .createQueryBuilder('m')

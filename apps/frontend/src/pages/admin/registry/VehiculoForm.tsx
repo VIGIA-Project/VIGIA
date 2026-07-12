@@ -10,7 +10,6 @@ import Autocomplete from "@mui/material/Autocomplete";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
-import { loadPersonas } from "../../../config/propietario-personas.config";
 import {
   getVehiculoById,
   upsertVehiculo,
@@ -18,7 +17,7 @@ import {
 import { PropietarioVehiculo } from "../../../config/propietario-vehiculos.config";
 import { useEffect, useState } from "react";
 
-const personas = loadPersonas().map((p) => p.nombre);
+const personas: string[] = [];
 
 export default function VehiculoForm() {
   const { id } = useParams();

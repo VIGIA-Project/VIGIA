@@ -1,429 +1,174 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Paper,
-  Button,
-  TextField,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DashboardTemplate } from '../../components/templates';
-import { fadeInUp } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors, vigiaShadows } from '../../theme/vigia-theme';
+import { Box } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import DashboardTemplate from '../../components/templates/DashboardTemplate';
 
-// Icons
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import GetAppIcon from '@mui/icons-material/GetApp';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import HistoryIcon from '@mui/icons-material/History';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+type Estado = 'GENERADA' | 'ENTREGADA' | 'ATENDIDA';
+type Severidad = 'ALTA' | 'MEDIA' | 'INFORMATIVA';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
+interface Alerta {
+  id: number; titulo: string; descripcion: string; placa: string;
+  severidad: Severidad; estado: Estado; causa: string; tiempo: string;
+  accion?: 'ver_evento' | 'registrar_invitado' | 'ver_invitado' | null;
 }
 
-function CustomTabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-      style={{ width: '100%' }}
-    >
-      <AnimatePresence mode="wait">
-        {value === index && (
-          <motion.div
-            key={`tab-${index}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Box sx={{ pt: 3 }}>
-              {children}
-            </Box>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// MOCK DATA HISTORIAL
-const MOCK_HISTORY = [
-  { id: 1, hora: '13:42:05', placa: 'ABC-1234', movimiento: 'Entrada', decision: 'SUCCESSFUL', origen: 'AUTOMATICA', motivoTitle: 'Sistema', motivoSub: 'Tag Válido', resolucion: '—' },
-  { id: 2, hora: '13:38:22', placa: 'XYZ-9876', movimiento: 'Entrada', decision: 'DENIED', origen: 'MANUAL', motivoTitle: 'Guardia 1', motivoSub: 'Sin ID válido', resolucion: '13:40:00' },
-  { id: 3, hora: '13:15:10', placa: 'DEF-5555', movimiento: 'Salida', decision: 'SUCCESSFUL', origen: 'AUTOMATICA', motivoTitle: 'Sistema', motivoSub: 'Registro OK', resolucion: '—' },
-  { id: 4, hora: '12:50:00', placa: 'LMN-9911', movimiento: 'Entrada', decision: 'SUCCESSFUL', origen: 'MANUAL', motivoTitle: 'Guardia 2', motivoSub: 'Permiso Excepcional Aprobado', resolucion: '12:55:30' },
-  { id: 5, hora: '12:15:44', placa: 'QWE-7766', movimiento: 'Salida', decision: 'SUCCESSFUL', origen: 'AUTOMATICA', motivoTitle: 'Sistema', motivoSub: 'Lectura LPR OK', resolucion: '—' },
+const ALERTAS_INICIAL: Alerta[] = [
+  { id:1, titulo:'Salida con conductor no reconocido', descripcion:'Vehículo PCB-1234 intentó salir con conductor no identificado. Posible retiro no autorizado.', placa:'PCB-1234', severidad:'ALTA', estado:'GENERADA', causa:'POSIBLE_SALIDA_NO_AUTORIZADA', tiempo:'hace 1 min', accion:'ver_evento' },
+  { id:2, titulo:'Vehículo no registrado solicita ingreso', descripcion:'ABC-5678 no existe en el registro institucional. Requiere registro de invitado o denegación.', placa:'ABC-5678', severidad:'MEDIA', estado:'ENTREGADA', causa:'VEHICULO_NO_REGISTRADO', tiempo:'hace 3 min', accion:'registrar_invitado' },
+  { id:3, titulo:'Invitado con permanencia expirada', descripcion:'DEF-0002 (Ana García) lleva 18 minutos sobre el tiempo autorizado.', placa:'DEF-0002', severidad:'MEDIA', estado:'GENERADA', causa:'PERMANENCIA_EXPIRADA', tiempo:'hace 18 min', accion:'ver_invitado' },
+  { id:4, titulo:'Servicio biométrico restablecido', descripcion:'Acceso Norte vuelve a operar con normalidad. El servicio estuvo caído 4 minutos.', placa:'—', severidad:'INFORMATIVA', estado:'ATENDIDA', causa:'SERVICIO_RESTABLECIDO', tiempo:'hace 20 min', accion:null },
 ];
 
-export const AlertasGuardiaPage: React.FC = () => {
-  const [tabValue, setTabValue] = useState(0);
+const sevCfg: Record<Severidad,{border:string;bg:string;text:string;icon:string}> = {
+  ALTA:        { border:'#C62828', bg:'#FEF2F2', text:'#991B1B', icon:'⚠' },
+  MEDIA:       { border:'#F2851F', bg:'#FFF7ED', text:'#92400E', icon:'⚠' },
+  INFORMATIVA: { border:'#0277BD', bg:'#E0F2FE', text:'#0277BD', icon:'ℹ' },
+};
+const estadoCfg: Record<Estado,{bg:string;text:string}> = {
+  GENERADA:  { bg:'#FEE2E2', text:'#C62828' },
+  ENTREGADA: { bg:'#EDE7F6', text:'#4527A0' },
+  ATENDIDA:  { bg:'#DCFCE7', text:'#166534' },
+};
+const accionLabel: Record<string,string> = {
+  ver_evento:'Ver evento', registrar_invitado:'Registrar invitado', ver_invitado:'Ver invitado',
+};
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+export const AlertasGuardiaPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [filtro, setFiltro] = useState<'Todas'|Severidad|'No atendidas'>('Todas');
+  const [alertas, setAlertas] = useState(ALERTAS_INICIAL);
+
+  const atender = (id: number) => setAlertas(prev => prev.map(a => a.id===id ? {...a, estado:'ATENDIDA' as Estado} : a));
+  const atenderTodas = () => setAlertas(prev => prev.map(a => ({...a, estado:'ATENDIDA' as Estado})));
+  const noAtendidas = alertas.filter(a => a.estado !== 'ATENDIDA').length;
+
+  const handleAccion = (alerta: Alerta) => {
+    switch(alerta.accion) {
+      case 'ver_evento':         navigate('/guardia/revision'); break;
+      case 'registrar_invitado': navigate('/guardia/registro-invitado', { state:{ placa:alerta.placa } }); break;
+      case 'ver_invitado':       navigate('/guardia/invitados'); break;
+    }
   };
 
+  const visible = alertas.filter(a => {
+    if (filtro === 'Todas') return true;
+    if (filtro === 'No atendidas') return a.estado !== 'ATENDIDA';
+    return a.severidad === filtro;
+  });
+
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Monitoreo">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <DashboardTemplate rol="GUARD" pageTitle="Alertas del turno">
+      <Box sx={{ fontFamily:'Inter,sans-serif' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+          <div>
+            <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:700, color:'#0F172A' }}>Alertas del turno <span style={{ fontSize:14, color:'#6B7280', fontWeight:400 }}>— Acceso Norte</span></div>
+            <div style={{ fontSize:12, color:'#6B7280', marginTop:3 }}>{alertas.length} alertas · {noAtendidas} no atendidas</div>
+          </div>
+          <button onClick={atenderTodas}
+            style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer', background:'#fff', color:'#0D5CCF', border:'1.5px solid #C7D2FE', fontFamily:'Inter,sans-serif' }}>
+            ✓ Marcar todas atendidas
+          </button>
+        </div>
 
-        {/* Tabs Navigation */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label="alertas y historial tabs"
-            sx={{
-              '& .MuiTab-root': {
-                fontFamily: '"Exo 2", sans-serif',
-                fontWeight: 600,
-                textTransform: 'none',
-                fontSize: '1.05rem',
-                minWidth: 120,
-              },
-              '& .Mui-selected': {
-                color: '#0D5CCF', // Azul Principal
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#0D5CCF', // Azul Principal
-                height: 3,
-                borderTopLeftRadius: 3,
-                borderTopRightRadius: 3,
-              }
-            }}
-          >
-            <Tab label="Alertas Activas" />
-            <Tab label="Historial de Eventos" />
-          </Tabs>
-        </Box>
+        <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap' }}>
+          {(['Todas','ALTA','MEDIA','INFORMATIVA','No atendidas'] as const).map(f => (
+            <button key={f} onClick={() => setFiltro(f)} style={{
+              padding:'6px 14px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'Inter,sans-serif',
+              background: filtro===f ? '#0D5CCF' : '#fff',
+              color: filtro===f ? '#fff' : '#374151',
+              border: filtro===f ? 'none' : '1.5px solid #E2E8F0',
+            }}>
+              {f} {f==='Todas' ? alertas.length : f==='No atendidas' ? noAtendidas : alertas.filter(a=>a.severidad===f).length}
+            </button>
+          ))}
+        </div>
 
-        {/* TAB 0: ALERTAS */}
-        <CustomTabPanel value={tabValue} index={0}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-
-            {/* Header Alertas */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h4" sx={{ color: '#0A2F86', mb: 0.5, fontWeight: 800, fontFamily: '"Exo 2", sans-serif' }}>
-                  Alertas del Turno Activas
-                </Typography>
-                <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                  Monitoreo en tiempo real de anomalías operativas.
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, backgroundColor: '#FEE2E2', px: 2, py: 0.8, borderRadius: vigiaRadius.full }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#DC2626' }} />
-                <Typography sx={{ color: '#B91C1C', fontWeight: 700, fontSize: '0.85rem' }}>2 Críticas</Typography>
-              </Box>
-            </Box>
-
-            {/* Alerta Crítica */}
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-              <Paper
-                elevation={0}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  p: 3,
-                  borderRadius: vigiaRadius.md,
-                  border: '1px solid #FCA5A5',
-                  backgroundColor: '#FEF2F2',
-                  borderLeft: '6px solid #DC2626', // Thick red left border
-                  justifyContent: 'space-between',
-                  boxShadow: vigiaShadows.sm,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Box sx={{ backgroundColor: '#FEE2E2', p: 1.5, borderRadius: vigiaRadius.sm }}>
-                    <ErrorOutlineIcon sx={{ color: '#DC2626', fontSize: '2rem' }} />
-                  </Box>
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#DC2626', letterSpacing: 1, backgroundColor: '#FEE2E2', px: 1, py: 0.2, borderRadius: vigiaRadius.sm }}>
-                        SEVERIDAD ALTA
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, color: '#991B1B', fontFamily: '"Exo 2", sans-serif', mb: 0.5 }}>
-                      Intento de salida con conductor no reconocido
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, color: '#B91C1C', fontSize: '0.85rem' }}>
-                      <Typography sx={{ fontWeight: 600, backgroundColor: 'rgba(255,255,255,0.5)', px: 1, borderRadius: 1 }}>ABC-1234</Typography>
-                      <Typography>Causa: SEGURIDAD_CRITICA</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <HistoryIcon sx={{ fontSize: '1rem' }} />
-                        <Typography>hace 5m</Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
-                <Button
-                  variant="contained"
-                  sx={{
-                    backgroundColor: '#DC2626',
-                    color: 'white',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    borderRadius: vigiaRadius.sm,
-                    px: 3,
-                    py: 1,
-                    '&:hover': { backgroundColor: '#B91C1C' }
-                  }}
-                >
-                  Atender Protocolo
-                </Button>
-              </Paper>
-            </motion.div>
-
-            {/* Alerta Media */}
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  p: 3,
-                  borderRadius: vigiaRadius.md,
-                  border: '1px solid #FDE68A',
-                  backgroundColor: '#FFFBEB',
-                  borderLeft: '6px solid #F2B51F', // Dorado Premium
-                  justifyContent: 'space-between',
-                  boxShadow: vigiaShadows.sm,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <Box sx={{ backgroundColor: '#FEF3C7', p: 1.5, borderRadius: vigiaRadius.sm }}>
-                    <WarningAmberIcon sx={{ color: '#F2B51F', fontSize: '2rem' }} />
-                  </Box>
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#B45309', letterSpacing: 1, backgroundColor: '#FEF3C7', px: 1, py: 0.2, borderRadius: vigiaRadius.sm }}>
-                        SEVERIDAD MEDIA
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, color: '#92400E', fontFamily: '"Exo 2", sans-serif', mb: 0.5 }}>
-                      Fallo en sensor de puerta principal sur
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, color: '#B45309', fontSize: '0.85rem' }}>
-                      <Typography>Causa: FALLO_TECNICO</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <HistoryIcon sx={{ fontSize: '1rem' }} />
-                        <Typography>hace 15m</Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
-                <Button
-                  variant="outlined"
-                  sx={{
-                    borderColor: '#F2B51F', // Dorado Premium
-                    color: '#B45309',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    borderRadius: vigiaRadius.sm,
-                    px: 3,
-                    py: 1,
-                    backgroundColor: 'rgba(255,255,255,0.5)',
-                    '&:hover': { backgroundColor: '#FEF3C7', borderColor: '#B45309' }
-                  }}
-                >
-                  Revisar
-                </Button>
-              </Paper>
-            </motion.div>
-
-            {/* Accordion Historial Atendidas */}
-            <Accordion elevation={0} sx={{ mt: 2, border: '1px solid rgba(0,0,0,0.08)', borderRadius: `${vigiaRadius.md} !important`, '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: vigiaColors.textSecondary }}>
-                  <HistoryIcon />
-                  <Typography sx={{ fontWeight: 600, fontFamily: '"Inter", sans-serif' }}>
-                    Historial de Alertas Atendidas
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails sx={{ p: 3, borderTop: '1px solid rgba(0,0,0,0.05)', backgroundColor: '#FAFBFC' }}>
-                <Typography sx={{ color: vigiaColors.textTertiary, textAlign: 'center' }}>
-                  No hay alertas resueltas recientemente.
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
-          </Box>
-        </CustomTabPanel>
-
-        {/* TAB 1: HISTORIAL DE EVENTOS */}
-        <CustomTabPanel value={tabValue} index={1}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-
-            {/* Header Historial */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Typography variant="h4" sx={{ color: '#0A2F86', mb: 0.5, fontWeight: 800, fontFamily: '"Exo 2", sans-serif' }}>
-                  Historial de Eventos
-                </Typography>
-                <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                  Registro de movimientos y decisiones operativas.
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <TextField
-                  placeholder="Buscar por placa..."
-                  size="small"
-                  sx={{
-                    width: 250,
-                    backgroundColor: vigiaColors.white,
-                    '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, fontFamily: '"Inter", sans-serif' }
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: vigiaColors.textTertiary }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-
-                <Button
-                  variant="outlined"
-                  startIcon={<CalendarTodayIcon sx={{ fontSize: '1.1rem !important' }} />}
-                  endIcon={<ExpandMoreIcon />}
-                  sx={{ borderColor: 'rgba(0,0,0,0.15)', color: vigiaColors.textBody, textTransform: 'none', backgroundColor: vigiaColors.white }}
-                >
-                  Hoy
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterListIcon />}
-                  sx={{ borderColor: 'rgba(0,0,0,0.15)', color: vigiaColors.textBody, textTransform: 'none', backgroundColor: vigiaColors.white }}
-                >
-                  Filtros
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<GetAppIcon />}
-                  sx={{ borderColor: 'rgba(0,0,0,0.15)', color: vigiaColors.textBody, textTransform: 'none', backgroundColor: '#F3F4F6' }}
-                >
-                  Exportar
-                </Button>
-              </Box>
-            </Box>
-
-            {/* Table */}
-            <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: vigiaRadius.md, overflow: 'hidden' }}>
-                <Table sx={{ minWidth: 800 }}>
-                  <TableHead sx={{ backgroundColor: '#FAFBFC' }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Hora</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Placa</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Movimiento</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Decisión</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Origen</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Motivo / Actor</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, color: vigiaColors.textSecondary, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>Resolución</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {MOCK_HISTORY.map((row) => (
-                      <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                        <TableCell sx={{ fontFamily: '"Inter", sans-serif', color: vigiaColors.textBody }}>{row.hora}</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontFamily: '"Exo 2", sans-serif', color: row.decision === 'DENIED' ? '#DC2626' : vigiaColors.textBody }}>{row.placa}</TableCell>
-                        <TableCell sx={{ fontFamily: '"Inter", sans-serif' }}>{row.movimiento}</TableCell>
-                        <TableCell>
-                          {row.decision === 'SUCCESSFUL' ? (
-                            <Chip
-                              icon={<CheckCircleOutlineIcon style={{ color: '#19D6C4', fontSize: '1rem' }} />} // Verde IA
-                              label="SUCCESSFUL"
-                              size="small"
-                              sx={{ backgroundColor: 'rgba(25,214,196,0.1)', color: '#0F766C', fontWeight: 800, borderRadius: 1 }}
-                            />
-                          ) : (
-                            <Chip
-                              icon={<CancelOutlinedIcon style={{ color: '#DC2626', fontSize: '1rem' }} />}
-                              label="DENIED"
-                              size="small"
-                              sx={{ backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: 600, borderRadius: 1 }}
-                            />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap:18, alignItems:'start' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {visible.length === 0 && (
+              <div style={{ padding:40, textAlign:'center', background:'#FAFBFC', borderRadius:14, border:'1px dashed #E2E8F0' }}>
+                <div style={{ fontSize:14, color:'#6B7280' }}>✅ Sin alertas en este filtro</div>
+              </div>
+            )}
+            {visible.map(a => {
+              const sc = sevCfg[a.severidad];
+              const ec = estadoCfg[a.estado];
+              return (
+                <div key={a.id} style={{ background:'#fff', borderRadius:14, border:`1px solid ${sc.bg}`, borderLeft:`4px solid ${sc.border}`, boxShadow:'0 2px 8px rgba(10,47,134,0.06)', overflow:'hidden', opacity: a.estado==='ATENDIDA'?0.75:1 }}>
+                  <div style={{ padding:'16px 20px', display:'flex', alignItems:'flex-start', gap:14 }}>
+                    <div style={{ width:42, height:42, borderRadius:12, background:sc.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:20 }}>{sc.icon}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:sc.bg, color:sc.text }}>{a.severidad}</span>
+                        <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:ec.bg, color:ec.text }}>{a.estado}</span>
+                      </div>
+                      <div style={{ fontSize:14, fontWeight:600, color:'#1F2A44', marginBottom:4 }}>{a.titulo}</div>
+                      <div style={{ fontSize:13, color:'#555', marginBottom:8, lineHeight:1.5 }}>{a.descripcion}</div>
+                      <div style={{ fontSize:11, color:'#94A3B8' }}>Causa: {a.causa} · {a.tiempo}</div>
+                      {a.estado !== 'ATENDIDA' && (
+                        <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap' }}>
+                          {a.accion && (
+                            <button onClick={() => handleAccion(a)}
+                              style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'#0D5CCF', color:'#fff', border:'none', fontFamily:'Inter,sans-serif' }}>
+                              {accionLabel[a.accion]}
+                            </button>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={row.origen}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              color: row.origen === 'AUTOMATICA' ? vigiaColors.textSecondary : '#0D5CCF', // Azul Principal
-                              borderColor: row.origen === 'AUTOMATICA' ? 'rgba(0,0,0,0.15)' : 'rgba(13,92,207,0.4)',
-                              backgroundColor: row.origen === 'MANUAL' ? 'rgba(13,92,207,0.05)' : 'transparent',
-                              fontWeight: 800,
-                              borderRadius: 1,
-                              fontSize: '0.7rem'
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: vigiaColors.textBody }}>{row.motivoTitle}</Typography>
-                          <Typography sx={{ fontSize: '0.75rem', color: row.decision === 'DENIED' ? '#DC2626' : vigiaColors.textSecondary }}>{row.motivoSub}</Typography>
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontFamily: '"Inter", sans-serif', color: vigiaColors.textSecondary, fontSize: '0.85rem' }}>
-                          {row.resolucion}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          <button onClick={() => atender(a.id)}
+                            style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'#fff', color:'#555', border:'1px solid #E2E8F0', fontFamily:'Inter,sans-serif' }}>
+                            Marcar atendida
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize:10, color:'#94A3B8', whiteSpace:'nowrap' }}>{a.tiempo}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-                {/* Pagination footer */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderTop: '1px solid rgba(0,0,0,0.08)', backgroundColor: '#FAFBFC' }}>
-                  <Typography sx={{ fontSize: '0.85rem', color: vigiaColors.textSecondary }}>
-                    Mostrando 1 - 5 de 1,204
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button size="small" sx={{ minWidth: 32, p: 0, color: vigiaColors.textSecondary }}>{'<'}</Button>
-                    <Button size="small" variant="contained" sx={{ minWidth: 32, p: 0, backgroundColor: '#0D5CCF', color: 'white' }}>1</Button>
-                    <Button size="small" sx={{ minWidth: 32, p: 0, color: '#0A2F86' }}>2</Button>
-                    <Button size="small" sx={{ minWidth: 32, p: 0, color: vigiaColors.textBody }}>3</Button>
-                    <Typography sx={{ mx: 1, color: vigiaColors.textSecondary }}>...</Typography>
-                    <Button size="small" sx={{ minWidth: 32, p: 0, color: vigiaColors.textSecondary }}>{'>'}</Button>
-                  </Box>
-                </Box>
-              </TableContainer>
-            </motion.div>
-
-          </Box>
-        </CustomTabPanel>
-
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
+              <div style={{ padding:'14px 18px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>Resumen</div>
+              <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:10 }}>
+                {(['ALTA','MEDIA','INFORMATIVA'] as Severidad[]).map(s=>(
+                  <div key={s} style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
+                    <span style={{ color:'#6B7280' }}>{s}</span>
+                    <span style={{ fontWeight:700, color:sevCfg[s].border }}>{alertas.filter(a=>a.severidad===s).length}</span>
+                  </div>
+                ))}
+                <div style={{ height:1, background:'#F1F5F9', margin:'4px 0' }} />
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
+                  <span style={{ color:'#6B7280' }}>No atendidas</span>
+                  <span style={{ fontWeight:700, color:'#C62828' }}>{noAtendidas}</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
+                  <span style={{ color:'#6B7280' }}>Atendidas</span>
+                  <span style={{ fontWeight:700, color:'#16A34A' }}>{alertas.length - noAtendidas}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ background:'#EEF2FF', borderRadius:12, border:'1px solid #C7D2FE', padding:'14px 16px' }}>
+              <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86', marginBottom:8 }}>Accesos rápidos</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <button onClick={() => navigate('/guardia/cola')}
+                  style={{ padding:'9px 14px', borderRadius:8, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
+                  ⏱ Ver cola de eventos
+                </button>
+                <button onClick={() => navigate('/guardia/invitados')}
+                  style={{ padding:'9px 14px', borderRadius:8, background:'#fff', color:'#374151', fontSize:12, fontWeight:600, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
+                  👤 Ver invitados
+                </button>
+                <button onClick={() => navigate('/guardia/contingencia')}
+                  style={{ padding:'9px 14px', borderRadius:8, background:'#fff', color:'#F2851F', fontSize:12, fontWeight:600, border:'1.5px solid #FDE68A', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
+                  ⚠ Registrar contingencia
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </Box>
     </DashboardTemplate>
   );
 };
-
 export default AlertasGuardiaPage;

@@ -6,6 +6,7 @@ export interface IVehiculoRepository {
   findByPlaca(placa: string): Promise<Vehiculo | null>;
   findByPropietario(propietarioPersonaId: string): Promise<Vehiculo[]>;
   findAll(): Promise<Vehiculo[]>;
+  contarTotal(): Promise<number>;
   update(
       vehiculoId: string,
       data: Partial<{

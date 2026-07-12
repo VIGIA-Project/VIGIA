@@ -11,5 +11,7 @@ export interface IMiembroGrupoFamiliarRepository {
 
   contarActivosPorPropietario(propietarioId: string): Promise<number>;
 
+  contarActivosTotal(): Promise<number>;
+
   existeMiembroActivo(personaId: string, propietarioId: string): Promise<boolean>;
 }

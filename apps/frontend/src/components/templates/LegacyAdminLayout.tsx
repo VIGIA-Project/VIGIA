@@ -9,18 +9,12 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Avatar from '@mui/material/Avatar';
-import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Popover from '@mui/material/Popover';
-import Button from '@mui/material/Button';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
 
 import GroupIcon from '@mui/icons-material/Group';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Logout from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -32,8 +26,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import HistoryIcon from '@mui/icons-material/History';
 import KeyIcon from '@mui/icons-material/Key';
 import MenuIcon from '@mui/icons-material/Menu';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { BrandBlock } from '../molecules';
+import { BrandBlock, NotificationBell } from '../molecules';
 import { GradientBar } from '../atoms';
 
 const drawerWidth = 260;
@@ -87,26 +80,11 @@ const navSections: NavSection[] = [
   },
 ];
 
-const recentNotifications = [
-  { id: 1, type: 'error', summary: 'Salida denegada repetida', reference: 'PCB-1234', location: 'Garita Norte', time: 'hace 10 min' },
-  { id: 2, type: 'warning', summary: 'Invitado con permanencia expirada', reference: 'Acceso Sur', location: '', time: 'hace 25 min' },
-  { id: 3, type: 'info', summary: 'Cuenta pendiente de contraseña', reference: 'guardia@uce.edu.ec', location: '', time: 'hace 1h' },
-  { id: 4, type: 'error', summary: 'Intento de acceso biométrico fallido', reference: 'Persona ID 9921', location: 'Torniquete 1', time: 'hace 2h' },
-  { id: 5, type: 'info', summary: 'Nueva actualización de permisos', reference: 'Lote 442', location: '', time: 'hace 5h' },
-];
-
-const getNotificationColor = (type: string) => {
-  if (type === 'error') return '#C0524A';
-  if (type === 'warning') return '#E0A82E';
-  return '#4A8EC0';
-};
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const { logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
@@ -314,71 +292,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 ADMINISTRADOR
               </Box>
             </Box>
-            <Tooltip title="Alertas pendientes">
-              <IconButton color="inherit" onClick={(e) => setNotifAnchorEl(e.currentTarget)}>
-                <Badge badgeContent={recentNotifications.length} color="error">
-                  <NotificationsIcon sx={{ color: 'text.secondary' }} />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-
-            <Popover
-              open={Boolean(notifAnchorEl)}
-              anchorEl={notifAnchorEl}
-              onClose={() => setNotifAnchorEl(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    width: 400,
-                    mt: 2,
-                    borderRadius: 2,
-                    boxShadow: '0 12px 40px rgba(13, 92, 207, 0.15), 0 2px 10px rgba(0,0,0,0.05)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(255,255,255,0.4)',
-                    overflow: 'hidden'
-                  }
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2.5, borderBottom: '1px solid rgba(13, 92, 207, 0.08)', backgroundColor: 'rgba(255,255,255,0.5)' }}>
-                <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#0A2F86' }}>Notificaciones y Alertas</Typography>
-                <Button size="small" onClick={() => navigate('/admin/alerting/alertas')} sx={{ fontSize: '0.75rem', fontWeight: 700, borderRadius: 6, px: 2 }}>Ver todas</Button>
-              </Box>
-              <List disablePadding>
-                {recentNotifications.map((notif, i) => (
-                  <Box key={notif.id}>
-                    <ListItem
-                      onClick={() => {
-                        setNotifAnchorEl(null);
-                        navigate(`/admin/alerting/alertas/${notif.id}`);
-                      }}
-                      sx={{ py: 1.5, px: 2, alignItems: 'flex-start', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' } }}
-                    >
-                      <Box sx={{ mt: 0.8, mr: 1.5 }}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: getNotificationColor(notif.type) }} />
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.2 }}>
-                          {notif.summary} · {notif.reference}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {notif.location ? `${notif.location} · ` : ''}{notif.time}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'primary.main', fontWeight: 600, fontSize: '0.75rem', transition: 'transform 0.15s', '.MuiListItem-root:hover &': { transform: 'translateX(2px)' } }}>
-                            Ver detalle <ArrowForwardIcon sx={{ fontSize: 14 }} />
-                          </Box>
-                        </Box>
-                      </Box>
-                    </ListItem>
-                    {i < recentNotifications.length - 1 && <Divider />}
-                  </Box>
-                ))}
-              </List>
-            </Popover>
+            <NotificationBell alertasPath="/admin/alerting/alertas" />
             <Tooltip title="Configuración">
               <IconButton color="inherit">
                 <SettingsIcon sx={{ color: 'text.secondary' }} />

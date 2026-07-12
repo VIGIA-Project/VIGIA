@@ -43,9 +43,9 @@ import { HistorialPage } from "./pages/propietario/Historial";
 import { PerfilPage } from "./pages/propietario/Perfil";
 
 // ─── Páginas: Guardia ─────────────────────────────────────────────────────
-import { GuardiaInicioPage } from "./pages/guardia/Inicio";
-import { ColaEventosPage } from "./pages/guardia/ColaEventos";
-import { RevisionManualPage } from "./pages/guardia/RevisionManual";
+import GuardiaInicioPage from "./pages/guardia/Inicio";
+import ColaEventosPage from "./pages/guardia/ColaEventos";
+import RevisionManualPage from "./pages/guardia/RevisionManual";
 import { ContingenciaPage } from "./pages/guardia/Contingencia";
 import { AlertasGuardiaPage } from "./pages/guardia/AlertasGuardia";
 
@@ -265,7 +265,7 @@ const AnimatedRoutes: React.FC = () => {
 
             {/* ═══ Guardia ═══ */}
             <Route
-              path="/guardia/inicio"
+              path="/guardia"
               element={
                 <ProtectedRoute allowedRoles={["GUARD"]}>
                   <PageTransition>
@@ -275,7 +275,7 @@ const AnimatedRoutes: React.FC = () => {
               }
             />
             <Route
-              path="/guardia/cola-eventos"
+              path="/guardia/cola"
               element={
                 <ProtectedRoute allowedRoles={["GUARD"]}>
                   <PageTransition>
@@ -285,7 +285,7 @@ const AnimatedRoutes: React.FC = () => {
               }
             />
             <Route
-              path="/guardia/revision-manual"
+              path="/guardia/revision"
               element={
                 <ProtectedRoute allowedRoles={["GUARD"]}>
                   <PageTransition>

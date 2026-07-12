@@ -81,4 +81,13 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
       .getMany();
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
+
+  async contarVigentes(instante: Date = new Date()): Promise<number> {
+    return this.repo
+      .createQueryBuilder('p')
+      .where('p.estado = :estado', { estado: EstadoAutorizacion.ACTIVA })
+      .andWhere('p.vigencia_inicio <= :instante', { instante })
+      .andWhere('p.vigencia_fin >= :instante', { instante })
+      .getCount();
+  }
 }

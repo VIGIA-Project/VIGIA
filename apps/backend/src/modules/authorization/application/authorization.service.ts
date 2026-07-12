@@ -95,6 +95,10 @@ export class AuthorizationService {
     return this.miembroGrupoFamiliarRepository.guardar(miembro);
   }
 
+  async contarMiembrosActivos(): Promise<number> {
+    return this.miembroGrupoFamiliarRepository.contarActivosTotal();
+  }
+
   // ─── Permisos temporales ──────────────────────────────────────────────
 
   async crearPermisoTemporal(
@@ -128,6 +132,14 @@ export class AuthorizationService {
     }
     permiso.revocar();
     return this.permisoTemporalRepository.guardar(permiso);
+  }
+
+  async contarPermisosVigentes(): Promise<number> {
+    return this.permisoTemporalRepository.contarVigentes();
+  }
+
+  async listarProximosAExpirar(diasVentana: number): Promise<PermisoTemporal[]> {
+    return this.permisoTemporalRepository.buscarProximosAExpirar(diasVentana);
   }
 
   // ─── Pases de acceso rápido ────────────────────────────────────────────
@@ -183,6 +195,10 @@ export class AuthorizationService {
     }
     pase.consumir(eventoId);
     return this.paseAccesoRapidoRepository.guardar(pase);
+  }
+
+  async contarPasesActivos(): Promise<number> {
+    return this.paseAccesoRapidoRepository.contarActivos();
   }
 
   // ─── Conjunto autorizado ────────────────────────────────────────────────

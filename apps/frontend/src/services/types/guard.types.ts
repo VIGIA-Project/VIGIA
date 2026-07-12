@@ -1,87 +1,43 @@
-// apps/frontend/src/services/types/guard.types.ts
+// src/services/types/guard.types.ts
+// Tipos que reflejan las respuestas reales de /access-control (ver
+// apps/backend/src/modules/access-control — enums de dominio TipoMovimiento,
+// DecisionOperativa y OrigenResolucion).
+
+export type TipoMovimiento = 'ENTRADA' | 'SALIDA';
+export type DecisionOperativa = 'SUCCESSFUL' | 'PENDING_VERIFY' | 'DENIED';
+export type OrigenResolucion = 'AUTOMATICA' | 'MANUAL' | 'CONTINGENCIA' | 'INVITADO';
+
 export interface EventoAcceso {
-    id: string;
-    placaCapturada: string;
-    tipoMovimiento: 'ENTRADA' | 'SALIDA';
-    decision: 'AUTORIZADO' | 'DENEGADO' | 'CONTINGENCIA';
-    fechaHora: string;
-    vehiculoId?: string;
-    personaId?: string;
-    detalles?: string;
-    createdAt: string;
-    updatedAt: string;
+  eventoAccesoId: string;
+  vehiculoId: string | null;
+  personaDetectadaId: string | null;
+  placaObservada: string;
+  tipoMovimiento: TipoMovimiento;
+  decisionOperativa: DecisionOperativa;
+  motivoCodigo: string | null;
+  motivoDetalle: string | null;
+  origenResolucion: OrigenResolucion;
+  capturadoEn: string;
+  resueltoEn: string | null;
 }
 
-export interface PersonaAutorizada {
-    id: string;
-    nombre: string;
-    cedula: string;
-    telefono?: string;
-    email?: string;
-    tipoRelacion: 'PROPIETARIO' | 'FAMILIAR' | 'PERMISO_TEMPORAL';
-    fechaInicio?: string;
-    fechaFin?: string;
+export interface InvitadoActivo {
+  eventoId: string;
+  placaObservada: string;
+  motivoDetalle: string;
+  capturadoEn: string;
+  duracionAutorizadaMin: number | null;
+  estaExcedido: boolean;
 }
 
-export interface ConjuntoAutorizado {
-    vehiculoId: string;
-    placa: string;
-    propietario: PersonaAutorizada;
-    familiares: PersonaAutorizada[];
-    permisosTemporales: PersonaAutorizada[];
-    totalAutorizados: number;
-}
-
-export interface PaseActivo {
-    id: string;
-    codigo: string;
-    placa: string;
-    vehiculoId: string;
-    creadoPor: string;
-    fechaInicio: string;
-    fechaFin: string;
-    estado: 'ACTIVO' | 'CONSUMIDO' | 'VENCIDO';
-    consumoId?: string;
-    fechaConsumo?: string;
-}
-
-export interface ValidarPaseResponse {
-    valido: boolean;
-    pase?: PaseActivo;
-    mensaje: string;
-}
-
-export interface RegistrarEventoDto {
-    placaCapturada: string;
-    tipoMovimiento: 'ENTRADA' | 'SALIDA';
-    decision: 'AUTORIZADO' | 'DENEGADO' | 'CONTINGENCIA';
-    detalles?: string;
-    vehiculoId?: string;
-    personaId?: string;
-}
-
-export interface Alerta {
-    id: string;
-    titulo: string;
-    descripcion: string;
-    nivel: 'INFORMACION' | 'ADVERTENCIA' | 'CRITICO';
-    estado_atencion: 'GENERADA' | 'ENTREGADA' | 'ATENDIDA';
-    fechaGeneracion: string;
-    fechaAtencion?: string;
-    origen: string;
-    datosAdicionales?: any;
-}
-
-export interface VehiculoResponse {
-    id: string;
-    placa: string;
-    marca: string;
-    modelo: string;
-    color: string;
-    anio: number;
-    propietarioId: string;
-    propietarioNombre: string;
-    estado: 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO';
-    createdAt: string;
-    updatedAt: string;
+export interface RegistrarEventoManualDto {
+  placaObservada: string;
+  tipoMovimiento: TipoMovimiento;
+  decisionOperativa: 'SUCCESSFUL' | 'DENIED';
+  motivoCodigo: string;
+  motivoDetalle?: string;
+  vehiculoId?: string;
+  personaId?: string;
+  /** Solo aplica cuando motivoCodigo = 'CONTINGENCIA' */
+  duracionAutorizadaMin?: number;
 }

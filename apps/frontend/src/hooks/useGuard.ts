@@ -1,84 +1,52 @@
-// apps/frontend/src/hooks/useGuard.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { guardService } from '../services/guard.service';
-import { RegistrarEventoDto } from '../services/types/guard.types';
+// src/hooks/useGuard.ts
+// Hooks TanStack Query para el dashboard GUARDIA.
 
-// Access Control Queries
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as guardService from '../services/guard.service';
+import { RegistrarEventoManualDto } from '../services/types/guard.types';
+
+export const guardKeys = {
+  eventosRecientes: (limite: number) => ['guard', 'eventos', 'recientes', limite] as const,
+  eventosCountHoy: () => ['guard', 'eventos', 'count'] as const,
+  invitadosActivos: () => ['guard', 'invitados-activos'] as const,
+  invitadosActivosCount: () => ['guard', 'invitados-activos', 'count'] as const,
+};
+
 export const useEventosRecientes = (limite = 20) =>
-    useQuery({
-        queryKey: ['guard', 'eventos', 'recientes', limite],
-        queryFn: () => guardService.getEventosRecientes(limite).then(r => r.data),
-        refetchInterval: 10000,
-    });
+  useQuery({
+    queryKey: guardKeys.eventosRecientes(limite),
+    queryFn: () => guardService.listarEventosRecientes(limite),
+    refetchInterval: 15000,
+  });
 
 export const useEventosCountHoy = () =>
-    useQuery({
-        queryKey: ['guard', 'eventos', 'count'],
-        queryFn: () => guardService.getEventosCountHoy().then(r => r.data.count),
-        refetchInterval: 30000,
-    });
+  useQuery({
+    queryKey: guardKeys.eventosCountHoy(),
+    queryFn: () => guardService.contarEventosHoy().then((r) => r.count),
+    refetchInterval: 30000,
+  });
+
+export const useInvitadosActivos = () =>
+  useQuery({
+    queryKey: guardKeys.invitadosActivos(),
+    queryFn: () => guardService.listarInvitadosActivos(),
+    refetchInterval: 30000,
+  });
+
+export const useInvitadosActivosCount = () =>
+  useQuery({
+    queryKey: guardKeys.invitadosActivosCount(),
+    queryFn: () => guardService.contarInvitadosActivos().then((r) => r.count),
+    refetchInterval: 30000,
+  });
 
 export const useRegistrarEventoManual = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (data: RegistrarEventoDto) =>
-            guardService.registrarEventoManual(data).then(r => r.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['guard', 'eventos'] });
-        },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: RegistrarEventoManualDto) => guardService.registrarEventoManual(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guard', 'eventos'] });
+      queryClient.invalidateQueries({ queryKey: ['guard', 'invitados-activos'] });
+    },
+  });
 };
-
-// Authorization Queries
-export const useConjuntoAutorizado = (vehiculoId: string | null) =>
-    useQuery({
-        queryKey: ['guard', 'conjunto-autorizado', vehiculoId],
-        queryFn: () => guardService.getConjuntoAutorizado(vehiculoId!).then(r => r.data),
-        enabled: !!vehiculoId,
-    });
-
-export const usePasesPorPlaca = (placa: string | null) =>
-    useQuery({
-        queryKey: ['guard', 'pases', 'placa', placa],
-        queryFn: () => guardService.getPasesPorPlaca(placa!).then(r => r.data),
-        enabled: !!placa && placa.length >= 6,
-    });
-
-export const useValidarPase = () =>
-    useMutation({
-        mutationFn: (data: { placa: string; codigo: string }) =>
-            guardService.validarPase(data).then(r => r.data),
-    });
-
-export const useConsumirPase = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => guardService.consumirPase(id).then(r => r.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['guard', 'pases'] });
-        },
-    });
-};
-
-// Registry Queries
-export const useBuscarVehiculoPorPlaca = (placa: string | null) =>
-    useQuery({
-        queryKey: ['guard', 'vehiculo', 'placa', placa],
-        queryFn: () => guardService.buscarVehiculoPorPlaca(placa!).then(r => r.data),
-        enabled: !!placa && placa.length >= 6,
-    });
-
-// Alerting Queries
-export const useAlertasRecientes = (limite = 5) =>
-    useQuery({
-        queryKey: ['guard', 'alertas', 'recientes', limite],
-        queryFn: () => guardService.getAlertasRecientes(limite).then(r => r.data),
-        refetchInterval: 30000,
-    });
-
-export const useAlertasCount = () =>
-    useQuery({
-        queryKey: ['guard', 'alertas', 'count'],
-        queryFn: () => guardService.getAlertasCount().then(r => r.data.count),
-        refetchInterval: 30000,
-    });

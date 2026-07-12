@@ -1,47 +1,20 @@
+// src/services/guard.service.ts
+// Cliente del dashboard GUARDIA — endpoints de access-control (BC Access Control).
 
-import api from './api';
-import {
-    EventoAcceso,
-    ConjuntoAutorizado,
-    PaseActivo,
-    ValidarPaseResponse,
-    RegistrarEventoDto,
-    Alerta,
-    VehiculoResponse
-} from './types/guard.types';
+import { apiGetData, apiPostData } from './api';
+import { EventoAcceso, InvitadoActivo, RegistrarEventoManualDto } from './types/guard.types';
 
-export const guardService = {
-    // Access Control
-    getEventosRecientes: (limite = 20) =>
-        api.get<EventoAcceso[]>(`/access-control/eventos/recientes?limite=${limite}`),
+export const listarEventosRecientes = (limite = 20): Promise<EventoAcceso[]> =>
+  apiGetData('/access-control/eventos/recientes', { limite });
 
-    getEventosCountHoy: () =>
-        api.get<{ count: number }>('/access-control/eventos/count'),
+export const contarEventosHoy = (): Promise<{ count: number }> =>
+  apiGetData('/access-control/eventos/count');
 
-    registrarEventoManual: (data: RegistrarEventoDto) =>
-        api.post<EventoAcceso>('/access-control/eventos/manual', data),
+export const registrarEventoManual = (dto: RegistrarEventoManualDto): Promise<EventoAcceso> =>
+  apiPostData('/access-control/eventos/manual', dto);
 
-    // Authorization queries
-    getConjuntoAutorizado: (vehiculoId: string) =>
-        api.get<ConjuntoAutorizado>(`/authorization/conjunto-autorizado/vehiculo/${vehiculoId}`),
+export const listarInvitadosActivos = (): Promise<InvitadoActivo[]> =>
+  apiGetData('/access-control/invitados-activos');
 
-    getPasesPorPlaca: (placa: string) =>
-        api.get<PaseActivo[]>(`/authorization/pases/placa/${placa}`),
-
-    validarPase: (data: { placa: string; codigo: string }) =>
-        api.post<ValidarPaseResponse>('/authorization/pases/validar', data),
-
-    consumirPase: (id: string) =>
-        api.patch<{ success: boolean; mensaje: string }>(`/authorization/pases/${id}/consumir`),
-
-    // Registry queries
-    buscarVehiculoPorPlaca: (placa: string) =>
-        api.get<VehiculoResponse>(`/registry/vehiculos/placa/${placa}`),
-
-    // Alerting
-    getAlertasRecientes: (limite = 5) =>
-        api.get<Alerta[]>(`/alerting/alertas/recientes?limite=${limite}`),
-
-    getAlertasCount: () =>
-        api.get<{ count: number }>('/alerting/alertas/count'),
-};
+export const contarInvitadosActivos = (): Promise<{ count: number }> =>
+  apiGetData('/access-control/invitados-activos/count');

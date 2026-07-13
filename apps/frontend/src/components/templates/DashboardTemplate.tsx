@@ -16,6 +16,7 @@ import {
 } from '../../config/navigation.config';
 
 const SIDEBAR_WIDTH = 260;
+const guardBackground = '/fondo-guardia.jpg';
 
 // Mapeo de rol → configuración de navegación
 const ROLE_CONFIG: Record<string, { routes: NavRoute[]; config: { rol: string; userInitials: string } }> = {
@@ -66,7 +67,38 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
+      {rol === 'GUARD' && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: { md: SIDEBAR_WIDTH },
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+            zIndex: 5,
+          }}
+        >
+          <Box
+            component="img"
+            src={guardBackground}
+            alt=""
+            aria-hidden
+            sx={{
+              width: { xs: 450, md: 720 },
+              height: 'auto',
+              opacity: 0.1,
+              userSelect: 'none',
+            }}
+          />
+        </Box>
+      )}
+
       {isMobile ? (
         <Drawer
           variant="temporary"

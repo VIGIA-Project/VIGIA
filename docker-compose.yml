@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -40,18 +39,17 @@ services:
       retries: 3
 
   bio:
-    image: python:3.11-slim
+    build:
+      context: ./services/bio
+      dockerfile: Dockerfile
     container_name: vigia-bio
     restart: unless-stopped
     ports:
       - '8002:8002'
     networks:
       - vigia-network
-    command: >-
-      sh -c "pip install --no-cache-dir fastapi uvicorn &&
-      mkdir -p /app &&
-      printf 'from fastapi import FastAPI\nimport random\napp = FastAPI()\n@app.get(\"/health\")\nasync def health():\n    return {\"status\":\"ok\",\"service\":\"bio\"}\n@app.post(\"/compare-face\")\nasync def compare_face():\n    results=[\"MATCH\",\"NO_MATCH\",\"INCONCLUSIVE\"]\n    return {\"result\":random.choice(results),\"confidence\":0.92}\n' > /app/main.py &&
-      cd /app && uvicorn main:app --host 0.0.0.0 --port 8002"
+    volumes:
+      - insightface_models:/root/.insightface/models
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8002/health']
       interval: 15s
@@ -64,3 +62,4 @@ networks:
 
 volumes:
   vigia_postgres_data:
+  insightface_models:

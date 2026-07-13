@@ -75,8 +75,11 @@ import { PerfilBiometricoOrmEntity } from '../../biometric/infrastructure/entiti
     },
     {
       provide: EvaluacionPaseService,
-      useFactory: (paseRepo: IPaseAccesoRapidoRepository) => new EvaluacionPaseService(paseRepo),
-      inject: [PASE_ACCESO_RAPIDO_REPOSITORY],
+      useFactory: (
+        paseRepo: IPaseAccesoRapidoRepository,
+        permisoRepo: IPermisoTemporalRepository,
+      ) => new EvaluacionPaseService(paseRepo, permisoRepo),
+      inject: [PASE_ACCESO_RAPIDO_REPOSITORY, PERMISO_TEMPORAL_REPOSITORY],
     },
     {
       provide: AUTHORIZATION_CONTRACT,

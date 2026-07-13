@@ -82,6 +82,15 @@ export class TypeOrmPermisoTemporalRepository implements IPermisoTemporalReposit
     return orms.map((orm) => PermisoTemporalMapper.toDomain(orm));
   }
 
+  async buscarUltimoPorVehiculo(vehiculoId: string): Promise<PermisoTemporal | null> {
+    const orm = await this.repo
+      .createQueryBuilder('p')
+      .where('p.vehiculo_id = :vehiculoId', { vehiculoId })
+      .orderBy('p.created_at', 'DESC')
+      .getOne();
+    return orm ? PermisoTemporalMapper.toDomain(orm) : null;
+  }
+
   async contarVigentes(instante: Date = new Date()): Promise<number> {
     return this.repo
       .createQueryBuilder('p')

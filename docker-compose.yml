@@ -48,13 +48,17 @@ services:
       retries: 3
 
   bio:
-    build: ./docker/bio
+    build:
+      context: ./services/bio
+      dockerfile: Dockerfile
     container_name: vigia-bio
     restart: unless-stopped
     ports:
       - '8002:8000'
     networks:
       - vigia-network
+    volumes:
+      - insightface_models:/root/.insightface/models
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
       interval: 15s
@@ -67,3 +71,4 @@ networks:
 
 volumes:
   vigia_postgres_data:
+  insightface_models:

@@ -343,13 +343,15 @@ export default function Dashboard() {
                         <ListItemText
                           primary={
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>Persona {permiso.personaId.slice(0, 8)}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {permiso.conductorNombre ?? `Persona ${permiso.personaId.slice(0, 8)}`}
+                              </Typography>
                               <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.dark' }}>
                                 {new Date(permiso.vigenciaFin).toLocaleDateString('es-EC')}
                               </Typography>
                             </Box>
                           }
-                          secondary={<Typography variant="caption" color="text.secondary">Vehículo: {permiso.vehiculoId.slice(0, 8)}</Typography>}
+                          secondary={<Typography variant="caption" color="text.secondary">Vehículo: {permiso.vehiculoPlaca ?? permiso.vehiculoId.slice(0, 8)}</Typography>}
                         />
                       </ListItem>
                       {i < arr.length - 1 && <Divider />}

@@ -44,8 +44,8 @@ export default function PermisosTemporal() {
   const revocar = useRevocarPermisoTemporalAdmin();
 
   const columns: Column<Row>[] = [
-    { id: "persona", label: "Persona", render: (r) => <Typography variant="body2">{r.personaId.slice(0, 8)}</Typography> },
-    { id: "vehiculo", label: "Vehículo", render: (r) => <Typography variant="body2">{r.vehiculoId.slice(0, 8)}</Typography> },
+    { id: "persona", label: "Persona", render: (r) => <Typography variant="body2">{r.conductorNombre ?? r.personaId.slice(0, 8)}</Typography> },
+    { id: "vehiculo", label: "Vehículo", render: (r) => <Typography variant="body2">{r.vehiculoPlaca ?? r.vehiculoId.slice(0, 8)}</Typography> },
     {
       id: "vigencia",
       label: "Vigencia",

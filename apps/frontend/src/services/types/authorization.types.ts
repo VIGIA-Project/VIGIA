@@ -30,6 +30,10 @@ export interface PermisoTemporal {
   motivo: string;
   fechaCreacion: string;
   fechaRevocacion?: string;
+  // Resueltos server-side desde Registry (no todos los endpoints los incluyen).
+  conductorNombre?: string;
+  conductorCedula?: string;
+  vehiculoPlaca?: string;
 }
 
 export interface PaseAccesoRapido {

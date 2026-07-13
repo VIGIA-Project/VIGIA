@@ -12,8 +12,14 @@ import {
   TableRow,
   TableCell,
   TableContainer,
+  Button,
+  Stack,
+  Chip,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import AddIcon from '@mui/icons-material/Add';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { StatusChip, EmptyState, LoadingSkeleton } from '../../components/atoms';
 import { useEventosRecientes } from '../../hooks/useGuard';
@@ -23,9 +29,20 @@ import { vigiaColors } from '../../theme/vigia-theme';
 type FiltroMovimiento = TipoMovimiento | 'TODOS';
 type FiltroDecision = DecisionOperativa | 'TODOS';
 
+const selectedToggleSx = (color: string) => ({
+  '&.Mui-selected': {
+    backgroundColor: color,
+    color: '#fff',
+    '&:hover': { backgroundColor: color, filter: 'brightness(0.92)' },
+  },
+});
+
 export default function ColaEventosPage() {
   const navigate = useNavigate();
-  const [filtroMov, setFiltroMov] = useState<FiltroMovimiento>('TODOS');
+  const location = useLocation();
+  const filtroMovInicial = (location.state as { filtroMov?: FiltroMovimiento } | null)?.filtroMov ?? 'TODOS';
+
+  const [filtroMov, setFiltroMov] = useState<FiltroMovimiento>(filtroMovInicial);
   const [filtroDec, setFiltroDec] = useState<FiltroDecision>('TODOS');
 
   // Ajuste: Activamos polling cada 5 segundos para mantener la cola sincronizada con la garita
@@ -41,13 +58,32 @@ export default function ColaEventosPage() {
 
   return (
       <DashboardTemplate rol="GUARD" pageTitle="Cola de eventos">
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
-            Cola de eventos
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Monitoreo en tiempo real. La lista se actualiza automáticamente.
-          </Typography>
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
+              Cola de eventos
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Monitoreo en tiempo real. La lista se actualiza automáticamente.
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<PersonAddAltIcon />}
+              onClick={() => navigate('/guardia/contingencia')}
+            >
+              Registrar invitado
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/guardia/revision')}
+            >
+              Nueva revisión manual
+            </Button>
+          </Stack>
         </Box>
 
         <Card sx={{ mb: 2.5 }}>
@@ -62,9 +98,9 @@ export default function ColaEventosPage() {
                   value={filtroMov}
                   onChange={(_, val) => val && setFiltroMov(val)}
               >
-                <ToggleButton value="TODOS">Todos</ToggleButton>
-                <ToggleButton value="ENTRADA">Entrada</ToggleButton>
-                <ToggleButton value="SALIDA">Salida</ToggleButton>
+                <ToggleButton value="TODOS" sx={selectedToggleSx(vigiaColors.primary)}>Todos</ToggleButton>
+                <ToggleButton value="ENTRADA" sx={selectedToggleSx(vigiaColors.success)}>Entrada</ToggleButton>
+                <ToggleButton value="SALIDA" sx={selectedToggleSx(vigiaColors.warning)}>Salida</ToggleButton>
               </ToggleButtonGroup>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -77,10 +113,10 @@ export default function ColaEventosPage() {
                   value={filtroDec}
                   onChange={(_, val) => val && setFiltroDec(val)}
               >
-                <ToggleButton value="TODOS">Todas</ToggleButton>
-                <ToggleButton value="SUCCESSFUL">Aprobado</ToggleButton>
-                <ToggleButton value="PENDING_VERIFY">Pendiente</ToggleButton>
-                <ToggleButton value="DENIED">Denegado</ToggleButton>
+                <ToggleButton value="TODOS" sx={selectedToggleSx(vigiaColors.primary)}>Todas</ToggleButton>
+                <ToggleButton value="SUCCESSFUL" sx={selectedToggleSx(vigiaColors.success)}>Aprobado</ToggleButton>
+                <ToggleButton value="PENDING_VERIFY" sx={selectedToggleSx(vigiaColors.warning)}>Pendiente</ToggleButton>
+                <ToggleButton value="DENIED" sx={selectedToggleSx(vigiaColors.error)}>Denegado</ToggleButton>
               </ToggleButtonGroup>
             </Box>
           </CardContent>
@@ -88,6 +124,18 @@ export default function ColaEventosPage() {
 
         <Card>
           <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                Eventos
+              </Typography>
+              {!isLoading && !isError && (
+                <Chip
+                  size="small"
+                  label={`${visibles.length} resultado${visibles.length === 1 ? '' : 's'}`}
+                  sx={{ fontWeight: 600 }}
+                />
+              )}
+            </Box>
             {isLoading ? (
                 <LoadingSkeleton variant="table" rows={6} />
             ) : isError ? (
@@ -104,6 +152,7 @@ export default function ColaEventosPage() {
                         <TableCell>Decisión</TableCell>
                         <TableCell>Hora</TableCell>
                         <TableCell>Origen</TableCell>
+                        <TableCell align="right" />
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -129,6 +178,9 @@ export default function ColaEventosPage() {
                             </TableCell>
                             <TableCell>{new Date(evento.capturadoEn).toLocaleTimeString('es-EC')}</TableCell>
                             <TableCell>{evento.origenResolucion}</TableCell>
+                            <TableCell align="right">
+                              <ArrowForwardIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                            </TableCell>
                           </TableRow>
                       ))}
                     </TableBody>

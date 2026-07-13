@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
@@ -7,6 +8,8 @@ import { AccessControlService } from '../application/access-control.service';
 import { RegistrarEventoManualDto } from '../application/dtos/registrar-evento-manual.dto';
 import { InvitadoActivoDto } from '../application/dtos/invitado-activo.dto';
 
+@ApiTags('Access Control')
+@ApiBearerAuth()
 @Controller('access-control')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AccessControlController {

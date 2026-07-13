@@ -226,22 +226,23 @@ pnpm --filter frontend run preview
 
 ## Docker Compose
 
-`docker-compose.yml` brings up:
+`docker-compose.yml` permite levantar y orquestar todo el entorno local (incluyendo base de datos, servicios mock de IA, backend y frontend compilados en producción):
 
-| Service | Host port | Notes |
-|---------|-----------|-------|
-| `postgres` | `5434→5432` | `pgvector/pgvector:pg16` image (pgvector reserved for future biometric use, not used yet) |
-| `ocr` | `8001` | **Stub** FastAPI service returning random mock data (`/detect-plate`) — not a real OCR service |
-| `bio` | `8002` | **Stub** FastAPI service returning random mock data (`/compare-face`) — not a real biometric service |
+| Service | Host port | Description / Notes |
+|---------|-----------|---------------------|
+| `postgres` | `5434→5432` | Base de datos usando la imagen `pgvector/pgvector:pg16` |
+| `ocr` | `8001` | **Stub** de FastAPI para lectura de placas (`/detect-plate`) |
+| `bio` | `8002` | **Stub** de FastAPI para reconocimiento facial (`/compare-face`) |
+| `backend` | `3000→3000` | Servidor backend NestJS compilado en producción y conectado a postgres |
+| `frontend` | `80→80` | Aplicación React de producción servida de manera óptima con **Nginx** |
 
+Comandos de Docker:
 ```bash
-docker-compose up -d        # start everything
-docker-compose logs -f      # tail logs
-docker-compose down         # stop
-docker-compose down -v      # stop and delete the data volume
+docker-compose up -d --build  # Construye y levanta toda la demo en paralelo
+docker-compose logs -f        # Visualizar los logs de todos los servicios
+docker-compose down           # Detener los contenedores
+docker-compose down -v        # Detener contenedores y limpiar volumen de base de datos
 ```
-
-The OCR/Bio services are placeholders for future real AI-service integration; the frontend doesn't call them today.
 
 ---
 
@@ -365,6 +366,43 @@ VITE_API_BASE_URL=https://api.your-domain.com/api/v1
 - [`apps/frontend/README.md`](./apps/frontend/README.md) — Atomic Design structure, page inventory per role, design system, mock strategy.
 
 <!-- TODO: verify — link the canonical business/architecture docs (Confluence or equivalent) once confirmed accessible from this repo -->
+
+---
+
+## Swagger / OpenAPI Documentación
+
+El backend de VIGIA cuenta con especificación OpenAPI auto-generada e interactiva para explorar los contratos de endpoints reales expuestos:
+
+- **Swagger UI**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+- **Soporte de Autenticación**: Admite la autorización por token JWT usando el flujo Bearer Token haciendo clic en "Authorize" arriba a la derecha.
+
+---
+
+## Pruebas Automatizadas (Unitarias y E2E)
+
+VIGIA cuenta con pruebas unitarias y suites de pruebas de integración E2E para flujos críticos (autenticación, políticas de seguridad RBAC, métricas):
+
+- **Pruebas unitarias (global)**:
+  ```bash
+  pnpm test
+  ```
+- **Pruebas de integración E2E (backend)**:
+  - Corren de forma secuencial y limpia para evitar conflictos de conexiones concurrentes en base de datos:
+  ```bash
+  pnpm --filter @vigia/backend run test:e2e
+  ```
+
+---
+
+## Pipeline de CI/CD (GitHub Actions)
+
+La integración continua del proyecto está automatizada mediante **GitHub Actions** (`.github/workflows/ci.yml`). Cada `push` o `pull_request` enviado a las ramas `main` o `develop` desencadena un pipeline no intrusivo que:
+1. Levanta un entorno Ubuntu limpio.
+2. Inicia un servicio PostgreSQL Dockerizado con la extensión `pgvector`.
+3. Instala dependencias con `pnpm` usando almacenamiento en caché para optimizar la velocidad.
+4. Ejecuta el linter/formateador (`pnpm lint`).
+5. Compila todo el monorrepósito (`pnpm build`).
+6. Corre las pruebas unitarias y suites E2E contra la base de datos temporal del CI.
 
 ---
 

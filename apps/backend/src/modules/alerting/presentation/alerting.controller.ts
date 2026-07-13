@@ -1,10 +1,13 @@
 import { Controller, Get, Patch, Param, Query, Request, UseGuards, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
 import { UserRole } from '@core/auth/domain/user.entity';
 import { AlertingService } from '../application/alerting.service';
 
+@ApiTags('Alerting')
+@ApiBearerAuth()
 @Controller('alerting')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AlertingController {

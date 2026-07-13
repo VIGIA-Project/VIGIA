@@ -11,6 +11,7 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import {
     IsEmail,
     IsString,
@@ -96,6 +97,8 @@ export class ListUsersQueryDto {
     limit?: number = 20;
 }
 
+@ApiTags('Auth')
+@ApiBearerAuth()
 @Controller('auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AuthController {

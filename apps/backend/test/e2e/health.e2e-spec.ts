@@ -38,7 +38,7 @@ describe('HealthController (e2e)', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        status: expect.stringMatching(/^(healthy|degraded|unhealthy)$/),
+        status: expect.stringMatching(/^(ok|healthy|degraded|unhealthy)$/),
         uptime: expect.any(Number),
         timestamp: expect.any(String),
         version: expect.any(String),

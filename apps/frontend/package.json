@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "deploy:s3": "npm run build && aws s3 sync dist/ s3://TU_BUCKET_AQUI --delete",
+    "deploy:s3": "npm run build && aws s3 sync dist/ s3://mi-vigia-frontend --delete",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "type-check": "tsc --noEmit"

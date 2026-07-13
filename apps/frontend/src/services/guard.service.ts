@@ -13,6 +13,9 @@ export const listarEventosPorVehiculo = (vehiculoId: string, limite = 20): Promi
 export const contarEventosHoy = (): Promise<{ count: number }> =>
   apiGetData('/access-control/eventos/count');
 
+export const contarEventosHoyPorTipo = (): Promise<{ entradas: number; salidas: number }> =>
+  apiGetData('/access-control/eventos/count-por-tipo');
+
 export const registrarEventoManual = (dto: RegistrarEventoManualDto): Promise<EventoAcceso> =>
   apiPostData('/access-control/eventos/manual', dto);
 

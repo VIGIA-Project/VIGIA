@@ -7,6 +7,7 @@ export const guardKeys = {
     all: ['guard'] as const,
     eventosRecientes: (limite: number) => [...guardKeys.all, 'eventos', 'recientes', limite] as const,
     eventosCountHoy: () => [...guardKeys.all, 'eventos', 'count'] as const,
+    eventosCountHoyPorTipo: () => [...guardKeys.all, 'eventos', 'count-por-tipo'] as const,
     invitadosActivos: () => [...guardKeys.all, 'invitados-activos'] as const,
     invitadosActivosCount: () => [...guardKeys.all, 'invitados-activos', 'count'] as const,
 };
@@ -32,6 +33,13 @@ export const useEventosCountHoy = () =>
     useQuery({
         queryKey: guardKeys.eventosCountHoy(),
         queryFn: () => guardService.contarEventosHoy().then((r) => r.count),
+        refetchInterval: 15000,
+    });
+
+export const useEventosCountHoyPorTipo = () =>
+    useQuery({
+        queryKey: guardKeys.eventosCountHoyPorTipo(),
+        queryFn: () => guardService.contarEventosHoyPorTipo(),
         refetchInterval: 15000,
     });
 

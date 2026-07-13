@@ -76,25 +76,16 @@ cd VIGIA
 pnpm install
 ```
 
-### Database
+### Infrastructure (Docker Compose)
 
-Pick **one** of the two options. The real backend config (`apps/backend/.env`) is set up for option A.
-
-**Option A — local PostgreSQL (recommended, matches the dev `.env`):**
+Docker Compose is the only supported infrastructure source — PostgreSQL, Redis, and the OCR/BIO AI-service stubs all run as containers. Requires Docker Desktop 4.x.
 
 ```bash
-psql -U postgres -c "CREATE DATABASE vigia_db;"
+docker compose up -d
+docker compose ps   # all four services should show "healthy"
 ```
 
-Expected credentials: `postgres` / `admin` on `localhost:5432`, database `vigia_db`.
-
-**Option B — Docker Compose:**
-
-```bash
-docker-compose up -d postgres
-```
-
-⚠️ The `docker-compose.yml` Postgres service exposes host port **5434** (not 5432, to avoid clashing with a local install) and uses `docker-compose.yml`'s own credentials (`DB_USERNAME`/`DB_PASSWORD`, default `vigia_user`/`vigia_secret`). If you use this option, adjust `DB_PORT=5434` and the credentials in `apps/backend/.env`.
+Expected credentials: `postgres` / `admin` on `localhost:5432`, database `vigia_db` (matches `apps/backend/.env`).
 
 ### Environment variables
 
@@ -103,7 +94,7 @@ cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
-`apps/backend/.env.example` defaults already point to Option A. See [Environment variables](#environment-variables) below for the full list.
+`apps/backend/.env.example` defaults already match the docker-compose credentials/ports. See [Environment variables](#environment-variables) below for the full list.
 
 ### Backend
 
@@ -112,7 +103,7 @@ pnpm dev:backend
 ```
 
 **No manual migrations or seeds needed in development.** On boot, the backend:
-1. Creates the `auth` and `registry` schemas if missing (`ensureSchemas`, see `apps/backend/src/core/database/init-schemas.ts`).
+1. Creates the 6 schemas if missing — `auth`, `registry`, `authorization`, `biometric`, `access_control`, `alerting` (`ensureSchemas`, see `apps/backend/src/core/database/init-schemas.ts`).
 2. Syncs tables automatically because `DB_SYNCHRONIZE=true` (TypeORM `synchronize`).
 3. Inserts the 3 test users if `auth.users` is empty and `NODE_ENV=development` (`SeedService`).
 
@@ -161,11 +152,16 @@ Login only accepts `@uce.edu.ec` email addresses.
 | `DB_NAME` | ✅ | — | Database name |
 | `DB_SYNCHRONIZE` | — | `false` | `true` in dev so TypeORM creates/updates tables automatically |
 | `DB_LOGGING` | — | `false` | Log SQL queries to console |
+| `REDIS_HOST` | — | — | Redis host (docker-compose) |
+| `REDIS_PORT` | — | — | Redis port (docker-compose) |
 | `JWT_SECRET` | ✅ | — | JWT signing secret |
 | `JWT_EXPIRATION` | — | `1d` | Token expiration (e.g. `8h`) |
 | `BCRYPT_ROUNDS` | — | `10` | Password hashing rounds |
 | `NODE_ENV` | — | `development` | `development` enables the automatic seeder |
 | `APP_PORT` | — | `3000` | Backend HTTP port |
+| `OCR_SERVICE_URL` | — | — | OCR stub base URL (docker-compose) |
+| `BIO_SERVICE_URL` | — | — | Biometric stub base URL (docker-compose) |
+| `USE_AI_STUBS` | — | — | Flags that OCR/BIO calls should hit the docker-compose stubs |
 
 Validated at boot with Joi (`apps/backend/src/core/config/env.validation.ts`) — the backend refuses to start if a required variable is missing.
 
@@ -230,15 +226,17 @@ pnpm --filter frontend run preview
 
 | Service | Host port | Notes |
 |---------|-----------|-------|
-| `postgres` | `5434→5432` | `pgvector/pgvector:pg16` image (pgvector reserved for future biometric use, not used yet) |
-| `ocr` | `8001` | **Stub** FastAPI service returning random mock data (`/detect-plate`) — not a real OCR service |
-| `bio` | `8002` | **Stub** FastAPI service returning random mock data (`/compare-face`) — not a real biometric service |
+| `postgres` | `5432→5432` | `pgvector/pgvector:pg17` image (pgvector reserved for future biometric use, not used yet) |
+| `redis` | `6379→6379` | `redis:7-alpine`, reserved for future caching/queues, not used yet |
+| `ocr` | `8001→8000` | **Stub** FastAPI service (`docker/ocr/`), `GET /health`, `POST /detect-plate` → `{ placa, confianza }` |
+| `bio` | `8002→8000` | **Stub** FastAPI service (`docker/bio/`), `GET /health`, `POST /compare-face` → `{ match, score }` |
 
 ```bash
-docker-compose up -d        # start everything
-docker-compose logs -f      # tail logs
-docker-compose down         # stop
-docker-compose down -v      # stop and delete the data volume
+docker compose up -d        # start everything
+docker compose ps           # check health status
+docker compose logs -f      # tail logs
+docker compose down         # stop
+docker compose down -v      # stop and delete the data volume
 ```
 
 The OCR/Bio services are placeholders for future real AI-service integration; the frontend doesn't call them today.
@@ -257,7 +255,7 @@ The OCR/Bio services are placeholders for future real AI-service integration; th
 └── alerting         (2 tables) → alerts and notifications
 ```
 
-`auth` and `registry` are created explicitly on boot; the rest are created by `synchronize: true` from TypeORM entities as they get mapped to those schemas.
+All 6 schemas are created explicitly on boot via `ensureSchemas`; tables within them are created by `synchronize: true` from TypeORM entities as they get mapped to those schemas.
 
 ---
 

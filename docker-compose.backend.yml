@@ -33,38 +33,6 @@ services:
     networks:
       - vigia-network
 
-  ocr:
-    build: ./docker/ocr
-    container_name: vigia-ocr
-    restart: unless-stopped
-    ports:
-      - '8001:8000'
-    networks:
-      - vigia-network
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
-      interval: 15s
-      timeout: 5s
-      retries: 3
-
-  bio:
-    build:
-      context: ./services/bio
-      dockerfile: Dockerfile
-    container_name: vigia-bio
-    restart: unless-stopped
-    ports:
-      - '8002:8000'
-    networks:
-      - vigia-network
-    volumes:
-      - insightface_models:/root/.insightface/models
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
-      interval: 15s
-      timeout: 5s
-      retries: 3
-
   backend:
     build:
       context: .
@@ -86,26 +54,14 @@ services:
       - NODE_ENV=production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - OCR_SERVICE_URL=http://ocr:8000
-      - BIO_SERVICE_URL=http://bio:8000
+      # Reemplaza 'DIRECCION_IP_INSTANCIA_IA' con la IP de tu instancia t3.small
+      - OCR_SERVICE_URL=http://DIRECCION_IP_INSTANCIA_IA:8001
+      - BIO_SERVICE_URL=http://DIRECCION_IP_INSTANCIA_IA:8002
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - vigia-network
-
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
-    container_name: vigia-frontend
-    restart: unless-stopped
-    ports:
-      - '80:80'
-    depends_on:
-      - backend
     networks:
       - vigia-network
 
@@ -115,4 +71,3 @@ networks:
 
 volumes:
   vigia_postgres_data:
-  insightface_models:

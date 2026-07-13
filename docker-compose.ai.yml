@@ -1,0 +1,39 @@
+services:
+  ocr:
+    build: ./docker/ocr
+    container_name: vigia-ocr
+    restart: unless-stopped
+    ports:
+      - '8001:8000'
+    networks:
+      - vigia-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  bio:
+    build:
+      context: ./services/bio
+      dockerfile: Dockerfile
+    container_name: vigia-bio
+    restart: unless-stopped
+    ports:
+      - '8002:8000'
+    networks:
+      - vigia-network
+    volumes:
+      - insightface_models:/root/.insightface/models
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+networks:
+  vigia-network:
+    driver: bridge
+
+volumes:
+  insightface_models:

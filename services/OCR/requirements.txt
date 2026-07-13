@@ -1,0 +1,14 @@
+fastapi>=0.100.0
+uvicorn>=0.27.0
+python-multipart>=0.0.6
+numpy>=1.24.0
+pillow>=10.0.0
+opencv-python-headless>=4.8.0
+python-dotenv>=1.0.0
+
+# Detección + OCR de placas (Opción C — pipeline local)
+fast-alpr>=0.1.0
+onnxruntime>=1.16.0
+
+# Fallback en la nube para casos de baja confianza (Opción C — fallback)
+google-generativeai>=0.5.0

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useEventosRecientes, useRegistrarEventoManual, useValidarPase } from '../../hooks/useGuard';
 import {
   Box,
   Typography,
@@ -28,16 +29,27 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  InputAdornment,
+  Stack,
+  Chip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { StatusChip, EmptyState } from '../../components/atoms';
-import { useEventosRecientes, useRegistrarEventoManual } from '../../hooks/useGuard';
-import { TipoMovimiento } from '../../services/types/guard.types';
+import { TipoMovimiento, RegistrarEventoManualDto } from '../../services/types/guard.types';
 import { vigiaColors } from '../../theme/vigia-theme';
+
+const selectedToggleSx = (color: string) => ({
+  '&.Mui-selected': {
+    backgroundColor: color,
+    color: '#fff',
+    '&:hover': { backgroundColor: color, filter: 'brightness(0.92)' },
+  },
+});
 
 type AccionModal = 'APROBAR' | 'DENEGAR' | 'CONTINGENCIA' | null;
 
@@ -70,6 +82,11 @@ export default function RevisionManualPage() {
   const [placaBuscada, setPlacaBuscada] = useState(placaInicial.toUpperCase());
   const [tipoMovimiento, setTipoMovimiento] = useState<TipoMovimiento>('ENTRADA');
 
+  // Pase de acceso
+  const [paseCodigo, setPaseCodigo] = useState('');
+  const [resultadoPase, setResultadoPase] = useState<{ valido: boolean; motivo?: string } | null>(null);
+
+  // Modal de acción
   const [modal, setModal] = useState<AccionModal>(null);
   const [motivoAprobar, setMotivoAprobar] = useState(MOTIVOS_APROBAR[0].value);
   const [motivoDenegar, setMotivoDenegar] = useState(MOTIVOS_DENEGAR[0].value);
@@ -86,13 +103,44 @@ export default function RevisionManualPage() {
 
   const eventosRecientes = useEventosRecientes(20);
   const registrar = useRegistrarEventoManual();
+  const validarPase = useValidarPase();
 
   const contexto = useMemo(
-    () => (eventosRecientes.data ?? []).filter((e) => e.placaObservada === placaBuscada),
-    [eventosRecientes.data, placaBuscada]
+      () => (eventosRecientes.data ?? []).filter((e) => e.placaObservada === placaBuscada),
+      [eventosRecientes.data, placaBuscada]
   );
 
-  const handleBuscar = () => setPlacaBuscada(placaInput.trim().toUpperCase());
+  const puedeAccionar = placaBuscada.trim().length > 0;
+  const esSalida = tipoMovimiento === 'SALIDA';
+  const labelAprobar = esSalida ? 'Autorizar bajo responsabilidad' : 'Aprobar';
+
+  const handleBuscar = () => {
+    setPlacaBuscada(placaInput.trim().toUpperCase());
+    setResultadoPase(null);
+  };
+
+  const handleValidarPase = () => {
+    validarPase.mutate(
+        { codigo: paseCodigo, placa: placaBuscada },
+        {
+          onSuccess: (data) => {
+            setResultadoPase({ valido: data.valido, motivo: data.motivo });
+            setSnackbar({
+              open: true,
+              message: data.valido ? 'Pase validado correctamente' : data.motivo || 'Pase no válido',
+              severity: data.valido ? 'success' : 'error',
+            });
+            if (data.valido) {
+              setMotivoAprobar('PASE_VALIDADO');
+            }
+          },
+          onError: () => {
+            setResultadoPase(null);
+            setSnackbar({ open: true, message: 'Error al validar pase', severity: 'error' });
+          },
+        }
+    );
+  };
 
   const cerrarModal = () => {
     setModal(null);
@@ -102,278 +150,344 @@ export default function RevisionManualPage() {
     setDuracion(60);
   };
 
+  const construirMotivoDetalle = () => {
+    const partes: string[] = [];
+    if (conductorNombre) partes.push(`Conductor: ${conductorNombre}${conductorCedula ? ` (${conductorCedula})` : ''}`);
+    if (destino) partes.push(`Destino: ${destino}`);
+    return partes.length > 0 ? partes.join('. ') : undefined;
+  };
+
   const confirmarAprobar = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'SUCCESSFUL',
+      motivoCodigo: motivoAprobar,
+      motivoDetalle: construirMotivoDetalle(),
+    };
     registrar.mutate(
-      {
-        placaObservada: placaBuscada,
-        tipoMovimiento,
-        decisionOperativa: 'SUCCESSFUL',
-        motivoCodigo: motivoAprobar,
-      },
-      {
-        onSuccess: () => {
-          setSnackbar({ open: true, message: `Acceso aprobado para ${placaBuscada}.`, severity: 'success' });
-          cerrarModal();
-        },
-        onError: () => setSnackbar({ open: true, message: 'No se pudo registrar la aprobación.', severity: 'error' }),
-      }
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: `Movimiento ${labelAprobar.toLowerCase()}`, severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar la aprobación', severity: 'error' });
+          },
+        }
     );
   };
 
   const confirmarDenegar = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'DENIED',
+      motivoCodigo: motivoDenegar,
+    };
     registrar.mutate(
-      {
-        placaObservada: placaBuscada,
-        tipoMovimiento,
-        decisionOperativa: 'DENIED',
-        motivoCodigo: motivoDenegar,
-      },
-      {
-        onSuccess: () => {
-          setSnackbar({ open: true, message: `Acceso denegado para ${placaBuscada}.`, severity: 'success' });
-          cerrarModal();
-        },
-        onError: () => setSnackbar({ open: true, message: 'No se pudo registrar la denegación.', severity: 'error' }),
-      }
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: 'Movimiento denegado', severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar la denegación', severity: 'error' });
+          },
+        }
     );
   };
 
   const confirmarContingencia = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'SUCCESSFUL',
+      motivoCodigo: 'CONTINGENCIA',
+      motivoDetalle: construirMotivoDetalle(),
+      duracionAutorizadaMin: duracion,
+    };
     registrar.mutate(
-      {
-        placaObservada: placaBuscada,
-        tipoMovimiento: 'ENTRADA',
-        decisionOperativa: 'SUCCESSFUL',
-        motivoCodigo: 'CONTINGENCIA',
-        motivoDetalle: `Conductor: ${conductorNombre} (CI: ${conductorCedula}) — Destino: ${destino}`,
-        duracionAutorizadaMin: duracion,
-      },
-      {
-        onSuccess: () => {
-          setSnackbar({ open: true, message: `Contingencia registrada para ${placaBuscada}.`, severity: 'success' });
-          cerrarModal();
-        },
-        onError: () => setSnackbar({ open: true, message: 'No se pudo registrar la contingencia.', severity: 'error' }),
-      }
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: 'Registrado bajo contingencia', severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar contingencia', severity: 'error' });
+          },
+        }
     );
   };
 
-  const puedeAccionar = placaBuscada.trim().length > 0;
-
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Revisión manual">
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
-          Revisión manual
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Busca una placa, revisa su contexto y resuelve el evento de acceso.
-        </Typography>
-      </Box>
+      <DashboardTemplate rol="GUARD" pageTitle="Revisión manual">
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" fontWeight={600}>
+            Revisión manual de acceso
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Busca una placa para consultar su historial, validar un pase o registrar una decisión manual.
+          </Typography>
+        </Box>
 
-      <Card sx={{ mb: 2.5 }}>
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              label="Placa del vehículo"
-              value={placaInput}
-              onChange={(e) => setPlacaInput(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-              size="small"
-              sx={{ minWidth: 220 }}
-            />
-            <Button variant="contained" startIcon={<SearchIcon />} onClick={handleBuscar} disabled={!placaInput.trim()}>
-              Buscar
-            </Button>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={tipoMovimiento}
-              onChange={(_, val) => val && setTipoMovimiento(val)}
-            >
-              <ToggleButton value="ENTRADA">Entrada</ToggleButton>
-              <ToggleButton value="SALIDA">Salida</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {placaBuscada && (
-        <Card sx={{ mb: 2.5 }}>
+        {/* Búsqueda + tipo de movimiento */}
+        <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: vigiaColors.textHeading }}>
-              Contexto de {placaBuscada}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+              <TextField
+                  label="Placa"
+                  value={placaInput}
+                  onChange={(e) => setPlacaInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
+                  InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                    ),
+                  }}
+                  size="small"
+              />
+              <Button variant="contained" onClick={handleBuscar} disabled={!placaInput.trim()}>
+                Buscar
+              </Button>
+
+              <ToggleButtonGroup
+                  value={tipoMovimiento}
+                  exclusive
+                  onChange={(_, val) => val && setTipoMovimiento(val)}
+                  size="small"
+              >
+                <ToggleButton value="ENTRADA" sx={selectedToggleSx(vigiaColors.success)}>Entrada</ToggleButton>
+                <ToggleButton value="SALIDA" sx={selectedToggleSx(vigiaColors.warning)}>Salida</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
+
+            {/* Validación de pase */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, flexWrap: 'wrap' }}>
+              <TextField
+                  label="Código de Pase"
+                  value={paseCodigo}
+                  onChange={(e) => {
+                    setPaseCodigo(e.target.value);
+                    setResultadoPase(null);
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                          <VpnKeyIcon />
+                        </InputAdornment>
+                    ),
+                  }}
+                  size="small"
+              />
+              <Button
+                  variant="outlined"
+                  onClick={handleValidarPase}
+                  disabled={!paseCodigo || !puedeAccionar || validarPase.isPending}
+              >
+                {validarPase.isPending ? 'Validando...' : 'Validar'}
+              </Button>
+
+              {resultadoPase && (
+                  <Chip
+                      label={resultadoPase.valido ? 'Pase válido' : resultadoPase.motivo || 'Pase inválido'}
+                      color={resultadoPase.valido ? 'success' : 'error'}
+                      icon={resultadoPase.valido ? <CheckCircleOutlineIcon /> : <HighlightOffIcon />}
+                      size="small"
+                  />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Acciones */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+              Acción sobre {placaBuscada || 'la placa buscada'}
             </Typography>
-            {eventosRecientes.isLoading ? (
-              <Typography variant="body2" color="text.secondary">Cargando contexto...</Typography>
-            ) : contexto.length === 0 ? (
-              <EmptyState titulo="Sin eventos previos" descripcion="Esta placa no tiene eventos recientes registrados." />
+            {!puedeAccionar && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Busca una placa para habilitar las acciones de aprobar, denegar o registrar contingencia/invitado.
+              </Typography>
+            )}
+            {puedeAccionar && <Box sx={{ mb: 1.5 }} />}
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleOutlineIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('APROBAR')}
+              >
+                {labelAprobar}
+              </Button>
+              <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<HighlightOffIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('DENEGAR')}
+              >
+                Denegar
+              </Button>
+              <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<ReportProblemOutlinedIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('CONTINGENCIA')}
+              >
+                Contingencia / Invitado
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* Historial reciente de la placa */}
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+              Eventos recientes
+            </Typography>
+            {contexto.length === 0 ? (
+                <EmptyState
+                    titulo="Sin eventos recientes"
+                    descripcion="No hay eventos registrados para esta placa."
+                />
             ) : (
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Movimiento</TableCell>
-                    <TableCell>Decisión</TableCell>
-                    <TableCell>Motivo</TableCell>
-                    <TableCell>Hora</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {contexto.map((e) => (
-                    <TableRow key={e.eventoAccesoId}>
-                      <TableCell>{e.tipoMovimiento}</TableCell>
-                      <TableCell><StatusChip estado={e.decisionOperativa} /></TableCell>
-                      <TableCell>{e.motivoCodigo ?? '—'}</TableCell>
-                      <TableCell>{new Date(e.capturadoEn).toLocaleString('es-EC')}</TableCell>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Fecha/Hora</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Resultado</TableCell>
+                      <TableCell>Motivo</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {contexto.map((evento) => (
+                        <TableRow key={evento.eventoAccesoId}>
+                          <TableCell>{new Date(evento.capturadoEn).toLocaleString()}</TableCell>
+                          <TableCell>{evento.tipoMovimiento}</TableCell>
+                          <TableCell>
+                            <StatusChip estado={evento.decisionOperativa} />
+                          </TableCell>
+                          <TableCell>{evento.motivoDetalle ?? evento.motivoCodigo}</TableCell>
+                        </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
             )}
           </CardContent>
         </Card>
-      )}
 
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: vigiaColors.textHeading }}>
-            Decisión del guardia
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircleOutlineIcon />}
-              disabled={!puedeAccionar}
-              onClick={() => setModal('APROBAR')}
-            >
-              Aprobar
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<HighlightOffIcon />}
-              disabled={!puedeAccionar}
-              onClick={() => setModal('DENEGAR')}
-            >
-              Denegar
-            </Button>
-            <Button
-              variant="contained"
-              sx={{ backgroundColor: vigiaColors.gold, color: vigiaColors.deep, '&:hover': { backgroundColor: vigiaColors.goldLight } }}
-              startIcon={<ReportProblemOutlinedIcon />}
-              disabled={!puedeAccionar}
-              onClick={() => setModal('CONTINGENCIA')}
-            >
-              Registrar Contingencia
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+        {/* Modal de acción */}
+        <Dialog open={modal !== null} onClose={cerrarModal} fullWidth maxWidth="sm">
+          <DialogTitle>
+            {modal === 'APROBAR' && labelAprobar}
+            {modal === 'DENEGAR' && 'Denegar acceso'}
+            {modal === 'CONTINGENCIA' && 'Registrar bajo contingencia'}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Placa: <strong>{placaBuscada}</strong> · Movimiento: <strong>{tipoMovimiento}</strong>
+            </DialogContentText>
 
-      {/* Dialog: Aprobar */}
-      <Dialog open={modal === 'APROBAR'} onClose={cerrarModal} maxWidth="xs" fullWidth>
-        <DialogTitle>Confirmar aprobación</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Se aprobará el acceso de <strong>{placaBuscada}</strong> ({tipoMovimiento}). Selecciona el motivo.
-          </DialogContentText>
-          <RadioGroup value={motivoAprobar} onChange={(e) => setMotivoAprobar(e.target.value)}>
-            {MOTIVOS_APROBAR.map((m) => (
-              <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
-            ))}
-          </RadioGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cerrarModal}>Cancelar</Button>
-          <Button variant="contained" color="success" onClick={confirmarAprobar} disabled={registrar.isPending}>
-            Confirmar aprobación
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {modal === 'APROBAR' && (
+                <RadioGroup value={motivoAprobar} onChange={(e) => setMotivoAprobar(e.target.value)}>
+                  {MOTIVOS_APROBAR.map((m) => (
+                      <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
+                  ))}
+                </RadioGroup>
+            )}
 
-      {/* Dialog: Denegar */}
-      <Dialog open={modal === 'DENEGAR'} onClose={cerrarModal} maxWidth="xs" fullWidth>
-        <DialogTitle>Confirmar denegación</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Se denegará el acceso de <strong>{placaBuscada}</strong> ({tipoMovimiento}). Selecciona el motivo.
-          </DialogContentText>
-          <RadioGroup value={motivoDenegar} onChange={(e) => setMotivoDenegar(e.target.value)}>
-            {MOTIVOS_DENEGAR.map((m) => (
-              <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
-            ))}
-          </RadioGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cerrarModal}>Cancelar</Button>
-          <Button variant="contained" color="error" onClick={confirmarDenegar} disabled={registrar.isPending}>
-            Confirmar denegación
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {modal === 'DENEGAR' && (
+                <RadioGroup value={motivoDenegar} onChange={(e) => setMotivoDenegar(e.target.value)}>
+                  {MOTIVOS_DENEGAR.map((m) => (
+                      <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
+                  ))}
+                </RadioGroup>
+            )}
 
-      {/* Dialog: Contingencia */}
-      <Dialog open={modal === 'CONTINGENCIA'} onClose={cerrarModal} maxWidth="xs" fullWidth>
-        <DialogTitle>Registrar contingencia</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <DialogContentText>
-            Registra el ingreso temporal de <strong>{placaBuscada}</strong> como contingencia.
-          </DialogContentText>
-          <TextField
-            label="Nombre del conductor"
-            value={conductorNombre}
-            onChange={(e) => setConductorNombre(e.target.value)}
-            fullWidth
-          />
-          <TextField
-            label="Cédula"
-            value={conductorCedula}
-            onChange={(e) => setConductorCedula(e.target.value)}
-            fullWidth
-          />
-          <TextField
-            label="Motivo de visita o destino"
-            value={destino}
-            onChange={(e) => setDestino(e.target.value)}
-            fullWidth
-          />
-          <FormControl fullWidth>
-            <InputLabel>Duración autorizada</InputLabel>
-            <Select
-              value={duracion}
-              label="Duración autorizada"
-              onChange={(e) => setDuracion(Number(e.target.value))}
-            >
-              {DURACIONES.map((d) => (
-                <MenuItem key={d.value} value={d.value}>{d.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cerrarModal}>Cancelar</Button>
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: vigiaColors.gold, color: vigiaColors.deep }}
-            onClick={confirmarContingencia}
-            disabled={registrar.isPending || !conductorNombre.trim() || !conductorCedula.trim()}
-          >
-            Confirmar contingencia
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {(modal === 'APROBAR' || modal === 'CONTINGENCIA') && (
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  <TextField
+                      label="Nombre del conductor"
+                      value={conductorNombre}
+                      onChange={(e) => setConductorNombre(e.target.value)}
+                      fullWidth
+                  />
+                  <TextField
+                      label="Cédula del conductor"
+                      value={conductorCedula}
+                      onChange={(e) => setConductorCedula(e.target.value)}
+                      fullWidth
+                  />
+                  <TextField
+                      label="Destino"
+                      value={destino}
+                      onChange={(e) => setDestino(e.target.value)}
+                      fullWidth
+                  />
+                </Stack>
+            )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </DashboardTemplate>
+            {modal === 'CONTINGENCIA' && (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="duracion-label">Duración</InputLabel>
+                  <Select
+                      labelId="duracion-label"
+                      label="Duración"
+                      value={duracion}
+                      onChange={(e) => setDuracion(Number(e.target.value))}
+                  >
+                    {DURACIONES.map((d) => (
+                        <MenuItem key={d.value} value={d.value}>
+                          {d.label}
+                        </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={cerrarModal}>Cancelar</Button>
+            {modal === 'APROBAR' && (
+                <Button variant="contained" color="success" onClick={confirmarAprobar} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+            {modal === 'DENEGAR' && (
+                <Button variant="contained" color="error" onClick={confirmarDenegar} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+            {modal === 'CONTINGENCIA' && (
+                <Button variant="contained" color="warning" onClick={confirmarContingencia} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </DashboardTemplate>
   );
 }

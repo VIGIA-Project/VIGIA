@@ -76,7 +76,7 @@ export class AuthorizationController {
   }
 
   @Patch('grupo-familiar/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarMiembroGrupoFamiliar(@Param('id') id: string) {
     return this.authorizationService.revocarMiembroGrupoFamiliar(id);
   }
@@ -93,6 +93,12 @@ export class AuthorizationController {
   // El grupo familiar ahora se vincula al propietario, no a un vehículo.
   // Estos endpoints se mantienen temporalmente resolviendo el propietario
   // dueño del vehículo recibido, para no romper al frontend actual.
+
+  @Get('permanentes')
+  @Roles(UserRole.ADMIN)
+  async listarPermanentesTodos() {
+    return this.authorizationService.listarGrupoFamiliarTodos();
+  }
 
   @Post('permanentes')
   @Roles(UserRole.OWNER)
@@ -122,7 +128,7 @@ export class AuthorizationController {
   }
 
   @Patch('permanentes/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarAutorizacionPermanenteLegacy(@Param('id') id: string) {
     return this.authorizationService.revocarMiembroGrupoFamiliar(id);
   }
@@ -156,8 +162,14 @@ export class AuthorizationController {
     return this.authorizationService.listarPorPersona(personaId);
   }
 
+  @Get('temporales/propietario/:propietarioId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async listarTemporalesPorPropietario(@Param('propietarioId') propietarioId: string) {
+    return this.authorizationService.listarTemporalesPorPropietario(propietarioId);
+  }
+
   @Patch('temporales/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarPermisoTemporal(@Param('id') id: string) {
     return this.authorizationService.revocarPermiso(id);
   }
@@ -205,7 +217,7 @@ export class AuthorizationController {
   }
 
   @Patch('pases/:id/revocar')
-  @Roles(UserRole.OWNER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarPase(@Param('id') id: string) {
     return this.authorizationService.revocarPase(id);
   }

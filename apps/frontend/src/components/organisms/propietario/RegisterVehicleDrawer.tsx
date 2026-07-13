@@ -24,16 +24,15 @@ import {
 const PLACA_REGEX = /^[A-Z]{3}-\d{4}$/;
 const ANIO_MIN = 1990;
 const ANIO_MAX = 2027;
-const SUBMIT_DELAY_MS = 1000;
 
 const registerVehicleSchema = z.object({
   placa: z.string().regex(PLACA_REGEX, 'Formato inválido. Use ABC-1234'),
   marca: z.string().trim().min(1, 'Ingrese la marca'),
   modelo: z.string().trim().min(1, 'Ingrese el modelo'),
   anio: z.coerce
-    .number({ message: 'Ingrese un año válido' })
-    .min(ANIO_MIN, `Año mínimo ${ANIO_MIN}`)
-    .max(ANIO_MAX, `Año máximo ${ANIO_MAX}`),
+      .number({ message: 'Ingrese un año válido' })
+      .min(ANIO_MIN, `Año mínimo ${ANIO_MIN}`)
+      .max(ANIO_MAX, `Año máximo ${ANIO_MAX}`),
   color: z.string().min(1, 'Seleccione un color'),
   tipo: z.string().min(1, 'Seleccione un tipo'),
   observacion: z.string().optional(),
@@ -46,8 +45,8 @@ const EMPTY_VALUES = { placa: '', marca: '', modelo: '', color: '', tipo: '', ob
 export interface RegisterVehicleDrawerProps {
   open: boolean;
   onClose: () => void;
-  onRegistered?: (vehiculo: PropietarioVehiculo) => void;
-  onUpdated?: (vehiculo: PropietarioVehiculo) => void;
+  onRegistered?: (data: any) => Promise<void> | void; // Cambiado a promesa para soportar el estado de carga del padre
+  onUpdated?: (data: any) => Promise<void> | void;
   mode?: 'create' | 'edit';
   vehiculo?: PropietarioVehiculo | null;
 }
@@ -93,12 +92,11 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
   const anio = watch('anio');
   const placaValid = PLACA_REGEX.test(placa);
 
-  const onSubmit = (data: RegisterVehicleFormValues) => {
+  const onSubmit = async (data: RegisterVehicleFormValues) => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
       if (isEdit && vehiculo) {
-        onUpdated?.({
+        await onUpdated?.({
           ...vehiculo,
           marca: data.marca,
           modelo: data.modelo,
@@ -107,240 +105,231 @@ export const RegisterVehicleDrawer: React.FC<RegisterVehicleDrawerProps> = ({ op
           tipo: data.tipo,
           observacion: data.observacion,
         });
-        return;
+      } else {
+        await onRegistered?.(data);
       }
-      onRegistered?.({
-        id: `veh-${Date.now()}`,
-        placa: data.placa,
-        marca: data.marca,
-        modelo: data.modelo,
-        anio: data.anio,
-        color: data.color,
-        tipo: data.tipo,
-        estado: 'ACTIVO',
-        permisosActivos: 0,
-        alertas: 0,
-        personasAsignadas: 0,
-        personasSinBiometria: 0,
-        observacion: data.observacion,
-      });
-    }, SUBMIT_DELAY_MS);
+      onClose();
+    } catch (err) {
+      // Manejado por el feedback del padre o interceptores
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const iconSx = { fontSize: 18, color: vigiaColors.textTertiary };
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      transitionDuration={{ enter: 280, exit: 220 }}
-      PaperProps={{
-        sx: {
-          width: { xs: '100vw', sm: 460 },
-          borderRadius: { xs: 0, sm: '16px 0 0 16px' },
-          boxShadow: vigiaShadows.lg,
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', p: 3, borderBottom: '1px solid #F1F5F9' }}>
-          <Box>
-            <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.25rem', color: vigiaColors.textHeading }}>
-              {isEdit ? COPY.editTitle : COPY.title}
-            </Typography>
-            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mt: 0.25 }}>
-              {isEdit ? COPY.editSubtitle : COPY.subtitle}
-            </Typography>
+      <Drawer
+          anchor="right"
+          open={open}
+          onClose={onClose}
+          transitionDuration={{ enter: 280, exit: 220 }}
+          PaperProps={{
+            sx: {
+              width: { xs: '100vw', sm: 460 },
+              borderRadius: { xs: 0, sm: '16px 0 0 16px' },
+              boxShadow: vigiaShadows.lg,
+            },
+          }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', p: 3, borderBottom: '1px solid #F1F5F9' }}>
+            <Box>
+              <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.25rem', color: vigiaColors.textHeading }}>
+                {isEdit ? COPY.editTitle : COPY.title}
+              </Typography>
+              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textSecondary, mt: 0.25 }}>
+                {isEdit ? COPY.editSubtitle : COPY.subtitle}
+              </Typography>
+            </Box>
+            <IconButton onClick={onClose} aria-label="Cerrar" sx={{ color: vigiaColors.textSecondary }}>
+              <CloseIcon />
+            </IconButton>
           </Box>
-          <IconButton onClick={onClose} aria-label="Cerrar" sx={{ color: vigiaColors.textSecondary }}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
 
-        {/* Formulario */}
-        <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', color: vigiaColors.textTertiary }}>
-            {COPY.sectionVehiculo}
-          </Typography>
-
-          <Controller
-            name="placa"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                label={COPY.placaLabel}
-                placeholder={COPY.placaPlaceholder}
-                disabled={isEdit}
-                error={!isEdit && !!errors.placa}
-                helperText={isEdit ? COPY.placaHelperEdit : errors.placa?.message || COPY.placaHelper}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><DirectionsCarFilledOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} /></InputAdornment> }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: '#EFF6FF',
-                    borderRadius: vigiaRadius.md,
-                    '& fieldset': { borderWidth: '2px', borderColor: '#BFDBFE' },
-                    '&:hover fieldset': { borderColor: vigiaColors.primary },
-                    '&.Mui-focused fieldset': { borderColor: vigiaColors.primary },
-                  },
-                  '& input': { textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, fontSize: '1.125rem', color: '#0F172A' },
-                }}
-              />
-            )}
-          />
-          <Controller
-            name="marca"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label={COPY.marcaLabel}
-                placeholder={COPY.marcaPlaceholder}
-                error={!!errors.marca}
-                helperText={errors.marca?.message}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><SellOutlinedIcon sx={iconSx} /></InputAdornment> }}
-              />
-            )}
-          />
-          <Controller
-            name="modelo"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label={COPY.modeloLabel}
-                placeholder={COPY.modeloPlaceholder}
-                error={!!errors.modelo}
-                helperText={errors.modelo?.message}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><CategoryOutlinedIcon sx={iconSx} /></InputAdornment> }}
-              />
-            )}
-          />
-          <Controller
-            name="anio"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                value={field.value ?? ''}
-                type="number"
-                label={COPY.anioLabel}
-                placeholder={COPY.anioPlaceholder}
-                error={!!errors.anio}
-                helperText={errors.anio?.message}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><EventOutlinedIcon sx={iconSx} /></InputAdornment> }}
-              />
-            )}
-          />
-          <Controller
-            name="color"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                select
-                label={COPY.colorLabel}
-                error={!!errors.color}
-                helperText={errors.color?.message}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><PaletteOutlinedIcon sx={iconSx} /></InputAdornment> }}
-              >
-                {VEHICLE_COLOR_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
-          <Controller
-            name="tipo"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                select
-                label={COPY.tipoLabel}
-                error={!!errors.tipo}
-                helperText={errors.tipo?.message}
-                fullWidth
-                required
-                InputProps={{ startAdornment: <InputAdornment position="start"><DirectionsCarOutlinedIcon sx={iconSx} /></InputAdornment> }}
-              >
-                {VEHICLE_TYPE_OPTIONS.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
-
-          <VehiclePreviewCard placa={placa} marca={marca} modelo={modelo} color={color} anio={anio ? String(anio) : ''} visible={placaValid} />
-
-          <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2.25, mt: 0.5 }}>
-            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', color: vigiaColors.textTertiary, mb: 2 }}>
-              {COPY.sectionAdicional}
+          {/* Formulario */}
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', color: vigiaColors.textTertiary }}>
+              {COPY.sectionVehiculo}
             </Typography>
+
             <Controller
-              name="observacion"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label={COPY.observacionLabel}
-                  placeholder={COPY.observacionPlaceholder}
-                  fullWidth
-                  multiline
-                  InputProps={{ startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}><NotesOutlinedIcon sx={iconSx} /></InputAdornment> }}
-                  sx={{ '& .MuiInputBase-root': { minHeight: 96, alignItems: 'flex-start' } }}
-                />
-              )}
+                name="placa"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        label={COPY.placaLabel}
+                        placeholder={COPY.placaPlaceholder}
+                        disabled={isEdit}
+                        error={!isEdit && !!errors.placa}
+                        helperText={isEdit ? COPY.placaHelperEdit : errors.placa?.message || COPY.placaHelper}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><DirectionsCarFilledOutlinedIcon sx={{ fontSize: 20, color: vigiaColors.primary }} /></InputAdornment> }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: '#EFF6FF',
+                            borderRadius: vigiaRadius.md,
+                            '& fieldset': { borderWidth: '2px', borderColor: '#BFDBFE' },
+                            '&:hover fieldset': { borderColor: vigiaColors.primary },
+                            '&.Mui-focused fieldset': { borderColor: vigiaColors.primary },
+                          },
+                          '& input': { textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, fontSize: '1.125rem', color: '#0F172A' },
+                        }}
+                    />
+                )}
             />
+            <Controller
+                name="marca"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        label={COPY.marcaLabel}
+                        placeholder={COPY.marcaPlaceholder}
+                        error={!!errors.marca}
+                        helperText={errors.marca?.message}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><SellOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                    />
+                )}
+            />
+            <Controller
+                name="modelo"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        label={COPY.modeloLabel}
+                        placeholder={COPY.modeloPlaceholder}
+                        error={!!errors.modelo}
+                        helperText={errors.modelo?.message}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><CategoryOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                    />
+                )}
+            />
+            <Controller
+                name="anio"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        value={field.value ?? ''}
+                        type="number"
+                        label={COPY.anioLabel}
+                        placeholder={COPY.anioPlaceholder}
+                        error={!!errors.anio}
+                        helperText={errors.anio?.message}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><EventOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                    />
+                )}
+            />
+            <Controller
+                name="color"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        select
+                        label={COPY.colorLabel}
+                        error={!!errors.color}
+                        helperText={errors.color?.message}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><PaletteOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                    >
+                      {VEHICLE_COLOR_OPTIONS.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                      ))}
+                    </TextField>
+                )}
+            />
+            <Controller
+                name="tipo"
+                control={control}
+                render={({ field }) => (
+                    <TextField
+                        {...field}
+                        select
+                        label={COPY.tipoLabel}
+                        error={!!errors.tipo}
+                        helperText={errors.tipo?.message}
+                        fullWidth
+                        required
+                        InputProps={{ startAdornment: <InputAdornment position="start"><DirectionsCarOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                    >
+                      {VEHICLE_TYPE_OPTIONS.map((option) => (
+                          <MenuItem key={option} value={option}>
+                            {option}
+                          </MenuItem>
+                      ))}
+                    </TextField>
+                )}
+            />
+
+            <VehiclePreviewCard placa={placa} marca={marca} modelo={modelo} color={color} anio={anio ? String(anio) : ''} visible={placaValid} />
+
+            <Box sx={{ borderTop: '1px solid #F1F5F9', pt: 2.25, mt: 0.5 }}>
+              <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', color: vigiaColors.textTertiary, mb: 2 }}>
+                {COPY.sectionAdicional}
+              </Typography>
+              <Controller
+                  name="observacion"
+                  control={control}
+                  render={({ field }) => (
+                      <TextField
+                          {...field}
+                          label={COPY.observacionLabel}
+                          placeholder={COPY.observacionPlaceholder}
+                          fullWidth
+                          multiline
+                          InputProps={{ startAdornment: <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}><NotesOutlinedIcon sx={iconSx} /></InputAdornment> }}
+                          sx={{ '& .MuiInputBase-root': { minHeight: 96, alignItems: 'flex-start' } }}
+                      />
+                  )}
+              />
+            </Box>
+          </Box>
+
+          {/* Footer */}
+          <Box sx={{ display: 'flex', gap: 1.5, p: 3, borderTop: '1px solid #F1F5F9' }}>
+            <Button
+                fullWidth
+                variant="outlined"
+                onClick={onClose}
+                sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, borderColor: '#E2E8F0', color: vigiaColors.textSecondary }}
+            >
+              {COPY.cancelLabel}
+            </Button>
+            <Button
+                fullWidth
+                variant="contained"
+                onClick={handleSubmit(onSubmit)}
+                disabled={!isValid || isSubmitting}
+                sx={{
+                  background: !isValid || isSubmitting ? 'rgba(13,92,207,0.3)' : vigiaColors.gradientIA,
+                  fontFamily: '"Inter", sans-serif',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderRadius: vigiaRadius.sm,
+                  minHeight: 48,
+                }}
+            >
+              {isSubmitting ? <CircularProgress size={18} sx={{ color: '#FFFFFF' }} /> : isEdit ? COPY.submitEditLabel : COPY.submitLabel}
+            </Button>
           </Box>
         </Box>
-
-        {/* Footer */}
-        <Box sx={{ display: 'flex', gap: 1.5, p: 3, borderTop: '1px solid #F1F5F9' }}>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', borderRadius: vigiaRadius.sm, borderColor: '#E2E8F0', color: vigiaColors.textSecondary }}
-          >
-            {COPY.cancelLabel}
-          </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleSubmit(onSubmit)}
-            disabled={!isValid || isSubmitting}
-            sx={{
-              background: !isValid || isSubmitting ? 'rgba(13,92,207,0.3)' : vigiaColors.gradientIA,
-              fontFamily: '"Inter", sans-serif',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: vigiaRadius.sm,
-              minHeight: 48,
-            }}
-          >
-            {isSubmitting ? <CircularProgress size={18} sx={{ color: '#FFFFFF' }} /> : isEdit ? COPY.submitEditLabel : COPY.submitLabel}
-          </Button>
-        </Box>
-      </Box>
-    </Drawer>
+      </Drawer>
   );
 };
 

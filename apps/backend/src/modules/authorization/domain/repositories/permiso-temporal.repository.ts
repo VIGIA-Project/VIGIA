@@ -22,4 +22,7 @@ export interface IPermisoTemporalRepository {
   contarVigentes(instante?: Date): Promise<number>;
 
   buscarPorPropietario(propietarioId: string): Promise<PermisoTemporal[]>;
+
+  /** Permiso más reciente asociado a un vehículo, sin importar su estado o vigencia. */
+  buscarUltimoPorVehiculo(vehiculoId: string): Promise<PermisoTemporal | null>;
 }

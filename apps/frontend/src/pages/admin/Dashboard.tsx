@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
+import { useNavigate } from 'react-router-dom';
 
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
@@ -82,16 +83,17 @@ export default function Dashboard() {
   const alertasRecientes = useAlertasRecientesAdmin(5);
   const eventosRecientes = useEventosRecientesAdmin(7);
   const personasSinBiometria = usePersonasSinBiometria();
+  const navigate = useNavigate();
 
   const kpis = [
-    { title: 'Personas Registradas', query: personasCount, icon: <PeopleIcon />, accent: 'primary' as const },
-    { title: 'Vehículos Registrados', query: vehiculosCount, icon: <DirectionsCarIcon />, accent: 'secondary' as const },
-    { title: 'Permisos Temporales Activos', query: temporalesCount, icon: <VpnKeyIcon />, accent: 'warning' as const },
-    { title: 'Pases Activos', query: pasesCount, icon: <DirectionsCarFilledIcon />, accent: 'info' as const },
-    { title: 'Miembros Grupo Familiar', query: grupoFamiliarCount, icon: <GroupsIcon />, accent: 'secondary' as const },
-    { title: 'Perfiles Biométricos', query: perfilesCount, icon: <FaceRetouchingNaturalIcon />, accent: 'success' as const },
-    { title: 'Alertas No Atendidas', query: alertasCount, icon: <WarningAmberIcon />, accent: 'error' as const },
-    { title: 'Eventos de Acceso Hoy', query: eventosCount, icon: <VerifiedUserIcon />, accent: 'primary' as const },
+    { title: 'Personas Registradas', query: personasCount, icon: <PeopleIcon />, accent: 'primary' as const, path: '/admin/registry/personas' },
+    { title: 'Vehículos Registrados', query: vehiculosCount, icon: <DirectionsCarIcon />, accent: 'secondary' as const, path: '/admin/registry/vehiculos' },
+    { title: 'Permisos Temporales Activos', query: temporalesCount, icon: <VpnKeyIcon />, accent: 'warning' as const, path: '/admin/authorization/temporales' },
+    { title: 'Pases Activos', query: pasesCount, icon: <DirectionsCarFilledIcon />, accent: 'info' as const, path: '/admin/authorization/por-vehiculo' },
+    { title: 'Miembros Grupo Familiar', query: grupoFamiliarCount, icon: <GroupsIcon />, accent: 'secondary' as const, path: '/admin/registry/personas' },
+    { title: 'Perfiles Biométricos', query: perfilesCount, icon: <FaceRetouchingNaturalIcon />, accent: 'success' as const, path: '/admin/biometric/perfiles' },
+    { title: 'Alertas No Atendidas', query: alertasCount, icon: <WarningAmberIcon />, accent: 'error' as const, path: '/admin/alerting/alertas' },
+    { title: 'Eventos de Acceso Hoy', query: eventosCount, icon: <VerifiedUserIcon />, accent: 'primary' as const, path: '/admin/auditoria/eventos' },
   ];
 
   return (
@@ -120,7 +122,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <KpiCard title={kpi.title} value={kpi.query.data ?? 0} icon={kpi.icon} accent={kpi.accent} />
+              <KpiCard title={kpi.title} value={kpi.query.data ?? 0} icon={kpi.icon} accent={kpi.accent} path={kpi.path} />
             )}
           </Grid>
         ))}
@@ -137,7 +139,7 @@ export default function Dashboard() {
                     Alertas Recientes
                   </Typography>
                 </Box>
-                <Button size="small" endIcon={<ArrowForwardIcon />} href="#/admin/alerting/alertas">
+                <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate('/admin/alerting/alertas')}>
                   Ver todas
                 </Button>
               </Box>
@@ -147,7 +149,7 @@ export default function Dashboard() {
                 <Alert severity="error">No se pudieron cargar las alertas recientes.</Alert>
               ) : alertasRecientes.data && alertasRecientes.data.length > 0 ? (
                 <List disablePadding>
-                  {alertasRecientes.data.map((alerta, i) => (
+                  {alertasRecientes.data.map((alerta: any, i: any) => (
                     <Box key={alerta.alertaId}>
                       <ListItem sx={{ px: 0, py: 1.25, alignItems: 'flex-start' }}>
                         <ListItemIcon sx={{ minWidth: 36, mt: 0.3 }}>
@@ -199,7 +201,7 @@ export default function Dashboard() {
                     Eventos de Acceso Recientes
                   </Typography>
                 </Box>
-                <Button size="small" endIcon={<ArrowForwardIcon />} href="#/admin/auditoria/eventos">
+                <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate('/admin/auditoria/eventos')}>
                   Ver historial
                 </Button>
               </Box>
@@ -215,7 +217,7 @@ export default function Dashboard() {
                     <Typography variant="overline" sx={{ fontWeight: 700 }}>Decisión</Typography>
                     <Typography variant="overline" sx={{ fontWeight: 700 }}>Origen</Typography>
                   </Box>
-                  {eventosRecientes.data.map((evento, i) => (
+                  {eventosRecientes.data.map((evento: any, i: any) => (
                     <Box
                       key={evento.eventoAccesoId}
                       sx={{
@@ -280,7 +282,7 @@ export default function Dashboard() {
                 <Alert severity="error">No se pudo cargar la lista.</Alert>
               ) : personasSinBiometria.data && personasSinBiometria.data.length > 0 ? (
                 <List disablePadding>
-                  {personasSinBiometria.data.slice(0, 5).map((persona, i, arr) => (
+                  {personasSinBiometria.data.slice(0, 5).map((persona: any, i: any, arr: any) => (
                     <Box key={persona.personaId}>
                       <ListItem sx={{ px: 0, py: 1 }}>
                         <ListItemIcon sx={{ minWidth: 40 }}>
@@ -332,7 +334,7 @@ export default function Dashboard() {
                 <Alert severity="error">No se pudo cargar la lista.</Alert>
               ) : permisosProximos.data && permisosProximos.data.length > 0 ? (
                 <List disablePadding>
-                  {permisosProximos.data.map((permiso, i, arr) => (
+                  {permisosProximos.data.map((permiso: any, i: any, arr: any) => (
                     <Box key={permiso.id}>
                       <ListItem sx={{ px: 0, py: 1 }}>
                         <ListItemIcon sx={{ minWidth: 36 }}>
@@ -341,13 +343,15 @@ export default function Dashboard() {
                         <ListItemText
                           primary={
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>Persona {permiso.personaId.slice(0, 8)}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {permiso.conductorNombre ?? `Persona ${permiso.personaId.slice(0, 8)}`}
+                              </Typography>
                               <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.dark' }}>
                                 {new Date(permiso.vigenciaFin).toLocaleDateString('es-EC')}
                               </Typography>
                             </Box>
                           }
-                          secondary={<Typography variant="caption" color="text.secondary">Vehículo: {permiso.vehiculoId.slice(0, 8)}</Typography>}
+                          secondary={<Typography variant="caption" color="text.secondary">Vehículo: {permiso.vehiculoPlaca ?? permiso.vehiculoId.slice(0, 8)}</Typography>}
                         />
                       </ListItem>
                       {i < arr.length - 1 && <Divider />}

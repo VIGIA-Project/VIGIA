@@ -7,7 +7,11 @@ export interface IEventoAccesoRepository {
 
   buscarRecientes(limite: number): Promise<EventoAcceso[]>;
 
+  buscarPorVehiculo(vehiculoId: string, limite: number): Promise<EventoAcceso[]>;
+
   contarPorRangoFecha(desde: Date, hasta: Date): Promise<number>;
+
+  contarPorRangoFechaYTipo(desde: Date, hasta: Date, tipoMovimiento: string): Promise<number>;
 
   /**
    * Vehículos que ingresaron por contingencia hoy y todavía no registran

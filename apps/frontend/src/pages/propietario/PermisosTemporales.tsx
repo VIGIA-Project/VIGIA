@@ -1,4 +1,3 @@
-// src/pages/propietario/PermisosTemporales.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';

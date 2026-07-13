@@ -25,6 +25,10 @@ import { AuthorizationSeedService } from '../infrastructure/seeds/authorization-
 import { UserOrmEntity } from '@core/auth/infrastructure/user.orm-entity';
 import { PersonaOrmEntity } from '../../registry/infrastructure/repositories/persona.orm-entity';
 import { VehiculoOrmEntity } from '../../registry/infrastructure/repositories/vehiculo.orm-entity';
+import { EventoAccesoOrmEntity } from '../../access-control/infrastructure/entities/evento-acceso.orm-entity';
+import { AlertaOrmEntity } from '../../alerting/infrastructure/entities/alerta.orm-entity';
+import { NotificacionOrmEntity } from '../../alerting/infrastructure/entities/notificacion.orm-entity';
+import { PerfilBiometricoOrmEntity } from '../../biometric/infrastructure/entities/perfil-biometrico.orm-entity';
 
 @Module({
   imports: [
@@ -35,6 +39,13 @@ import { VehiculoOrmEntity } from '../../registry/infrastructure/repositories/ve
       UserOrmEntity,
       PersonaOrmEntity,
       VehiculoOrmEntity,
+      // Registradas aquí únicamente para el seeder de desarrollo
+      // (AuthorizationSeedService), que puebla datos de demostración para
+      // los 3 dashboards. No se usan fuera de ese seeder.
+      EventoAccesoOrmEntity,
+      AlertaOrmEntity,
+      NotificacionOrmEntity,
+      PerfilBiometricoOrmEntity,
     ]),
     RegistryModule,
   ],
@@ -64,8 +75,11 @@ import { VehiculoOrmEntity } from '../../registry/infrastructure/repositories/ve
     },
     {
       provide: EvaluacionPaseService,
-      useFactory: (paseRepo: IPaseAccesoRapidoRepository) => new EvaluacionPaseService(paseRepo),
-      inject: [PASE_ACCESO_RAPIDO_REPOSITORY],
+      useFactory: (
+        paseRepo: IPaseAccesoRapidoRepository,
+        permisoRepo: IPermisoTemporalRepository,
+      ) => new EvaluacionPaseService(paseRepo, permisoRepo),
+      inject: [PASE_ACCESO_RAPIDO_REPOSITORY, PERMISO_TEMPORAL_REPOSITORY],
     },
     {
       provide: AUTHORIZATION_CONTRACT,

@@ -1,5 +1,5 @@
 // src/components/organisms/propietario/VehiculoPasesTab.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -7,15 +7,34 @@ import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import { staggerContainer } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../../theme/vigia-theme';
 import { PaseCard } from '../../molecules';
-import { MOCK_PASES_DETALLE, PASES_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { mapPaseAPaseDetalle, PASES_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { useMisPases } from '../../../hooks/useAuthorization';
+import { LoadingSkeleton, ErrorState } from '../../atoms';
 
-export const VehiculoPasesTab: React.FC = () => {
+export interface VehiculoPasesTabProps {
+  vehiculoId: string;
+}
+
+export const VehiculoPasesTab: React.FC<VehiculoPasesTabProps> = ({ vehiculoId }) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
-  const pases = MOCK_PASES_DETALLE;
+
+  const pasesQuery = useMisPases();
+  const pases = useMemo(
+    () => (pasesQuery.data ?? []).filter((p) => p.vehiculoId === vehiculoId).map(mapPaseAPaseDetalle),
+    [pasesQuery.data, vehiculoId]
+  );
 
   const activo = pases.find((p) => p.estado === 'ACTIVO');
   const historial = pases.filter((p) => p.estado !== 'ACTIVO');
+
+  if (pasesQuery.isLoading) {
+    return <LoadingSkeleton variant="cards" rows={2} />;
+  }
+
+  if (pasesQuery.isError) {
+    return <ErrorState mensaje="No se pudieron cargar los pases de acceso rápido." onRetry={() => pasesQuery.refetch()} />;
+  }
 
   if (pases.length === 0) {
     return (

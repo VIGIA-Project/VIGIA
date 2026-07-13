@@ -6,6 +6,8 @@ import {
   PERMISO_TEMPORAL_REPOSITORY,
   PASE_ACCESO_RAPIDO_REPOSITORY,
 } from '@shared/constants/injection-tokens';
+import { REGISTRY_PORT } from '../../registry/application/ports/registry.port';
+import type { IRegistryPort } from '../../registry/application/ports/registry.port';
 import { IMiembroGrupoFamiliarRepository } from '../domain/repositories/miembro-grupo-familiar.repository';
 import { IPermisoTemporalRepository } from '../domain/repositories/permiso-temporal.repository';
 import { IPaseAccesoRapidoRepository } from '../domain/repositories/pase-acceso-rapido.repository';
@@ -22,6 +24,20 @@ import { CrearMiembroGrupoFamiliarDto } from './dto/crear-miembro-grupo-familiar
 import { CrearPermisoTemporalDto } from './dto/crear-permiso-temporal.dto';
 import { CrearPaseRapidoDto } from './dto/crear-pase-rapido.dto';
 
+export interface PermisoTemporalConConductor {
+  id: string;
+  personaId: string;
+  vehiculoId: string;
+  vehiculoPlaca?: string;
+  propietarioId: string;
+  conductorNombre?: string;
+  conductorCedula?: string;
+  vigenciaInicio: Date;
+  vigenciaFin: Date;
+  motivo: string;
+  estado: string;
+}
+
 /**
  * Servicio de aplicación — orquesta los casos de uso del BC Authorization.
  * NO contiene reglas de negocio: esas viven en las entidades y servicios de
@@ -36,6 +52,8 @@ export class AuthorizationService {
     private readonly permisoTemporalRepository: IPermisoTemporalRepository,
     @Inject(PASE_ACCESO_RAPIDO_REPOSITORY)
     private readonly paseAccesoRapidoRepository: IPaseAccesoRapidoRepository,
+    @Inject(REGISTRY_PORT)
+    private readonly registryPort: IRegistryPort,
     private readonly construccionConjuntoAutorizadoService: ConstruccionConjuntoAutorizadoService,
     private readonly evaluacionPaseService: EvaluacionPaseService,
   ) {}
@@ -74,6 +92,10 @@ export class AuthorizationService {
       relacion: dto.relacion,
     });
     return this.miembroGrupoFamiliarRepository.guardar(miembro);
+  }
+
+  async listarGrupoFamiliarTodos(): Promise<MiembroGrupoFamiliar[]> {
+    return this.miembroGrupoFamiliarRepository.buscarTodos();
   }
 
   async listarGrupoFamiliarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
@@ -117,12 +139,18 @@ export class AuthorizationService {
     return this.permisoTemporalRepository.guardar(permiso);
   }
 
-  async listarVigentesPorVehiculo(vehiculoId: string): Promise<PermisoTemporal[]> {
-    return this.permisoTemporalRepository.buscarVigentesPorVehiculo(vehiculoId);
+  async listarVigentesPorVehiculo(vehiculoId: string): Promise<PermisoTemporalConConductor[]> {
+    const permisos = await this.permisoTemporalRepository.buscarVigentesPorVehiculo(vehiculoId);
+    return this.enriquecerConConductor(permisos);
   }
 
   async listarPorPersona(personaId: string): Promise<PermisoTemporal[]> {
     return this.permisoTemporalRepository.buscarPorPersona(personaId);
+  }
+
+  async listarTemporalesPorPropietario(propietarioId: string): Promise<PermisoTemporalConConductor[]> {
+    const permisos = await this.permisoTemporalRepository.buscarPorPropietario(propietarioId);
+    return this.enriquecerConConductor(permisos);
   }
 
   async revocarPermiso(id: string): Promise<PermisoTemporal> {
@@ -138,8 +166,40 @@ export class AuthorizationService {
     return this.permisoTemporalRepository.contarVigentes();
   }
 
-  async listarProximosAExpirar(diasVentana: number): Promise<PermisoTemporal[]> {
-    return this.permisoTemporalRepository.buscarProximosAExpirar(diasVentana);
+  async listarProximosAExpirar(diasVentana: number): Promise<PermisoTemporalConConductor[]> {
+    const permisos = await this.permisoTemporalRepository.buscarProximosAExpirar(diasVentana);
+    return this.enriquecerConConductor(permisos);
+  }
+
+  /**
+   * Resuelve, vía Registry, el nombre/cédula del conductor (persona titular
+   * del permiso) y la placa del vehículo — evita exponer UUIDs crudos en
+   * los dashboards.
+   */
+  private async enriquecerConConductor(
+    permisos: PermisoTemporal[],
+  ): Promise<PermisoTemporalConConductor[]> {
+    return Promise.all(
+      permisos.map(async (permiso) => {
+        const [persona, vehiculo] = await Promise.all([
+          this.registryPort.findPersonaById(permiso.personaId),
+          this.registryPort.findVehiculoById(permiso.vehiculoId),
+        ]);
+        return {
+          id: permiso.id,
+          personaId: permiso.personaId,
+          vehiculoId: permiso.vehiculoId,
+          vehiculoPlaca: vehiculo?.placa,
+          propietarioId: permiso.propietarioId,
+          conductorNombre: persona?.nombreCompleto,
+          conductorCedula: persona?.identificacionNumero,
+          vigenciaInicio: permiso.vigencia.inicio,
+          vigenciaFin: permiso.vigencia.fin,
+          motivo: permiso.motivo,
+          estado: permiso.estado,
+        };
+      }),
+    );
   }
 
   // ─── Pases de acceso rápido ────────────────────────────────────────────

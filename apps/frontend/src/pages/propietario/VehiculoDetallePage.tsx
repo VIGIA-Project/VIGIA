@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Snackbar, Alert, Tab, Tabs, Typography } from '@mui/material';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,27 +14,79 @@ import {
   VehiculoActividadTab,
   RegisterVehicleDrawer,
 } from '../../components/organisms/propietario';
+import { LoadingSkeleton, ErrorState } from '../../components/atoms';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
-import { buildInitialVehiculos, PropietarioVehiculo, REGISTER_VEHICLE_DRAWER_COPY } from '../../config/propietario-vehiculos.config';
+import { PropietarioVehiculo, REGISTER_VEHICLE_DRAWER_COPY } from '../../config/propietario-vehiculos.config';
 import { VEHICULO_DETALLE_TABS, VEHICULO_DETALLE_COPY, ESTADO_VEHICULO_STYLES, TabKey } from '../../config/propietario-vehiculo-detalle.config';
+import { useAuth } from '../../context';
+import { useActualizarVehiculo, useVehiculosDelPropietario } from '../../hooks/useRegistry';
 
 const VehiculoDetallePage: React.FC = () => {
   const navigate = useNavigate();
   const { placa } = useParams<{ placa: string }>();
   const shouldReduceMotion = useReducedMotion();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [editToast, setEditToast] = useState(false);
 
-  const [vehiculo, setVehiculo] = useState<PropietarioVehiculo | undefined>(() =>
-    buildInitialVehiculos().find((v) => v.placa === placa)
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+  const actualizarVehiculoMutation = useActualizarVehiculo();
+
+  const vehiculoApi = useMemo(
+    () => (vehiculosQuery.data ?? []).find((v) => v.placa === placa),
+    [vehiculosQuery.data, placa]
   );
 
-  const handleUpdated = (actualizado: PropietarioVehiculo) => {
-    setVehiculo(actualizado);
+  const vehiculo: PropietarioVehiculo | undefined = useMemo(() => {
+    if (!vehiculoApi) return undefined;
+    return {
+      id: vehiculoApi.vehiculoId,
+      vehiculoId: vehiculoApi.vehiculoId,
+      placa: vehiculoApi.placa,
+      marca: vehiculoApi.marca ?? 'Sin marca',
+      modelo: vehiculoApi.modelo ?? 'Sin modelo',
+      color: vehiculoApi.color ?? 'N/D',
+      anio: vehiculoApi.anio ?? 0,
+      estado: vehiculoApi.estadoRegistro === 'ACTIVO' ? 'ACTIVO' : 'INACTIVO',
+      tipo: 'Particular',
+      permisosActivos: 0,
+      alertas: 0,
+      personasAsignadas: 0,
+      personasSinBiometria: 0,
+    };
+  }, [vehiculoApi]);
+
+  const handleUpdated = async (actualizado: PropietarioVehiculo) => {
+    if (!vehiculo) return;
+    await actualizarVehiculoMutation.mutateAsync({
+      vehiculoId: vehiculo.vehiculoId,
+      dto: {
+        marca: actualizado.marca,
+        modelo: actualizado.modelo,
+        color: actualizado.color,
+        anio: actualizado.anio,
+      },
+    });
     setEditDrawerOpen(false);
     setEditToast(true);
   };
+
+  if (vehiculosQuery.isLoading) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Detalle de vehículo">
+        <LoadingSkeleton variant="detail" />
+      </DashboardTemplate>
+    );
+  }
+
+  if (vehiculosQuery.isError) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Detalle de vehículo">
+        <ErrorState mensaje="No se pudo cargar tu información de vehículo." onRetry={() => vehiculosQuery.refetch()} />
+      </DashboardTemplate>
+    );
+  }
 
   if (!vehiculo) {
     return (
@@ -99,7 +151,7 @@ const VehiculoDetallePage: React.FC = () => {
                 </Box>
               </Box>
               <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '1rem', color: '#64748B', mt: 0.5 }}>
-                {vehiculo.marca} {vehiculo.modelo} · {vehiculo.color} · {vehiculo.anio} · {vehiculo.tipo}
+                {vehiculo.marca} {vehiculo.modelo} · {vehiculo.color} · {vehiculo.anio || '—'} · {vehiculo.tipo}
               </Typography>
             </Box>
 
@@ -178,8 +230,8 @@ const VehiculoDetallePage: React.FC = () => {
             {activeTab === 'resumen' && <VehiculoResumenTab vehiculo={vehiculo} onNavigateTab={setActiveTab} />}
             {activeTab === 'personas' && <VehiculoPersonasTab />}
             {activeTab === 'permisos' && <VehiculoPermisosTab vehiculo={vehiculo} />}
-            {activeTab === 'pases' && <VehiculoPasesTab />}
-            {activeTab === 'actividad' && <VehiculoActividadTab />}
+            {activeTab === 'pases' && <VehiculoPasesTab vehiculoId={vehiculo.vehiculoId} />}
+            {activeTab === 'actividad' && <VehiculoActividadTab vehiculoId={vehiculo.vehiculoId} />}
           </motion.div>
         </AnimatePresence>
       </Box>

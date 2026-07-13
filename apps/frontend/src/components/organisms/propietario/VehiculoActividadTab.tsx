@@ -6,11 +6,13 @@ import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { vigiaColors, vigiaRadius } from '../../../theme/vigia-theme';
 import { EventoTimeline } from '../../molecules';
 import {
-  MOCK_EVENTOS_DETALLE,
+  mapEventoAEventoDetalle,
   ACTIVIDAD_TAB_COPY,
   RESULTADO_LABEL,
   EventoResultado,
 } from '../../../config/propietario-vehiculo-detalle.config';
+import { useEventosPorVehiculo } from '../../../hooks/useGuard';
+import { LoadingSkeleton, ErrorState } from '../../atoms';
 
 const RESULTADO_OPTIONS: { value: EventoResultado | 'TODOS'; label: string }[] = [
   { value: 'TODOS', label: 'Todos' },
@@ -19,18 +21,36 @@ const RESULTADO_OPTIONS: { value: EventoResultado | 'TODOS'; label: string }[] =
   { value: 'REVISION', label: RESULTADO_LABEL.REVISION },
 ];
 
-export const VehiculoActividadTab: React.FC = () => {
+export interface VehiculoActividadTabProps {
+  vehiculoId: string;
+}
+
+export const VehiculoActividadTab: React.FC<VehiculoActividadTabProps> = ({ vehiculoId }) => {
   const [resultado, setResultado] = useState<EventoResultado | 'TODOS'>('TODOS');
   const [search, setSearch] = useState('');
 
+  const eventosQuery = useEventosPorVehiculo(vehiculoId, 50);
+  const eventosDetalle = useMemo(
+    () => (eventosQuery.data ?? []).map(mapEventoAEventoDetalle),
+    [eventosQuery.data]
+  );
+
   const eventos = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return MOCK_EVENTOS_DETALLE.filter((e) => {
+    return eventosDetalle.filter((e) => {
       const matchesResultado = resultado === 'TODOS' || e.resultado === resultado;
       const matchesSearch = !term || e.persona.toLowerCase().includes(term) || e.punto.toLowerCase().includes(term);
       return matchesResultado && matchesSearch;
     });
-  }, [resultado, search]);
+  }, [eventosDetalle, resultado, search]);
+
+  if (eventosQuery.isLoading) {
+    return <LoadingSkeleton variant="cards" rows={3} />;
+  }
+
+  if (eventosQuery.isError) {
+    return <ErrorState mensaje="No se pudo cargar la actividad de este vehículo." onRetry={() => eventosQuery.refetch()} />;
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

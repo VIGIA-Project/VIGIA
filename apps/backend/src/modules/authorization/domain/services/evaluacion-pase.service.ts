@@ -1,4 +1,5 @@
 import { IPaseAccesoRapidoRepository } from '../repositories/pase-acceso-rapido.repository';
+import { IPermisoTemporalRepository } from '../repositories/permiso-temporal.repository';
 import { CodigoAccesoTemporal } from '../value-objects/codigo-acceso-temporal.vo';
 
 export interface ResultadoEvaluacionPase {
@@ -13,7 +14,10 @@ export interface ResultadoEvaluacionPase {
  * responsabilidad del BC Access Control al registrar el evento de ingreso.
  */
 export class EvaluacionPaseService {
-  constructor(private readonly paseAccesoRapidoRepository: IPaseAccesoRapidoRepository) {}
+  constructor(
+    private readonly paseAccesoRapidoRepository: IPaseAccesoRapidoRepository,
+    private readonly permisoTemporalRepository: IPermisoTemporalRepository,
+  ) {}
 
   async evaluar(
     codigoPlano: string,
@@ -36,6 +40,13 @@ export class EvaluacionPaseService {
 
       if (!pase.estaDisponible(instante)) {
         return { valido: false, motivo: 'El pase encontrado ya expiró' };
+      }
+
+      const permisoAsociado = await this.permisoTemporalRepository.buscarUltimoPorVehiculo(
+        pase.vehiculoId,
+      );
+      if (permisoAsociado && new Date(permisoAsociado.vigencia.fin) < instante) {
+        return { valido: false, motivo: 'El permiso temporal asociado ha expirado' };
       }
 
       return { valido: true, paseId: pase.id, motivo: 'Código válido' };

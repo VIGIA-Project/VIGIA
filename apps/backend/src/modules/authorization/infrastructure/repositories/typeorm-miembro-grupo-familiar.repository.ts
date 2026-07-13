@@ -27,6 +27,11 @@ export class TypeOrmMiembroGrupoFamiliarRepository
     return orm ? MiembroGrupoFamiliarMapper.toDomain(orm) : null;
   }
 
+  async buscarTodos(): Promise<MiembroGrupoFamiliar[]> {
+    const orms = await this.repo.find({ order: { createdAt: 'DESC' } });
+    return orms.map((orm) => MiembroGrupoFamiliarMapper.toDomain(orm));
+  }
+
   async buscarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     const orms = await this.repo
       .createQueryBuilder('m')

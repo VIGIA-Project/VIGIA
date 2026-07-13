@@ -1,12 +1,23 @@
-import { Box, Grid2 as Grid, Card, CardContent, Typography, Divider, Chip } from '@mui/material';
+import { Box, Grid2 as Grid, Card, CardContent, Typography, Divider, Chip, Button, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { KpiCard, EventQueueItem } from '../../components/molecules';
 import { EmptyState, LoadingSkeleton } from '../../components/atoms';
 import { useAuth } from '../../context';
-import { useEventosRecientes, useEventosCountHoy, useInvitadosActivos, useInvitadosActivosCount } from '../../hooks/useGuard';
+import {
+  useEventosRecientes,
+  useEventosCountHoy,
+  useEventosCountHoyPorTipo,
+  useInvitadosActivos,
+  useInvitadosActivosCount,
+} from '../../hooks/useGuard';
+import { useAlertasNoAtendidasCount } from '../../hooks/useNotifications';
 import { vigiaColors } from '../../theme/vigia-theme';
 
 const decodeJwtName = (token: string | null): string | null => {
@@ -50,7 +61,9 @@ export default function GuardiaInicioPage() {
   const ahora = new Date().toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
 
   const eventosCount = useEventosCountHoy();
+  const eventosPorTipo = useEventosCountHoyPorTipo();
   const invitadosCount = useInvitadosActivosCount();
+  const alertasCount = useAlertasNoAtendidasCount();
   const eventosRecientes = useEventosRecientes(5);
   const invitadosActivos = useInvitadosActivos();
 
@@ -65,20 +78,68 @@ export default function GuardiaInicioPage() {
         </Typography>
       </Box>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+        <Button variant="contained" startIcon={<FactCheckOutlinedIcon />} onClick={() => navigate('/guardia/revision')}>
+          Revisión manual
+        </Button>
+        <Button variant="outlined" startIcon={<ListAltIcon />} onClick={() => navigate('/guardia/cola')}>
+          Cola de eventos
+        </Button>
+        <Button variant="outlined" color="warning" startIcon={<PersonAddAltIcon />} onClick={() => navigate('/guardia/contingencia')}>
+          Registrar invitado
+        </Button>
+        <Button variant="outlined" color="error" startIcon={<NotificationsActiveOutlinedIcon />} onClick={() => navigate('/guardia/alertas')}>
+          Ver alertas
+        </Button>
+      </Stack>
+
+      <Typography variant="overline" sx={{ fontWeight: 700, color: vigiaColors.textTertiary, letterSpacing: 1 }}>
+        Actividad de hoy
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3, mt: 0.25 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          {eventosPorTipo.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={eventosPorTipo.data?.entradas ?? 0}
+              label="Entradas de hoy"
+              accentColor={vigiaColors.success ?? '#2E7D32'}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'ENTRADA' } })}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          {eventosPorTipo.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={eventosPorTipo.data?.salidas ?? 0}
+              label="Salidas de hoy"
+              accentColor={vigiaColors.warning ?? '#F2851F'}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'SALIDA' } })}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {eventosCount.isLoading ? (
             <LoadingSkeleton variant="cards" rows={1} />
           ) : (
             <KpiCard
               value={eventosCount.data ?? 0}
-              label="Eventos de hoy"
+              label="Eventos de hoy (total)"
               accentColor={vigiaColors.primary}
-              onClick={() => navigate('/guardia/cola')}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'TODOS' } })}
             />
           )}
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      </Grid>
+
+      <Typography variant="overline" sx={{ fontWeight: 700, color: vigiaColors.textTertiary, letterSpacing: 1 }}>
+        Requiere tu atención
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3, mt: 0.25 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           {invitadosCount.isLoading ? (
             <LoadingSkeleton variant="cards" rows={1} />
           ) : (
@@ -86,11 +147,26 @@ export default function GuardiaInicioPage() {
               value={invitadosCount.data ?? 0}
               label="Invitados en campus"
               accentColor={vigiaColors.gold}
+              onClick={() => navigate('/guardia/cola')}
               indicator={
                 invitadosActivos.data?.some((i) => i.estaExcedido)
                   ? '⚠️ Hay invitados con tiempo excedido'
                   : undefined
               }
+              indicatorColor={vigiaColors.error}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          {alertasCount.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={alertasCount.data ?? 0}
+              label="Alertas no atendidas"
+              accentColor={vigiaColors.error}
+              onClick={() => navigate('/guardia/alertas')}
+              indicator={(alertasCount.data ?? 0) > 0 ? 'Requieren atención' : undefined}
               indicatorColor={vigiaColors.error}
             />
           )}
@@ -101,9 +177,14 @@ export default function GuardiaInicioPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: vigiaColors.textHeading }}>
-                Eventos recientes
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                  Eventos recientes
+                </Typography>
+                <Button size="small" onClick={() => navigate('/guardia/cola')}>
+                  Ver todos
+                </Button>
+              </Box>
               <Divider sx={{ mb: 1 }} />
               {eventosRecientes.isLoading ? (
                 <LoadingSkeleton variant="table" rows={3} />
@@ -134,9 +215,14 @@ export default function GuardiaInicioPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: vigiaColors.textHeading }}>
-                Invitados activos
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                  Invitados activos
+                </Typography>
+                <Button size="small" onClick={() => navigate('/guardia/cola')}>
+                  Gestionar
+                </Button>
+              </Box>
               <Divider sx={{ mb: 1 }} />
               {invitadosActivos.isLoading ? (
                 <LoadingSkeleton variant="table" rows={3} />

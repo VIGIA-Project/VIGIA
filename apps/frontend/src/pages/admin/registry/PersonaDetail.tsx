@@ -13,6 +13,7 @@ import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import EditIcon from "@mui/icons-material/Edit";
 import PageHeader from "../../../components/admin-legacy/PageHeader";
 import StatusChip from "../../../components/admin-legacy/StatusChip";
 import DataTable, {
@@ -21,6 +22,7 @@ import DataTable, {
 import { usePersona, useVehiculosDelPropietario, useMarcarEnrollmentCompleto } from "../../../hooks/useRegistry";
 import { usePerfilBiometricoPorPersonaAdmin } from "../../../hooks/useAdmin";
 import { Vehiculo } from "../../../services/types/registry.types";
+import EditPersonaModal from "./EditPersonaModal";
 
 interface VehiculoRow extends Vehiculo {
   id: string;
@@ -49,18 +51,19 @@ export default function PersonaDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
 
   const persona = usePersona(id);
   const vehiculos = useVehiculosDelPropietario(id);
   const perfilBiometrico = usePerfilBiometricoPorPersonaAdmin(id);
   const marcarEnrollment = useMarcarEnrollmentCompleto();
 
-  const vehiculoRows: VehiculoRow[] = (vehiculos.data ?? []).map((v) => ({ ...v, id: v.vehiculoId }));
+  const vehiculoRows: VehiculoRow[] = (vehiculos.data ?? []).map((v: any) => ({ ...v, id: v.vehiculoId }));
 
   if (persona.isLoading) {
     return (
       <Box>
-        <PageHeader title="Detalle de Persona" breadcrumbs={[{ label: "Registro", href: "#/admin/registry/personas" }, { label: "Personas", href: "#/admin/registry/personas" }]} />
+        <PageHeader title="Detalle de Persona" breadcrumbs={[{ label: "Registro" }, { label: "Personas", href: "/admin/registry/personas" }]} />
         <Skeleton variant="rounded" height={400} />
       </Box>
     );
@@ -69,7 +72,7 @@ export default function PersonaDetail() {
   if (persona.isError || !persona.data) {
     return (
       <Box>
-        <PageHeader title="Detalle de Persona" breadcrumbs={[{ label: "Registro", href: "#/admin/registry/personas" }, { label: "Personas", href: "#/admin/registry/personas" }]} />
+        <PageHeader title="Detalle de Persona" breadcrumbs={[{ label: "Registro" }, { label: "Personas", href: "/admin/registry/personas" }]} />
         <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => persona.refetch()}>Reintentar</Button>}>
           No se pudo cargar la información de esta persona.
         </Alert>
@@ -84,14 +87,19 @@ export default function PersonaDetail() {
       <PageHeader
         title="Detalle de Persona"
         breadcrumbs={[
-          { label: "Registro", href: "#/admin/registry/personas" },
-          { label: "Personas", href: "#/admin/registry/personas" },
+          { label: "Registro" },
+          { label: "Personas", href: "/admin/registry/personas" },
           { label: p.nombreCompleto },
         ]}
         action={
-          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate("/admin/registry/personas")}>
-            Volver
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate("/admin/registry/personas")}>
+              Volver
+            </Button>
+            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
+              Editar
+            </Button>
+          </Box>
         }
       />
 
@@ -206,6 +214,13 @@ export default function PersonaDetail() {
           )}
         </CardContent>
       </Card>
+
+      <EditPersonaModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        persona={p}
+        onUpdated={() => persona.refetch()}
+      />
     </Box>
   );
 }

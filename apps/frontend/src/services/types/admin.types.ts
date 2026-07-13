@@ -36,6 +36,13 @@ export interface ResetPasswordResult {
   temporaryPassword: string;
 }
 
+export interface CrearUsuarioDto {
+  email: string;
+  role: UserRole;
+  temporaryPassword: string;
+  personaId?: string;
+}
+
 export type EstadoDisponibilidadBiometrico = 'DISPONIBLE' | 'NO_DISPONIBLE' | 'PENDIENTE_CAPTURA';
 
 export interface PerfilBiometrico {

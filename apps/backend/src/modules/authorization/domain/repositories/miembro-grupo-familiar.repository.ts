@@ -5,6 +5,8 @@ export interface IMiembroGrupoFamiliarRepository {
 
   buscarPorId(id: string): Promise<MiembroGrupoFamiliar | null>;
 
+  buscarTodos(): Promise<MiembroGrupoFamiliar[]>;
+
   buscarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]>;
 
   buscarActivosPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]>;

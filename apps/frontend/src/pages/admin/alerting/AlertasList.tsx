@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import CircularProgress from "@mui/material/CircularProgress";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import InfoIcon from "@mui/icons-material/Info";
@@ -12,23 +14,12 @@ import DataTable, {
   type Column,
 } from "../../../components/admin-legacy/DataTable";
 import StatusChip from "../../../components/admin-legacy/StatusChip";
-import {
-  MOCK_ALERTAS_PROP,
-  mapPropietarioAlertToAdmin,
-} from "../../../config/propietario-alerting.config";
+import { useAlertasRecientesAdmin } from "../../../hooks/useAdmin";
+import { Alerta } from "../../../services/types/admin.types";
 
-interface Alerta {
-  id: string | number;
-  severidad: "ALTA" | "MEDIA" | "INFORMATIVA";
-  estado: "GENERADA" | "ENTREGADA" | "ATENDIDA";
-  descripcion: string;
-  referencia: string;
-  fecha: string;
-}
+type AlertaRow = Alerta & { id: string };
 
-const rows: Alerta[] = MOCK_ALERTAS_PROP.map(mapPropietarioAlertToAdmin);
-
-const columns: Column<Alerta>[] = [
+const columns: Column<AlertaRow>[] = [
   {
     id: "severidad",
     label: "Severidad",
@@ -50,30 +41,30 @@ const columns: Column<Alerta>[] = [
     label: "Descripción",
     render: (r) => (
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        {r.descripcion}
+        {r.mensajeResumen}
       </Typography>
     ),
   },
   {
     id: "referencia",
-    label: "Referencia",
+    label: "Causa",
     render: (r) => (
       <Typography variant="caption" color="text.secondary">
-        {r.referencia}
+        {r.causaOrigen}
       </Typography>
     ),
   },
   {
     id: "estado",
     label: "Atención",
-    render: (r) => <StatusChip kind="atencion" value={r.estado} />,
+    render: (r) => <StatusChip kind="atencion" value={r.estadoAtencion} />,
   },
   {
     id: "fecha",
     label: "Fecha",
     render: (r) => (
       <Typography variant="caption" color="text.secondary">
-        {r.fecha}
+        {new Date(r.generadaEn).toLocaleString("es-EC")}
       </Typography>
     ),
   },
@@ -81,6 +72,22 @@ const columns: Column<Alerta>[] = [
 
 export default function AlertasList() {
   const navigate = useNavigate();
+  const alertasQuery = useAlertasRecientesAdmin(100);
+  const alertas: AlertaRow[] = useMemo(
+    () => (alertasQuery.data ?? []).map((a) => ({ ...a, id: a.alertaId })),
+    [alertasQuery.data]
+  );
+
+  const stats = useMemo(
+    () => ({
+      alta: alertas.filter((a) => a.severidad === "ALTA").length,
+      media: alertas.filter((a) => a.severidad === "MEDIA").length,
+      informativa: alertas.filter((a) => a.severidad === "INFORMATIVA").length,
+      pendientes: alertas.filter((a) => a.estadoAtencion !== "ATENDIDA").length,
+    }),
+    [alertas]
+  );
+
   return (
     <Box>
       <PageHeader
@@ -92,25 +99,25 @@ export default function AlertasList() {
         {[
           {
             label: "ALTA Severidad",
-            value: "5",
+            value: stats.alta,
             color: "#C0524A",
             icon: <ErrorIcon />,
           },
           {
             label: "MEDIA Severidad",
-            value: "8",
+            value: stats.media,
             color: "#E0A82E",
             icon: <WarningAmberIcon />,
           },
           {
             label: "INFORMATIVA",
-            value: "10",
+            value: stats.informativa,
             color: "#4A8EC0",
             icon: <InfoIcon />,
           },
           {
             label: "Pendientes de Atención",
-            value: "3",
+            value: stats.pendientes,
             color: "#0D5CCF",
             icon: <WarningAmberIcon />,
           },
@@ -134,20 +141,28 @@ export default function AlertasList() {
                   variant="h4"
                   sx={{ fontWeight: 700, color: s.color }}
                 >
-                  {s.value}
+                  {alertasQuery.isLoading ? <CircularProgress size={22} /> : s.value}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
-      <DataTable
-        columns={columns}
-        rows={rows}
-        searchPlaceholder="Buscar por descripción o referencia..."
-        searchKeys={(r) => `${r.descripcion} ${r.referencia}`}
-        onRowClick={(row) => navigate(`/admin/alerting/alertas/${row.id}`)}
-      />
+      {alertasQuery.isLoading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : alertasQuery.isError ? (
+        <Typography color="error">No se pudieron cargar las alertas.</Typography>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={alertas}
+          searchPlaceholder="Buscar por descripción o causa..."
+          searchKeys={(r) => `${r.mensajeResumen} ${r.causaOrigen}`}
+          onRowClick={(row) => navigate(`/admin/alerting/alertas/${row.alertaId}`)}
+        />
+      )}
     </Box>
   );
 }

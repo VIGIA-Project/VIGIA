@@ -41,6 +41,15 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { StatusChip, EmptyState } from '../../components/atoms';
 import { TipoMovimiento, RegistrarEventoManualDto } from '../../services/types/guard.types';
+import { vigiaColors } from '../../theme/vigia-theme';
+
+const selectedToggleSx = (color: string) => ({
+  '&.Mui-selected': {
+    backgroundColor: color,
+    color: '#fff',
+    '&:hover': { backgroundColor: color, filter: 'brightness(0.92)' },
+  },
+});
 
 type AccionModal = 'APROBAR' | 'DENEGAR' | 'CONTINGENCIA' | null;
 
@@ -256,8 +265,8 @@ export default function RevisionManualPage() {
                   onChange={(_, val) => val && setTipoMovimiento(val)}
                   size="small"
               >
-                <ToggleButton value="ENTRADA">Entrada</ToggleButton>
-                <ToggleButton value="SALIDA">Salida</ToggleButton>
+                <ToggleButton value="ENTRADA" sx={selectedToggleSx(vigiaColors.success)}>Entrada</ToggleButton>
+                <ToggleButton value="SALIDA" sx={selectedToggleSx(vigiaColors.warning)}>Salida</ToggleButton>
               </ToggleButtonGroup>
             </Stack>
 
@@ -302,9 +311,15 @@ export default function RevisionManualPage() {
         {/* Acciones */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
               Acción sobre {placaBuscada || 'la placa buscada'}
             </Typography>
+            {!puedeAccionar && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Busca una placa para habilitar las acciones de aprobar, denegar o registrar contingencia/invitado.
+              </Typography>
+            )}
+            {puedeAccionar && <Box sx={{ mb: 1.5 }} />}
             <Stack direction="row" spacing={2} flexWrap="wrap">
               <Button
                   variant="contained"
@@ -331,7 +346,7 @@ export default function RevisionManualPage() {
                   disabled={!puedeAccionar}
                   onClick={() => setModal('CONTINGENCIA')}
               >
-                Contingencia
+                Contingencia / Invitado
               </Button>
             </Stack>
           </CardContent>

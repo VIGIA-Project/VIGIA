@@ -76,6 +76,10 @@ export class AuthorizationService {
     return this.miembroGrupoFamiliarRepository.guardar(miembro);
   }
 
+  async listarGrupoFamiliarTodos(): Promise<MiembroGrupoFamiliar[]> {
+    return this.miembroGrupoFamiliarRepository.buscarTodos();
+  }
+
   async listarGrupoFamiliarPorPropietario(propietarioId: string): Promise<MiembroGrupoFamiliar[]> {
     return this.miembroGrupoFamiliarRepository.buscarPorPropietario(propietarioId);
   }

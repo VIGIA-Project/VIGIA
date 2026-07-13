@@ -125,4 +125,9 @@ export const apiPatchData = async <T>(url: string, data?: unknown): Promise<T> =
   return envelope.data;
 };
 
+export const apiDeleteData = async <T>(url: string): Promise<T> => {
+  const envelope = await apiDelete<ApiEnvelope<T>>(url);
+  return envelope.data;
+};
+
 export default apiClient;

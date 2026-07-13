@@ -21,6 +21,13 @@ export const useEventosRecientes = (limite = 20) =>
         refetchIntervalInBackground: true,
     });
 
+export const useEventosPorVehiculo = (vehiculoId?: string, limite = 20) =>
+    useQuery({
+        queryKey: [...guardKeys.all, 'eventos', 'vehiculo', vehiculoId, limite] as const,
+        queryFn: () => guardService.listarEventosPorVehiculo(vehiculoId as string, limite),
+        enabled: !!vehiculoId,
+    });
+
 export const useEventosCountHoy = () =>
     useQuery({
         queryKey: guardKeys.eventosCountHoy(),

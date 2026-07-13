@@ -8,7 +8,10 @@ import { staggerContainer } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../../theme/vigia-theme';
 import { PermisoCard } from '../../molecules';
 import { PropietarioVehiculo } from '../../../config/propietario-vehiculos.config';
-import { MOCK_PERMISOS_DETALLE, PERMISOS_TAB_COPY, PermisoEstado } from '../../../config/propietario-vehiculo-detalle.config';
+import { mapPermisoAPermisoDetalle, PERMISOS_TAB_COPY, PermisoEstado } from '../../../config/propietario-vehiculo-detalle.config';
+import { usePermisosVigentesPorVehiculo } from '../../../hooks/useAuthorization';
+import { usePersonasDelPropietario as usePersonasResolver } from '../../../hooks/useRegistry';
+import { LoadingSkeleton, ErrorState } from '../../atoms';
 
 type FilterKey = 'TODOS' | PermisoEstado;
 
@@ -21,14 +24,24 @@ export const VehiculoPermisosTab: React.FC<VehiculoPermisosTabProps> = ({ vehicu
   const shouldReduceMotion = useReducedMotion();
   const [filter, setFilter] = useState<FilterKey>('TODOS');
 
+  const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo.vehiculoId);
+  const permisosApi = permisosQuery.data ?? [];
+  const personaIds = useMemo(() => permisosApi.map((p) => p.personaId), [permisosApi]);
+  const { personasById, isLoading: isLoadingPersonas } = usePersonasResolver(personaIds);
+
+  const permisosDetalle = useMemo(
+    () => permisosApi.map((p) => mapPermisoAPermisoDetalle(p, personasById.get(p.personaId))),
+    [permisosApi, personasById]
+  );
+
   const counts = useMemo(
     () => ({
-      TODOS: MOCK_PERMISOS_DETALLE.length,
-      ACTIVO: MOCK_PERMISOS_DETALLE.filter((p) => p.estado === 'ACTIVO').length,
-      EXPIRADO: MOCK_PERMISOS_DETALLE.filter((p) => p.estado === 'EXPIRADO').length,
-      REVOCADO: MOCK_PERMISOS_DETALLE.filter((p) => p.estado === 'REVOCADO').length,
+      TODOS: permisosDetalle.length,
+      ACTIVO: permisosDetalle.filter((p) => p.estado === 'ACTIVO').length,
+      EXPIRADO: permisosDetalle.filter((p) => p.estado === 'EXPIRADO').length,
+      REVOCADO: permisosDetalle.filter((p) => p.estado === 'REVOCADO').length,
     }),
-    []
+    [permisosDetalle]
   );
 
   const filters: { key: FilterKey; label: string }[] = [
@@ -39,9 +52,17 @@ export const VehiculoPermisosTab: React.FC<VehiculoPermisosTabProps> = ({ vehicu
   ];
 
   const permisos = useMemo(
-    () => (filter === 'TODOS' ? MOCK_PERMISOS_DETALLE : MOCK_PERMISOS_DETALLE.filter((p) => p.estado === filter)),
-    [filter]
+    () => (filter === 'TODOS' ? permisosDetalle : permisosDetalle.filter((p) => p.estado === filter)),
+    [filter, permisosDetalle]
   );
+
+  if (permisosQuery.isLoading || isLoadingPersonas) {
+    return <LoadingSkeleton variant="cards" rows={3} />;
+  }
+
+  if (permisosQuery.isError) {
+    return <ErrorState mensaje="No se pudieron cargar los permisos temporales." onRetry={() => permisosQuery.refetch()} />;
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

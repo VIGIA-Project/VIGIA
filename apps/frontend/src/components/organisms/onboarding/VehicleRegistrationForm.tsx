@@ -5,21 +5,22 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
+import { AxiosError } from 'axios';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { fadeInUp } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
 import { VehiclePreviewCard } from '../../molecules';
+import { useAuth } from '../../../context/AuthContext';
+import { useCrearVehiculo } from '../../../hooks/useRegistry';
 import {
   VEHICLE_COLOR_OPTIONS,
   VEHICLE_FORM_COPY,
   VEHICLE_SUCCESS_COPY,
-  VEHICLE_STORAGE_KEY,
 } from '../../../config/onboarding.config';
 
 const PLACA_REGEX = /^[A-Z]{3}-\d{4}$/;
 const ANIO_MIN = 1990;
 const ANIO_MAX = 2027;
-const SUBMIT_DELAY_MS = 1500;
 // Verde de estado "completado" — consistente con OnboardingProgressPanel y BiometricCapture
 const SUCCESS_GREEN = '#22C55E';
 
@@ -43,8 +44,10 @@ export interface VehicleRegistrationFormProps {
 }
 
 export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = ({ onComplete, onFieldsProgress }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const crearVehiculoMutation = useCrearVehiculo();
   const [submitted, setSubmitted] = useState<VehicleFormValues | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -80,14 +83,30 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validCount]);
 
-  const onSubmit = (data: VehicleFormValues) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(data));
-      setIsSubmitting(false);
+  const onSubmit = async (data: VehicleFormValues) => {
+    if (!user?.personaId) {
+      setSubmitError('No se encontró tu persona asociada. Contacta a soporte.');
+      return;
+    }
+    setSubmitError(null);
+    try {
+      await crearVehiculoMutation.mutateAsync({
+        propietarioPersonaId: user.personaId,
+        placa: data.placa,
+        marca: data.marca,
+        modelo: data.modelo,
+        color: data.color,
+        anio: data.anio,
+      });
       setSubmitted(data);
-    }, SUBMIT_DELAY_MS);
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string | string[] }>;
+      const message = axiosErr.response?.data?.message;
+      setSubmitError((Array.isArray(message) ? message[0] : message) || 'No se pudo registrar el vehículo.');
+    }
   };
+
+  const isSubmitting = crearVehiculoMutation.isPending;
 
   if (submitted) {
     return (
@@ -260,6 +279,12 @@ export const VehicleRegistrationForm: React.FC<VehicleRegistrationFormProps> = (
 
           <VehiclePreviewCard placa={placa} marca={marca} modelo={modelo} color={color} anio={anio ? String(anio) : ''} visible={placaValid} />
         </Box>
+
+        {submitError && (
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: '#DC2626', mb: 2 }}>
+            {submitError}
+          </Typography>
+        )}
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button

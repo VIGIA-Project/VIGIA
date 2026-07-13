@@ -7,6 +7,9 @@ import { EventoAcceso, InvitadoActivo, RegistrarEventoManualDto } from './types/
 export const listarEventosRecientes = (limite = 20): Promise<EventoAcceso[]> =>
   apiGetData('/access-control/eventos/recientes', { limite });
 
+export const listarEventosPorVehiculo = (vehiculoId: string, limite = 20): Promise<EventoAcceso[]> =>
+  apiGetData(`/access-control/eventos/vehiculo/${vehiculoId}`, { limite });
+
 export const contarEventosHoy = (): Promise<{ count: number }> =>
   apiGetData('/access-control/eventos/count');
 

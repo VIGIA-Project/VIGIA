@@ -17,4 +17,18 @@ export class AlertaMapper {
       atendidaEn: orm.atendidaEn ?? undefined,
     });
   }
+
+  static toOrm(alerta: Alerta): AlertaOrmEntity {
+    const orm = new AlertaOrmEntity();
+    orm.alertaId = alerta.id;
+    orm.causaOrigen = alerta.causaOrigen;
+    orm.referenciaOrigenId = alerta.referenciaOrigenId;
+    orm.vehiculoId = alerta.vehiculoId ?? null;
+    orm.severidad = alerta.severidad;
+    orm.estadoAtencion = alerta.estadoAtencion;
+    orm.mensajeResumen = alerta.mensajeResumen;
+    orm.generadaEn = alerta.generadaEn;
+    orm.atendidaEn = alerta.atendidaEn ?? null;
+    return orm;
+  }
 }

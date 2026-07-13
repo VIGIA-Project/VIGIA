@@ -4,7 +4,13 @@
 
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import * as registryService from '../services/registry.service';
-import { CrearPersonaDto, Persona } from '../services/types/registry.types';
+import {
+  ActualizarPersonaDto,
+  ActualizarVehiculoDto,
+  CrearPersonaDto,
+  CrearVehiculoDto,
+  Persona,
+} from '../services/types/registry.types';
 import { useAuth } from '../context/AuthContext';
 
 export const registryKeys = {
@@ -20,6 +26,32 @@ export const useVehiculosDelPropietario = (propietarioPersonaId?: string) =>
     queryKey: registryKeys.vehiculosDelPropietario(propietarioPersonaId),
     queryFn: () => registryService.listarVehiculosDelPropietario(propietarioPersonaId as string),
     enabled: !!propietarioPersonaId,
+  });
+
+export const useCrearVehiculo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CrearVehiculoDto) => registryService.crearVehiculo(dto),
+    onSuccess: (vehiculo) => {
+      queryClient.invalidateQueries({ queryKey: registryKeys.vehiculosDelPropietario(vehiculo.propietarioPersonaId) });
+    },
+  });
+};
+
+export const useActualizarVehiculo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vehiculoId, dto }: { vehiculoId: string; dto: ActualizarVehiculoDto }) =>
+      registryService.actualizarVehiculo(vehiculoId, dto),
+    onSuccess: (vehiculo) => {
+      queryClient.invalidateQueries({ queryKey: registryKeys.vehiculosDelPropietario(vehiculo.propietarioPersonaId) });
+    },
+  });
+};
+
+export const useEliminarVehiculo = () =>
+  useMutation({
+    mutationFn: (vehiculoId: string) => registryService.eliminarVehiculo(vehiculoId),
   });
 
 export const usePersona = (personaId?: string) =>
@@ -60,6 +92,17 @@ export const useCrearPersona = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (dto: CrearPersonaDto) => registryService.crearPersona(dto),
+    onSuccess: (persona) => {
+      queryClient.setQueryData(registryKeys.persona(persona.personaId), persona);
+    },
+  });
+};
+
+export const useActualizarPersona = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ personaId, dto }: { personaId: string; dto: ActualizarPersonaDto }) =>
+      registryService.actualizarPersona(personaId, dto),
     onSuccess: (persona) => {
       queryClient.setQueryData(registryKeys.persona(persona.personaId), persona);
     },

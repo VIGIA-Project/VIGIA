@@ -17,7 +17,6 @@ import GroupIcon from '@mui/icons-material/Group';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Logout from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import SecurityIcon from '@mui/icons-material/Security';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -28,6 +27,7 @@ import KeyIcon from '@mui/icons-material/Key';
 import MenuIcon from '@mui/icons-material/Menu';
 import { BrandBlock, NotificationBell } from '../molecules';
 import { GradientBar } from '../atoms';
+import { useAlertasCountAdmin } from '../../hooks/useAdmin';
 
 const drawerWidth = 260;
 const uceLogo = '/logo_uce.png';
@@ -44,41 +44,7 @@ interface NavSection {
 
 const topLevelItem = { label: 'Inicio', icon: <DashboardIcon />, path: '/admin' };
 
-const navSections: NavSection[] = [
-  {
-    label: 'REGISTRY',
-    items: [
-      { label: 'Personas', path: '/admin/registry/personas', icon: <GroupIcon /> },
-      { label: 'Vehículos', path: '/admin/registry/vehiculos', icon: <DirectionsCarIcon /> },
-    ]
-  },
-  {
-    label: 'AUTHORIZATION',
-    items: [
-      { label: 'Autorizaciones', path: '/admin/authorization/permanentes', icon: <VerifiedUserIcon /> },
-      { label: 'Permisos Temporales', path: '/admin/authorization/temporales', icon: <KeyIcon /> },
-      { label: 'Vista por Vehículo', path: '/admin/authorization/por-vehiculo', icon: <SecurityIcon /> },
-    ]
-  },
-  {
-    label: 'BIOMETRIC',
-    items: [
-      { label: 'Perfiles Biométricos', path: '/admin/biometric/perfiles', icon: <FaceRetouchingNaturalIcon /> },
-    ]
-  },
-  {
-    label: 'ALERTING',
-    items: [
-      { label: 'Alertas', path: '/admin/alerting/alertas', icon: <WarningAmberIcon />, badge: 3 },
-    ]
-  },
-  {
-    label: 'AUDITORÍA',
-    items: [
-      { label: 'Historial de Eventos', path: '/admin/auditoria/eventos', icon: <HistoryIcon /> },
-    ]
-  },
-];
+// Removed static navSections here
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -86,6 +52,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { logout } = useAuth();
+
+  const alertasCount = useAlertasCountAdmin();
+  const alertBadgeCount = alertasCount.data ?? 0;
+
+  const navSections: NavSection[] = [
+    {
+      label: 'REGISTRY',
+      items: [
+        { label: 'Personas', path: '/admin/registry/personas', icon: <GroupIcon /> },
+        { label: 'Vehículos', path: '/admin/registry/vehiculos', icon: <DirectionsCarIcon /> },
+      ]
+    },
+    {
+      label: 'AUTHORIZATION',
+      items: [
+        { label: 'Autorizaciones', path: '/admin/authorization/permanentes', icon: <VerifiedUserIcon /> },
+        { label: 'Permisos Temporales', path: '/admin/authorization/temporales', icon: <KeyIcon /> },
+        { label: 'Vista por Vehículo', path: '/admin/authorization/por-vehiculo', icon: <SecurityIcon /> },
+      ]
+    },
+    {
+      label: 'BIOMETRIC',
+      items: [
+        { label: 'Perfiles Biométricos', path: '/admin/biometric/perfiles', icon: <FaceRetouchingNaturalIcon /> },
+      ]
+    },
+    {
+      label: 'ALERTING',
+      items: [
+        { label: 'Alertas', path: '/admin/alerting/alertas', icon: <WarningAmberIcon />, badge: alertBadgeCount > 0 ? alertBadgeCount : undefined },
+      ]
+    },
+    {
+      label: 'AUDITORÍA',
+      items: [
+        { label: 'Historial de Eventos', path: '/admin/auditoria/eventos', icon: <HistoryIcon /> },
+      ]
+    },
+  ];
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -293,11 +298,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Box>
             </Box>
             <NotificationBell alertasPath="/admin/alerting/alertas" />
-            <Tooltip title="Configuración">
-              <IconButton color="inherit">
-                <SettingsIcon sx={{ color: 'text.secondary' }} />
-              </IconButton>
-            </Tooltip>
             <Tooltip title="Cuenta">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5 }}>
                 <Avatar sx={{ width: 34, height: 34, bgcolor: '#0f3194', fontSize: '0.8rem', fontWeight: 700 }}>

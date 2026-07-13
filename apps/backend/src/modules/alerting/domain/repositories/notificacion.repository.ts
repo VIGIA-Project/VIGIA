@@ -6,4 +6,6 @@ export interface INotificacionRepository {
   buscarPorId(id: string): Promise<Notificacion | null>;
 
   buscarPorDestinatario(destinatarioPersonaId: string): Promise<Notificacion[]>;
+
+  buscarTodas(limite: number): Promise<Notificacion[]>;
 }

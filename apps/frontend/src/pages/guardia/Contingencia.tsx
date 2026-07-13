@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { useEventosRecientes, useRegistrarEventoManual } from '../../hooks/useGuard';
+import { TipoMovimiento } from '../../services/types/guard.types';
 
 const CAUSAS = ['BIOMETRIA_NO_DISPONIBLE','CAMARA_NO_DISPONIBLE','OCR_NO_DISPONIBLE','CAIDA_RED','OPERACION_MANUAL'];
 const CAUSA_DESC: Record<string,string> = {
@@ -11,20 +13,45 @@ const CAUSA_DESC: Record<string,string> = {
   CAIDA_RED:               'Pérdida de conectividad en el punto.',
   OPERACION_MANUAL:        'Decisión tomada sin evidencia automática.',
 };
+const DURACIONES = [30, 60, 120, 240, 480];
 
 export const ContingenciaPage: React.FC = () => {
   const navigate = useNavigate();
-  const [causa, setCausa] = useState('BIOMETRIA_NO_DISPONIBLE');
+  const location = useLocation();
+  const placaInicial = (location.state as { placa?: string } | null)?.placa ?? '';
+
+  const [placa, setPlaca] = useState(placaInicial.toUpperCase());
+  const [tipoMovimiento, setTipoMovimiento] = useState<TipoMovimiento>('ENTRADA');
+  const [causa, setCausa] = useState(CAUSAS[0]);
   const [decision, setDecision] = useState<'AUTORIZAR'|'DENEGAR'|null>(null);
   const [detalle, setDetalle] = useState('');
-  const [registrado, setRegistrado] = useState(false);
+  const [duracion, setDuracion] = useState(60);
   const [error, setError] = useState('');
 
-  const registrar = () => {
+  const eventosRecientes = useEventosRecientes(30);
+  const registrar = useRegistrarEventoManual();
+
+  const contexto = useMemo(
+    () => (eventosRecientes.data ?? []).filter((e) => e.placaObservada === placa.trim().toUpperCase()).slice(0, 3),
+    [eventosRecientes.data, placa]
+  );
+
+  const registrado = registrar.isSuccess;
+
+  const registrarContingencia = () => {
+    if (!placa.trim()) { setError('Ingresa la placa del vehículo.'); return; }
     if (!decision) { setError('Selecciona una decisión.'); return; }
     if (detalle.trim().length < 10) { setError('Escribe al menos 10 caracteres.'); return; }
     setError('');
-    setRegistrado(true);
+
+    registrar.mutate({
+      placaObservada: placa.trim().toUpperCase(),
+      tipoMovimiento,
+      decisionOperativa: decision === 'AUTORIZAR' ? 'SUCCESSFUL' : 'DENIED',
+      motivoCodigo: 'CONTINGENCIA',
+      motivoDetalle: `${CAUSA_DESC[causa]} ${detalle.trim()}`,
+      duracionAutorizadaMin: decision === 'AUTORIZAR' && tipoMovimiento === 'ENTRADA' ? duracion : undefined,
+    });
   };
 
   if (registrado) {
@@ -34,7 +61,7 @@ export const ContingenciaPage: React.FC = () => {
           <div style={{ padding:60, textAlign:'center' }}>
             <div style={{ fontSize:48, marginBottom:16 }}>📋</div>
             <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:22, fontWeight:700, color:'#1F2A44', marginBottom:8 }}>Contingencia registrada</div>
-            <div style={{ fontSize:14, color:'#6B7280', marginBottom:6 }}>Causa: <strong>{causa}</strong></div>
+            <div style={{ fontSize:14, color:'#6B7280', marginBottom:6 }}>Placa: <strong>{placa}</strong> · Causa: <strong>{causa}</strong></div>
             <div style={{ fontSize:14, color:'#6B7280', marginBottom:24 }}>Decisión: <strong style={{ color: decision==='AUTORIZAR'?'#2E7D32':'#C62828' }}>{decision}</strong></div>
             <button onClick={() => navigate('/guardia/cola')}
               style={{ padding:'12px 28px', borderRadius:10, background:'#0D5CCF', color:'#fff', fontSize:14, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
@@ -57,20 +84,35 @@ export const ContingenciaPage: React.FC = () => {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:18, alignItems:'start' }}>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
-              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>Evento origen</div>
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>Vehículo</div>
+              <div style={{ padding:'16px 20px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                <input
+                  value={placa}
+                  onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+                  placeholder="Placa (ej. ABC1234)"
+                  style={{ fontFamily:'"Exo 2",sans-serif', fontSize:18, fontWeight:800, color:'#0A2F86', background:'#EEF2FF', padding:'10px 14px', borderRadius:7, border:'1px solid #C7D2FE', letterSpacing:1, textTransform:'uppercase', width:200 }}
+                />
                 <div style={{ display:'flex', gap:6 }}>
-                  <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'#EDE7F6', color:'#4527A0' }}>SALIDA</span>
-                  <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:'#FEF9C3', color:'#854D0E' }}>EVIDENCIA_INSUFICIENTE</span>
+                  {(['ENTRADA','SALIDA'] as TipoMovimiento[]).map((t) => (
+                    <button key={t} onClick={() => setTipoMovimiento(t)} style={{
+                      padding:'8px 14px', borderRadius:7, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'Inter,sans-serif',
+                      background: tipoMovimiento===t ? '#0D5CCF' : '#fff',
+                      color: tipoMovimiento===t ? '#fff' : '#374151',
+                      border: tipoMovimiento===t ? 'none' : '1.5px solid #E2E8F0',
+                    }}>{t}</button>
+                  ))}
                 </div>
               </div>
-              <div style={{ padding:'12px 20px', display:'flex', alignItems:'center', gap:14 }}>
-                <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:800, color:'#0A2F86', background:'#EEF2FF', padding:'6px 14px', borderRadius:7, border:'1px solid #C7D2FE', letterSpacing:1 }}>XYZ-9012</div>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:500, color:'#333' }}>Acceso Norte · Carril SALIDA · 13:19:33</div>
-                  <div style={{ fontSize:11, color:'#888', marginTop:2 }}>Score 0.62 &lt; umbral 0.75</div>
+              {contexto.length > 0 && (
+                <div style={{ padding:'0 20px 16px' }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'#94A3B8', marginBottom:6 }}>Eventos recientes de esta placa</div>
+                  {contexto.map((e) => (
+                    <div key={e.eventoAccesoId} style={{ fontSize:12, color:'#555', padding:'4px 0', borderTop:'1px solid #F8F8F8' }}>
+                      {new Date(e.capturadoEn).toLocaleString('es-EC')} · {e.tipoMovimiento} · {e.decisionOperativa}
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
             <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
@@ -95,6 +137,15 @@ export const ContingenciaPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+                {decision === 'AUTORIZAR' && tipoMovimiento === 'ENTRADA' && (
+                  <div style={{ marginBottom:18 }}>
+                    <label style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:7, display:'block' }}>Duración autorizada de permanencia</label>
+                    <select value={duracion} onChange={e=>setDuracion(Number(e.target.value))}
+                      style={{ width:'100%', padding:'11px 16px', borderRadius:8, border:'1.5px solid #E2E8F0', fontSize:13, fontFamily:'Inter,sans-serif', background:'#fff' }}>
+                      {DURACIONES.map(d=><option key={d} value={d}>{d < 60 ? `${d} minutos` : `${d/60} hora${d>60?'s':''}`}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div style={{ marginBottom:18 }}>
                   <label style={{ fontSize:12, fontWeight:600, color:'#374151', marginBottom:7, display:'block' }}>
                     Explique la situación <span style={{ color:'#C62828' }}>*</span>
@@ -109,17 +160,22 @@ export const ContingenciaPage: React.FC = () => {
                     ⚠ {error}
                   </div>
                 )}
+                {registrar.isError && (
+                  <div style={{ background:'#FEF2F2', borderRadius:8, padding:'10px 14px', border:'1px solid #FECACA', fontSize:12, color:'#C62828', marginBottom:14 }}>
+                    ⚠ No se pudo registrar la contingencia. Intenta de nuevo.
+                  </div>
+                )}
                 <div style={{ background:'#FEF9C3', borderRadius:8, padding:'10px 14px', border:'1px solid #FDE68A', fontSize:12, color:'#854D0E', marginBottom:18 }}>
-                  ⚠ Esta contingencia quedará registrada con tu nombre y timestamp. Es trazable e irrevocable.
+                  ⚠ Esta contingencia quedará registrada con timestamp real. Es trazable e irrevocable.
                 </div>
                 <div style={{ display:'flex', gap:10 }}>
                   <button onClick={() => navigate('/guardia/cola')}
                     style={{ flex:1, padding:11, borderRadius:8, background:'#fff', color:'#555', fontSize:13, fontWeight:500, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
                     Cancelar
                   </button>
-                  <button onClick={registrar}
-                    style={{ flex:2, padding:11, borderRadius:8, background: decision?'#F2851F':'#CBD5E1', color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor: decision?'pointer':'not-allowed', fontFamily:'Inter,sans-serif' }}>
-                    ✓ Registrar y cerrar evento
+                  <button onClick={registrarContingencia} disabled={registrar.isPending}
+                    style={{ flex:2, padding:11, borderRadius:8, background: decision && !registrar.isPending ?'#F2851F':'#CBD5E1', color:'#fff', fontSize:13, fontWeight:600, border:'none', cursor: decision && !registrar.isPending ?'pointer':'not-allowed', fontFamily:'Inter,sans-serif' }}>
+                    {registrar.isPending ? 'Registrando...' : '✓ Registrar y cerrar evento'}
                   </button>
                 </div>
               </div>
@@ -140,7 +196,7 @@ export const ContingenciaPage: React.FC = () => {
             </div>
             <div style={{ background:'#EEF2FF', borderRadius:12, border:'1px solid #C7D2FE', padding:'14px 16px' }}>
               <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86', marginBottom:8 }}>ℹ Campos autoregistrados</div>
-              {[['guardia','Kevin Chicaisa'],['punto_control','Acceso Norte'],['registrado_en','NOW()'],['origen','CONTINGENCIA']].map(([k,v])=>(
+              {[['punto_control','Registro manual (garita)'],['origen','CONTINGENCIA']].map(([k,v])=>(
                 <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #E2E8F0', fontSize:12 }}>
                   <span style={{ color:'#888' }}>{k}</span><span style={{ fontWeight:500 }}>{v}</span>
                 </div>

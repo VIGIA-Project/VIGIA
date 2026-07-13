@@ -3,13 +3,14 @@ import { Box, Button, Snackbar, Alert, Typography, useMediaQuery, useTheme, Skel
 import AddIcon from '@mui/icons-material/Add';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { motion, useReducedMotion } from 'framer-motion';
+import { AxiosError } from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { VehicleGrid, RegisterVehicleDrawer } from '../../components/organisms/propietario';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
 import { useAuth } from '../../context';
-import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
+import { useCrearVehiculo, useVehiculosDelPropietario } from '../../hooks/useRegistry';
 import {
     PropietarioVehiculo,
     MIS_VEHICULOS_COPY,
@@ -27,9 +28,11 @@ const MisVehiculosPage: React.FC = () => {
 
     // === CONSUMO DE ENDPOINT REAL MEDIANTE TANSTACK QUERY ===
     const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+    const crearVehiculoMutation = useCrearVehiculo();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [toastOpen, setToastOpen] = useState(false);
+    const [errorToast, setErrorToast] = useState<string | null>(null);
 
     useEffect(() => {
         if ((location.state as { openRegistrar?: boolean } | null)?.openRegistrar) {
@@ -65,10 +68,24 @@ const MisVehiculosPage: React.FC = () => {
         navigate('/propietario/permisos-temporales');
     };
 
-    const handleRegistered = () => {
-        vehiculosQuery.refetch();
-        setDrawerOpen(false);
-        setToastOpen(true);
+    const handleRegistered = async (data: { placa: string; marca: string; modelo: string; color: string; anio: number }) => {
+        if (!user?.personaId) return;
+        try {
+            await crearVehiculoMutation.mutateAsync({
+                propietarioPersonaId: user.personaId,
+                placa: data.placa,
+                marca: data.marca,
+                modelo: data.modelo,
+                color: data.color,
+                anio: data.anio,
+            });
+            setToastOpen(true);
+        } catch (err) {
+            const axiosErr = err as AxiosError<{ message?: string | string[] }>;
+            const message = axiosErr.response?.data?.message;
+            setErrorToast((Array.isArray(message) ? message[0] : message) || 'No se pudo registrar el vehículo.');
+            throw err;
+        }
     };
 
     return (
@@ -171,10 +188,24 @@ const MisVehiculosPage: React.FC = () => {
                     <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, fontSize: '1rem', color: '#0F172A', mb: 1.5 }}>
                         {HISTORIAL_ACCESOS_COPY.title}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
-                        <HistoryOutlinedIcon sx={{ color: vigiaColors.textTertiary, fontSize: 28 }} />
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: '#64748B' }}>
-                            El historial de accesos vehiculares en tiempo real se habilitará con el módulo de Control de Accesos.
+                    <Box
+                        component="button"
+                        onClick={() => navigate('/propietario/historial')}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            py: 2,
+                            width: '100%',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                        }}
+                    >
+                        <HistoryOutlinedIcon sx={{ color: vigiaColors.primary, fontSize: 28 }} />
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: vigiaColors.primary, fontWeight: 600 }}>
+                            Ver historial completo de accesos →
                         </Typography>
                     </Box>
                 </Box>
@@ -190,6 +221,17 @@ const MisVehiculosPage: React.FC = () => {
             >
                 <Alert severity="success" variant="filled" onClose={() => setToastOpen(false)} sx={{ borderRadius: vigiaRadius.sm }}>
                     {REGISTER_VEHICLE_DRAWER_COPY.successToast}
+                </Alert>
+            </Snackbar>
+
+            <Snackbar
+                open={!!errorToast}
+                autoHideDuration={4000}
+                onClose={() => setErrorToast(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert severity="error" variant="filled" onClose={() => setErrorToast(null)} sx={{ borderRadius: vigiaRadius.sm }}>
+                    {errorToast}
                 </Alert>
             </Snackbar>
         </DashboardTemplate>

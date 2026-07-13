@@ -97,6 +97,7 @@ export default function PerfilesList() {
           rows={rows}
           searchPlaceholder="Buscar por persona..."
           searchKeys={(r) => `${r.personaNombre ?? ''} ${r.personaId}`}
+          onRowClick={(row) => navigate(`/admin/biometric/perfiles/${row.id}`)}
         />
       )}
     </Box>

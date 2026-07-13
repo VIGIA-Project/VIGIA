@@ -31,4 +31,12 @@ export class TypeOrmNotificacionRepository implements INotificacionRepository {
     });
     return orms.map((orm) => NotificacionMapper.toDomain(orm));
   }
+
+  async buscarTodas(limite: number): Promise<Notificacion[]> {
+    const orms = await this.repo.find({
+      order: { enviadaEn: 'DESC' },
+      take: limite,
+    });
+    return orms.map((orm) => NotificacionMapper.toDomain(orm));
+  }
 }

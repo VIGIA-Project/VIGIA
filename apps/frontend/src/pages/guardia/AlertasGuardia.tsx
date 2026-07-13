@@ -1,73 +1,83 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { LoadingSkeleton, ErrorState } from '../../components/atoms';
+import { useAlertasRecientes, useMarcarAlertaAtendida } from '../../hooks/useNotifications';
+import { Alerta, EstadoAtencionAlerta, SeveridadAlerta } from '../../services/types/admin.types';
 
-type Estado = 'GENERADA' | 'ENTREGADA' | 'ATENDIDA';
-type Severidad = 'ALTA' | 'MEDIA' | 'INFORMATIVA';
-
-interface Alerta {
-  id: number; titulo: string; descripcion: string; placa: string;
-  severidad: Severidad; estado: Estado; causa: string; tiempo: string;
-  accion?: 'ver_evento' | 'registrar_invitado' | 'ver_invitado' | null;
-}
-
-const ALERTAS_INICIAL: Alerta[] = [
-  { id:1, titulo:'Salida con conductor no reconocido', descripcion:'Vehículo PCB-1234 intentó salir con conductor no identificado. Posible retiro no autorizado.', placa:'PCB-1234', severidad:'ALTA', estado:'GENERADA', causa:'POSIBLE_SALIDA_NO_AUTORIZADA', tiempo:'hace 1 min', accion:'ver_evento' },
-  { id:2, titulo:'Vehículo no registrado solicita ingreso', descripcion:'ABC-5678 no existe en el registro institucional. Requiere registro de invitado o denegación.', placa:'ABC-5678', severidad:'MEDIA', estado:'ENTREGADA', causa:'VEHICULO_NO_REGISTRADO', tiempo:'hace 3 min', accion:'registrar_invitado' },
-  { id:3, titulo:'Invitado con permanencia expirada', descripcion:'DEF-0002 (Ana García) lleva 18 minutos sobre el tiempo autorizado.', placa:'DEF-0002', severidad:'MEDIA', estado:'GENERADA', causa:'PERMANENCIA_EXPIRADA', tiempo:'hace 18 min', accion:'ver_invitado' },
-  { id:4, titulo:'Servicio biométrico restablecido', descripcion:'Acceso Norte vuelve a operar con normalidad. El servicio estuvo caído 4 minutos.', placa:'—', severidad:'INFORMATIVA', estado:'ATENDIDA', causa:'SERVICIO_RESTABLECIDO', tiempo:'hace 20 min', accion:null },
-];
-
-const sevCfg: Record<Severidad,{border:string;bg:string;text:string;icon:string}> = {
+const sevCfg: Record<SeveridadAlerta,{border:string;bg:string;text:string;icon:string}> = {
   ALTA:        { border:'#C62828', bg:'#FEF2F2', text:'#991B1B', icon:'⚠' },
   MEDIA:       { border:'#F2851F', bg:'#FFF7ED', text:'#92400E', icon:'⚠' },
   INFORMATIVA: { border:'#0277BD', bg:'#E0F2FE', text:'#0277BD', icon:'ℹ' },
 };
-const estadoCfg: Record<Estado,{bg:string;text:string}> = {
+const estadoCfg: Record<EstadoAtencionAlerta,{bg:string;text:string}> = {
   GENERADA:  { bg:'#FEE2E2', text:'#C62828' },
   ENTREGADA: { bg:'#EDE7F6', text:'#4527A0' },
   ATENDIDA:  { bg:'#DCFCE7', text:'#166534' },
 };
-const accionLabel: Record<string,string> = {
-  ver_evento:'Ver evento', registrar_invitado:'Registrar invitado', ver_invitado:'Ver invitado',
+
+const CAUSA_LABEL: Record<string, string> = {
+  ACCESO_DENEGADO: 'Acceso denegado',
+  INVITADO_EXCEDIO_TIEMPO: 'Invitado con tiempo excedido',
+  PERMISO_POR_EXPIRAR: 'Permiso próximo a expirar',
+};
+
+const tituloDeAlerta = (a: Alerta) => CAUSA_LABEL[a.causaOrigen] ?? a.causaOrigen;
+
+const tiempoRelativo = (iso: string) => {
+  const minutos = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutos < 1) return 'ahora';
+  if (minutos < 60) return `hace ${minutos} min`;
+  return `hace ${Math.round(minutos / 60)} h`;
 };
 
 export const AlertasGuardiaPage: React.FC = () => {
   const navigate = useNavigate();
-  const [filtro, setFiltro] = useState<'Todas'|Severidad|'No atendidas'>('Todas');
-  const [alertas, setAlertas] = useState(ALERTAS_INICIAL);
+  const [filtro, setFiltro] = useState<'Todas'|SeveridadAlerta|'No atendidas'>('Todas');
 
-  const atender = (id: number) => setAlertas(prev => prev.map(a => a.id===id ? {...a, estado:'ATENDIDA' as Estado} : a));
-  const atenderTodas = () => setAlertas(prev => prev.map(a => ({...a, estado:'ATENDIDA' as Estado})));
-  const noAtendidas = alertas.filter(a => a.estado !== 'ATENDIDA').length;
+  const alertasQuery = useAlertasRecientes(30);
+  const atenderMutation = useMarcarAlertaAtendida();
 
-  const handleAccion = (alerta: Alerta) => {
-    switch(alerta.accion) {
-      case 'ver_evento':         navigate('/guardia/revision'); break;
-      case 'registrar_invitado': navigate('/guardia/registro-invitado', { state:{ placa:alerta.placa } }); break;
-      case 'ver_invitado':       navigate('/guardia/invitados'); break;
-    }
+  const alertas = alertasQuery.data ?? [];
+  const noAtendidas = alertas.filter(a => a.estadoAtencion !== 'ATENDIDA').length;
+
+  const atender = (id: string) => atenderMutation.mutate(id);
+  const atenderTodas = () => {
+    alertas.filter(a => a.estadoAtencion !== 'ATENDIDA').forEach(a => atenderMutation.mutate(a.alertaId));
   };
 
-  const visible = alertas.filter(a => {
+  const handleAccion = (alerta: Alerta) => {
+    if (alerta.causaOrigen === 'ACCESO_DENEGADO') navigate('/guardia/cola');
+    else if (alerta.causaOrigen === 'INVITADO_EXCEDIO_TIEMPO') navigate('/guardia');
+  };
+
+  const accionLabel = (causa: string): string | null => {
+    if (causa === 'ACCESO_DENEGADO') return 'Ver cola de eventos';
+    if (causa === 'INVITADO_EXCEDIO_TIEMPO') return 'Ver invitados';
+    return null;
+  };
+
+  const visible = useMemo(() => alertas.filter(a => {
     if (filtro === 'Todas') return true;
-    if (filtro === 'No atendidas') return a.estado !== 'ATENDIDA';
+    if (filtro === 'No atendidas') return a.estadoAtencion !== 'ATENDIDA';
     return a.severidad === filtro;
-  });
+  }), [alertas, filtro]);
 
   return (
     <DashboardTemplate rol="GUARD" pageTitle="Alertas del turno">
       <Box sx={{ fontFamily:'Inter,sans-serif' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:10 }}>
           <div>
-            <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:700, color:'#0F172A' }}>Alertas del turno <span style={{ fontSize:14, color:'#6B7280', fontWeight:400 }}>— Acceso Norte</span></div>
+            <div style={{ fontFamily:'"Exo 2",sans-serif', fontSize:20, fontWeight:700, color:'#0F172A' }}>Alertas del turno</div>
             <div style={{ fontSize:12, color:'#6B7280', marginTop:3 }}>{alertas.length} alertas · {noAtendidas} no atendidas</div>
           </div>
-          <button onClick={atenderTodas}
-            style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer', background:'#fff', color:'#0D5CCF', border:'1.5px solid #C7D2FE', fontFamily:'Inter,sans-serif' }}>
-            ✓ Marcar todas atendidas
-          </button>
+          {noAtendidas > 0 && (
+            <button onClick={atenderTodas}
+              style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer', background:'#fff', color:'#0D5CCF', border:'1.5px solid #C7D2FE', fontFamily:'Inter,sans-serif' }}>
+              ✓ Marcar todas atendidas
+            </button>
+          )}
         </div>
 
         <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap' }}>
@@ -83,6 +93,11 @@ export const AlertasGuardiaPage: React.FC = () => {
           ))}
         </div>
 
+        {alertasQuery.isLoading ? (
+          <LoadingSkeleton variant="cards" rows={4} />
+        ) : alertasQuery.isError ? (
+          <ErrorState mensaje="No se pudieron cargar las alertas." onRetry={() => alertasQuery.refetch()} />
+        ) : (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap:18, alignItems:'start' }}>
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {visible.length === 0 && (
@@ -92,35 +107,36 @@ export const AlertasGuardiaPage: React.FC = () => {
             )}
             {visible.map(a => {
               const sc = sevCfg[a.severidad];
-              const ec = estadoCfg[a.estado];
+              const ec = estadoCfg[a.estadoAtencion];
+              const accion = accionLabel(a.causaOrigen);
               return (
-                <div key={a.id} style={{ background:'#fff', borderRadius:14, border:`1px solid ${sc.bg}`, borderLeft:`4px solid ${sc.border}`, boxShadow:'0 2px 8px rgba(10,47,134,0.06)', overflow:'hidden', opacity: a.estado==='ATENDIDA'?0.75:1 }}>
+                <div key={a.alertaId} style={{ background:'#fff', borderRadius:14, border:`1px solid ${sc.bg}`, borderLeft:`4px solid ${sc.border}`, boxShadow:'0 2px 8px rgba(10,47,134,0.06)', overflow:'hidden', opacity: a.estadoAtencion==='ATENDIDA'?0.75:1 }}>
                   <div style={{ padding:'16px 20px', display:'flex', alignItems:'flex-start', gap:14 }}>
                     <div style={{ width:42, height:42, borderRadius:12, background:sc.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:20 }}>{sc.icon}</div>
                     <div style={{ flex:1 }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
                         <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:sc.bg, color:sc.text }}>{a.severidad}</span>
-                        <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:ec.bg, color:ec.text }}>{a.estado}</span>
+                        <span style={{ fontSize:10, fontWeight:600, padding:'3px 10px', borderRadius:20, background:ec.bg, color:ec.text }}>{a.estadoAtencion}</span>
                       </div>
-                      <div style={{ fontSize:14, fontWeight:600, color:'#1F2A44', marginBottom:4 }}>{a.titulo}</div>
-                      <div style={{ fontSize:13, color:'#555', marginBottom:8, lineHeight:1.5 }}>{a.descripcion}</div>
-                      <div style={{ fontSize:11, color:'#94A3B8' }}>Causa: {a.causa} · {a.tiempo}</div>
-                      {a.estado !== 'ATENDIDA' && (
+                      <div style={{ fontSize:14, fontWeight:600, color:'#1F2A44', marginBottom:4 }}>{tituloDeAlerta(a)}</div>
+                      <div style={{ fontSize:13, color:'#555', marginBottom:8, lineHeight:1.5 }}>{a.mensajeResumen}</div>
+                      <div style={{ fontSize:11, color:'#94A3B8' }}>Causa: {a.causaOrigen} · {tiempoRelativo(a.generadaEn)}</div>
+                      {a.estadoAtencion !== 'ATENDIDA' && (
                         <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap' }}>
-                          {a.accion && (
+                          {accion && (
                             <button onClick={() => handleAccion(a)}
                               style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'#0D5CCF', color:'#fff', border:'none', fontFamily:'Inter,sans-serif' }}>
-                              {accionLabel[a.accion]}
+                              {accion}
                             </button>
                           )}
-                          <button onClick={() => atender(a.id)}
+                          <button onClick={() => atender(a.alertaId)}
                             style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', background:'#fff', color:'#555', border:'1px solid #E2E8F0', fontFamily:'Inter,sans-serif' }}>
                             Marcar atendida
                           </button>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize:10, color:'#94A3B8', whiteSpace:'nowrap' }}>{a.tiempo}</div>
+                    <div style={{ fontSize:10, color:'#94A3B8', whiteSpace:'nowrap' }}>{tiempoRelativo(a.generadaEn)}</div>
                   </div>
                 </div>
               );
@@ -131,7 +147,7 @@ export const AlertasGuardiaPage: React.FC = () => {
             <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E2E8F0', overflow:'hidden' }}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid #F1F5F9', fontFamily:'"Exo 2",sans-serif', fontSize:13, fontWeight:600, color:'#0A2F86' }}>Resumen</div>
               <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:10 }}>
-                {(['ALTA','MEDIA','INFORMATIVA'] as Severidad[]).map(s=>(
+                {(['ALTA','MEDIA','INFORMATIVA'] as SeveridadAlerta[]).map(s=>(
                   <div key={s} style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
                     <span style={{ color:'#6B7280' }}>{s}</span>
                     <span style={{ fontWeight:700, color:sevCfg[s].border }}>{alertas.filter(a=>a.severidad===s).length}</span>
@@ -155,7 +171,7 @@ export const AlertasGuardiaPage: React.FC = () => {
                   style={{ padding:'9px 14px', borderRadius:8, background:'#0D5CCF', color:'#fff', fontSize:12, fontWeight:600, border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
                   ⏱ Ver cola de eventos
                 </button>
-                <button onClick={() => navigate('/guardia/invitados')}
+                <button onClick={() => navigate('/guardia')}
                   style={{ padding:'9px 14px', borderRadius:8, background:'#fff', color:'#374151', fontSize:12, fontWeight:600, border:'1.5px solid #E2E8F0', cursor:'pointer', fontFamily:'Inter,sans-serif', textAlign:'left' }}>
                   👤 Ver invitados
                 </button>
@@ -167,6 +183,7 @@ export const AlertasGuardiaPage: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </Box>
     </DashboardTemplate>
   );

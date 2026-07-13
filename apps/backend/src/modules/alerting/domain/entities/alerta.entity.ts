@@ -1,3 +1,4 @@
+import { BusinessRuleViolationException } from '@core/exceptions/domain-exception';
 import { SeveridadAlerta } from '../value-objects/severidad-alerta.vo';
 import { EstadoAtencionAlerta } from '../value-objects/estado-atencion-alerta.vo';
 
@@ -49,6 +50,17 @@ export class Alerta {
 
   get atendidaEn(): Date | undefined {
     return this._atendidaEn;
+  }
+
+  marcarAtendida(): void {
+    if (this._estadoAtencion === EstadoAtencionAlerta.ATENDIDA) {
+      throw new BusinessRuleViolationException(
+        'Alerta.marcarAtendida',
+        'La alerta ya fue atendida',
+      );
+    }
+    this._estadoAtencion = EstadoAtencionAlerta.ATENDIDA;
+    this._atendidaEn = new Date();
   }
 
   toJSON() {

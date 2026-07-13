@@ -6,9 +6,11 @@ import {
     Delete,
     Body,
     Param,
+    Request,
     UseGuards,
     HttpCode,
     HttpStatus,
+    ForbiddenException,
 } from '@nestjs/common';
 import { VehiculoUseCases } from '../application/use-cases/vehiculo.use-cases';
 import { CrearVehiculoDto, ActualizarVehiculoDto } from '../application/dtos/vehiculo.dto';
@@ -23,9 +25,12 @@ export class VehiculoController {
     constructor(private readonly vehiculoUseCases: VehiculoUseCases) {}
 
     @Post()
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     @HttpCode(HttpStatus.CREATED)
-    async crear(@Body() dto: CrearVehiculoDto) {
+    async crear(@Request() req: any, @Body() dto: CrearVehiculoDto) {
+        if (req.user?.role === UserRole.OWNER && dto.propietarioPersonaId !== req.user?.personaId) {
+            throw new ForbiddenException('No puede registrar un vehículo para otro propietario');
+        }
         return this.vehiculoUseCases.crear(dto);
     }
 
@@ -60,11 +65,18 @@ export class VehiculoController {
     }
 
     @Patch(':id')
-    @Roles(UserRole.ADMIN)
+    @Roles(UserRole.ADMIN, UserRole.OWNER)
     async actualizar(
+        @Request() req: any,
         @Param('id') id: string,
         @Body() dto: ActualizarVehiculoDto,
     ) {
+        if (req.user?.role === UserRole.OWNER) {
+            const vehiculo = await this.vehiculoUseCases.buscarPorId(id);
+            if (vehiculo.propietarioPersonaId !== req.user?.personaId) {
+                throw new ForbiddenException('No puede modificar un vehículo ajeno');
+            }
+        }
         return this.vehiculoUseCases.actualizar(id, dto);
     }
 

@@ -1,5 +1,12 @@
 // src/config/propietario-vehiculo-detalle.config.ts
-// Mock data y contenido de "Detalle de vehículo" — Dashboard PROPIETARIO v1.2 §12
+// Contenido y "view models" de "Detalle de vehículo" — Dashboard PROPIETARIO v1.2 §12.
+// Los datos reales vienen de Authorization/Access Control/Registry (ver mapXAViewModel).
+
+import { format } from 'date-fns';
+import { enmascararCedula } from './propietario-personas.config';
+import { MiembroGrupoFamiliar, PermisoTemporal as PermisoTemporalApi, PaseAccesoRapido, EstadoAutorizacion } from '../services/types/authorization.types';
+import { Persona } from '../services/types/registry.types';
+import { EventoAcceso } from '../services/types/guard.types';
 
 export type TabKey = 'resumen' | 'personas' | 'permisos' | 'pases' | 'actividad';
 
@@ -30,11 +37,13 @@ export interface PersonaAutorizada {
 
 export const FAMILIA_MAX_MIEMBROS = 5;
 
-export const MOCK_PERSONAS_AUTORIZADAS: PersonaAutorizada[] = [
-  { id: 'per-1', nombre: 'Andrea Torres', relacion: 'Cónyuge', biometria: 'COMPLETADA' },
-  { id: 'per-2', nombre: 'Luis Pérez', relacion: 'Hijo', biometria: 'PENDIENTE' },
-  { id: 'per-3', nombre: 'Carlos Ruiz', relacion: 'Chofer', biometria: 'COMPLETADA' },
-];
+/** Combina un MiembroGrupoFamiliar (Authorization) con su Persona (Registry). */
+export const mapMiembroAPersonaAutorizada = (m: MiembroGrupoFamiliar, persona?: Persona): PersonaAutorizada => ({
+  id: m.id,
+  nombre: persona?.nombreCompleto ?? 'Cargando…',
+  relacion: m.relacion,
+  biometria: persona?.estadoBiometrico === 'COMPLETO' ? 'COMPLETADA' : 'PENDIENTE',
+});
 
 export const PERSONAS_TAB_COPY = {
   noticeText: 'Las personas de tu grupo familiar tienen acceso a todos tus vehículos activos. Para gestionar tu grupo, ve a Personas autorizadas.',
@@ -63,11 +72,22 @@ export interface PermisoDetalle {
 // "Proveedor" / "invitado externo" corresponden al flujo del GUARDIA, no aplican aquí.
 export const MOTIVOS_PROPIETARIO_OPTIONS = ['Visita familiar', 'Préstamo temporal', 'Trámite personal', 'Emergencia', 'Otro'] as const;
 
-export const MOCK_PERMISOS_DETALLE: PermisoDetalle[] = [
-  { id: 'perm-1', persona: 'María León', cedulaParcial: '••••4521', vigenciaLabel: '08 Jul 08:00 → 08 Jul 18:00', estado: 'ACTIVO', motivo: 'Visita familiar' },
-  { id: 'perm-2', persona: 'Jorge Sánchez', cedulaParcial: '••••7734', vigenciaLabel: '05 Jul → 07 Jul', estado: 'EXPIRADO', motivo: 'Préstamo temporal' },
-  { id: 'perm-3', persona: 'Ana Mora', cedulaParcial: '••••1190', vigenciaLabel: '01 Jul → 03 Jul', estado: 'EXPIRADO', motivo: 'Trámite personal' },
-];
+const PERMISO_ESTADO_MAP: Record<EstadoAutorizacion, PermisoEstado> = {
+  ACTIVA: 'ACTIVO',
+  EXPIRADA: 'EXPIRADO',
+  REVOCADA: 'REVOCADO',
+  INACTIVA: 'EXPIRADO',
+};
+
+/** Combina un PermisoTemporal (Authorization) con su Persona (Registry). */
+export const mapPermisoAPermisoDetalle = (p: PermisoTemporalApi, persona?: Persona): PermisoDetalle => ({
+  id: p.id,
+  persona: persona?.nombreCompleto ?? 'Cargando…',
+  cedulaParcial: persona ? enmascararCedula(persona.identificacionNumero) : '—',
+  vigenciaLabel: `${format(new Date(p.vigenciaInicio), 'dd MMM HH:mm')} → ${format(new Date(p.vigenciaFin), 'dd MMM HH:mm')}`,
+  estado: PERMISO_ESTADO_MAP[p.estado],
+  motivo: p.motivo,
+});
 
 export const PERMISOS_TAB_COPY = {
   filters: { activos: 'Activos', expirados: 'Expirados', revocados: 'Revocados' },
@@ -91,11 +111,23 @@ export interface PaseDetalle {
   usoUnico?: boolean;
 }
 
-export const MOCK_PASES_DETALLE: PaseDetalle[] = [
-  { id: 'pase-1', codigo: 'A7K3M2', estado: 'ACTIVO', visitante: 'Andrea Torres', expiraLabel: '45 min', usoUnico: true },
-  { id: 'pase-2', codigo: null, estado: 'CONSUMIDO', visitante: 'Carlos Ruiz', punto: 'Garita Norte', fecha: 'hoy 09:10' },
-  { id: 'pase-3', codigo: null, estado: 'EXPIRADO', visitante: 'María León', fecha: 'ayer 14:00' },
-];
+/** Combina un PaseAccesoRapido (Authorization) — el código en texto plano solo existe justo tras generarlo. */
+export const mapPaseAPaseDetalle = (p: PaseAccesoRapido): PaseDetalle => {
+  const minutosRestantes = Math.max(0, Math.round((new Date(p.vigenciaFin).getTime() - Date.now()) / 60000));
+  return {
+    id: p.id,
+    codigo: null,
+    estado: p.estado,
+    visitante: p.nombreVisitante,
+    expiraLabel: p.estado === 'ACTIVO' ? `${minutosRestantes} min` : undefined,
+    fecha: p.fechaConsumo
+      ? format(new Date(p.fechaConsumo), 'dd MMM HH:mm')
+      : p.estado !== 'ACTIVO'
+        ? format(new Date(p.vigenciaFin), 'dd MMM HH:mm')
+        : undefined,
+    usoUnico: true,
+  };
+};
 
 export const PASES_TAB_COPY = {
   createCta: 'Generar pase rápido',
@@ -123,15 +155,38 @@ export interface EventoDetalle {
   decision: string;
 }
 
-export const MOCK_EVENTOS_DETALLE: EventoDetalle[] = [
-  { id: 'ev-1', dia: 'Hoy', hora: '08:05', tipo: 'ENTRADA', resultado: 'PERMITIDO', punto: 'Garita Norte', persona: 'Andrea Torres', permisoUsado: 'Acceso propietario', decision: 'Validación biométrica exitosa, acceso concedido automáticamente.' },
-  { id: 'ev-2', dia: 'Hoy', hora: '07:42', tipo: 'ENTRADA', resultado: 'REVISION', punto: 'Garita Sur', persona: 'Luis Pérez', permisoUsado: 'Permiso temporal · Visita familiar', decision: 'Coincidencia biométrica parcial, se envió a revisión manual del guardia.' },
-  { id: 'ev-3', dia: 'Ayer', hora: '18:10', tipo: 'SALIDA', resultado: 'PERMITIDO', punto: 'Garita Norte', persona: 'Propietario', decision: 'Salida registrada sin incidentes.' },
-  { id: 'ev-4', dia: 'Ayer', hora: '13:22', tipo: 'ENTRADA', resultado: 'DENEGADO', punto: 'Garita Sur', persona: 'Persona no identificada', decision: 'No se encontró autorización vigente para este vehículo.' },
-  { id: 'ev-5', dia: 'Ayer', hora: '09:05', tipo: 'ENTRADA', resultado: 'PERMITIDO', punto: 'Garita Norte', persona: 'Carlos Ruiz', permisoUsado: 'Acceso propietario', decision: 'Validación biométrica exitosa, acceso concedido automáticamente.' },
-  { id: 'ev-6', dia: '05 Jul', hora: '17:50', tipo: 'SALIDA', resultado: 'PERMITIDO', punto: 'Garita Sur', persona: 'Andrea Torres', decision: 'Salida registrada sin incidentes.' },
-  { id: 'ev-7', dia: '05 Jul', hora: '08:15', tipo: 'ENTRADA', resultado: 'PERMITIDO', punto: 'Garita Norte', persona: 'Andrea Torres', permisoUsado: 'Acceso propietario', decision: 'Validación biométrica exitosa, acceso concedido automáticamente.' },
-];
+const diaLabel = (iso: string): string => {
+  const fecha = new Date(iso);
+  const hoy = new Date();
+  const ayer = new Date(hoy);
+  ayer.setDate(hoy.getDate() - 1);
+  const esMismoDia = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (esMismoDia(fecha, hoy)) return 'Hoy';
+  if (esMismoDia(fecha, ayer)) return 'Ayer';
+  return format(fecha, 'dd MMM');
+};
+
+const ORIGEN_LABEL: Record<string, string> = {
+  AUTOMATICA: 'Automático',
+  MANUAL: 'Registro manual (garita)',
+  CONTINGENCIA: 'Contingencia',
+  INVITADO: 'Invitado',
+};
+
+/** Combina un EventoAcceso (Access Control). El dominio no registra un nombre de
+ * persona por evento (solo `personaDetectadaId`), así que se muestra el motivo real. */
+export const mapEventoAEventoDetalle = (e: EventoAcceso): EventoDetalle => ({
+  id: e.eventoAccesoId,
+  dia: diaLabel(e.capturadoEn),
+  hora: format(new Date(e.capturadoEn), 'HH:mm'),
+  tipo: e.tipoMovimiento,
+  resultado: e.decisionOperativa === 'DENIED' ? 'DENEGADO' : e.decisionOperativa === 'PENDING_VERIFY' ? 'REVISION' : 'PERMITIDO',
+  punto: ORIGEN_LABEL[e.origenResolucion] ?? e.origenResolucion,
+  persona: e.motivoDetalle || e.motivoCodigo || '—',
+  permisoUsado: e.motivoCodigo ?? undefined,
+  decision: e.motivoDetalle || e.motivoCodigo || 'Sin detalle adicional.',
+});
 
 export const ACTIVIDAD_TAB_COPY = {
   rangeLabel: 'Últimos 7 días',
@@ -158,7 +213,6 @@ export const RESUMEN_TAB_COPY = {
   kpiPermisos: 'Permisos vigentes',
   kpiPersonas: 'Personas autorizadas',
   kpiUltimoEvento: 'Último evento',
-  ultimoEventoLabel: 'Acceso permitido · Garita Norte · hoy 08:05',
   accionesTitle: 'Acciones sugeridas',
   accionCrearPermiso: 'Crear permiso temporal',
   accionGenerarPase: 'Generar pase rápido',

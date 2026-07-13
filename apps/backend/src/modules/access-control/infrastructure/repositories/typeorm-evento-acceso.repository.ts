@@ -32,6 +32,15 @@ export class TypeOrmEventoAccesoRepository implements IEventoAccesoRepository {
     return orms.map((orm) => EventoAccesoMapper.toDomain(orm));
   }
 
+  async buscarPorVehiculo(vehiculoId: string, limite: number): Promise<EventoAcceso[]> {
+    const orms = await this.repo.find({
+      where: { vehiculoId },
+      order: { capturadoEn: 'DESC' },
+      take: limite,
+    });
+    return orms.map((orm) => EventoAccesoMapper.toDomain(orm));
+  }
+
   async contarPorRangoFecha(desde: Date, hasta: Date): Promise<number> {
     return this.repo.count({
       where: { capturadoEn: Between(desde, hasta) },

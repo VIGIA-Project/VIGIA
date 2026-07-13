@@ -1,5 +1,5 @@
 // src/components/organisms/propietario/VehiculoResumenTab.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,10 @@ import { staggerContainer } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
 import { MiniKpiCard, EventoTimeline } from '../../molecules';
 import { PropietarioVehiculo } from '../../../config/propietario-vehiculos.config';
-import { RESUMEN_TAB_COPY, ESTADO_VEHICULO_STYLES, MOCK_EVENTOS_DETALLE, FAMILIA_MAX_MIEMBROS, TabKey } from '../../../config/propietario-vehiculo-detalle.config';
+import { RESUMEN_TAB_COPY, ESTADO_VEHICULO_STYLES, mapEventoAEventoDetalle, FAMILIA_MAX_MIEMBROS, TabKey } from '../../../config/propietario-vehiculo-detalle.config';
+import { useAuth } from '../../../context';
+import { useMiembrosGrupoFamiliar, usePermisosVigentesPorVehiculo } from '../../../hooks/useAuthorization';
+import { useEventosPorVehiculo } from '../../../hooks/useGuard';
 
 export interface VehiculoResumenTabProps {
   vehiculo: PropietarioVehiculo;
@@ -24,7 +27,20 @@ export interface VehiculoResumenTabProps {
 export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo, onNavigateTab }) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  const { user } = useAuth();
   const estadoStyle = ESTADO_VEHICULO_STYLES[vehiculo.estado];
+
+  const permisosQuery = usePermisosVigentesPorVehiculo(vehiculo.vehiculoId);
+  const permisosActivos = (permisosQuery.data ?? []).filter((p) => p.estado === 'ACTIVA').length;
+
+  const familiaQuery = useMiembrosGrupoFamiliar(user?.personaId);
+  const personasAsignadas = (familiaQuery.data ?? []).filter((a) => a.estado === 'ACTIVA').length;
+
+  const eventosQuery = useEventosPorVehiculo(vehiculo.vehiculoId, 3);
+  const eventosRecientes = useMemo(
+    () => (eventosQuery.data ?? []).map(mapEventoAEventoDetalle),
+    [eventosQuery.data]
+  );
 
   const acciones = [
     {
@@ -70,14 +86,14 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
 
           <MiniKpiCard icon={<ShieldOutlinedIcon sx={{ fontSize: 18 }} />} label={RESUMEN_TAB_COPY.kpiPermisos}>
             <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.5rem', color: '#0F172A' }}>
-              {vehiculo.permisosActivos}
+              {permisosActivos}
             </Typography>
           </MiniKpiCard>
 
           <MiniKpiCard icon={<GroupOutlinedIcon sx={{ fontSize: 18 }} />} label={RESUMEN_TAB_COPY.kpiPersonas}>
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '1rem', color: '#0F172A' }}>
               <Box component="span" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.5rem' }}>
-                {vehiculo.personasAsignadas}
+                {personasAsignadas}
               </Box>{' '}
               /{FAMILIA_MAX_MIEMBROS} cupos
             </Typography>
@@ -85,7 +101,9 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
 
           <MiniKpiCard icon={<AccessTimeOutlinedIcon sx={{ fontSize: 18 }} />} label={RESUMEN_TAB_COPY.kpiUltimoEvento}>
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: vigiaColors.textBody, lineHeight: 1.4 }}>
-              {RESUMEN_TAB_COPY.ultimoEventoLabel}
+              {eventosRecientes[0]
+                ? `${eventosRecientes[0].resultado === 'PERMITIDO' ? 'Acceso permitido' : eventosRecientes[0].resultado === 'DENEGADO' ? 'Acceso denegado' : 'Revisión manual'} · ${eventosRecientes[0].dia} ${eventosRecientes[0].hora}`
+                : 'Sin eventos registrados'}
             </Typography>
           </MiniKpiCard>
         </Box>
@@ -140,7 +158,13 @@ export const VehiculoResumenTab: React.FC<VehiculoResumenTabProps> = ({ vehiculo
             {RESUMEN_TAB_COPY.verHistorialCompleto}
           </Box>
         </Box>
-        <EventoTimeline eventos={MOCK_EVENTOS_DETALLE.slice(0, 3)} />
+        {eventosRecientes.length === 0 ? (
+          <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.85rem', color: vigiaColors.textSecondary, py: 2, textAlign: 'center' }}>
+            Sin actividad reciente registrada.
+          </Typography>
+        ) : (
+          <EventoTimeline eventos={eventosRecientes} />
+        )}
       </Box>
     </Box>
   );

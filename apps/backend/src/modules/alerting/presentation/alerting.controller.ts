@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Query, Request, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
@@ -9,16 +9,6 @@ import { AlertingService } from '../application/alerting.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AlertingController {
   constructor(private readonly alertingService: AlertingService) {}
-
-  private personaIdDesdeJwt(req: any): string {
-    const personaId = req.user?.personaId;
-    if (!personaId) {
-      throw new BadRequestException(
-        'El usuario autenticado no tiene una persona asociada (personaId ausente en el token)',
-      );
-    }
-    return personaId;
-  }
 
   // ─── Alertas ────────────────────────────────────────────────────────────
 
@@ -37,14 +27,39 @@ export class AlertingController {
     return { count };
   }
 
+  @Patch('alertas/:id/atender')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async marcarAlertaAtendida(@Param('id') id: string) {
+    const alerta = await this.alertingService.marcarAtendida(id);
+    return alerta.toJSON();
+  }
+
+  @Get('alertas/:id')
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
+  async buscarAlertaPorId(@Param('id') id: string) {
+    const alerta = await this.alertingService.buscarPorId(id);
+    return alerta.toJSON();
+  }
+
   // ─── Notificaciones ─────────────────────────────────────────────────────
+
+  @Get('notificaciones/todas')
+  @Roles(UserRole.ADMIN)
+  async listarTodasLasNotificaciones(@Query('limite') limite?: string) {
+    const cantidad = limite ? parseInt(limite, 10) : 50;
+    const notificaciones = await this.alertingService.listarTodas(cantidad);
+    return notificaciones.map((n) => n.toJSON());
+  }
 
   @Get('notificaciones')
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarNotificaciones(@Request() req: any) {
-    const notificaciones = await this.alertingService.listarPorDestinatario(
-      this.personaIdDesdeJwt(req),
-    );
+    const personaId = req.user?.personaId;
+    if (!personaId) {
+      return [];
+    }
+    const notificaciones =
+      await this.alertingService.listarPorDestinatario(personaId);
     return notificaciones.map((n) => n.toJSON());
   }
 

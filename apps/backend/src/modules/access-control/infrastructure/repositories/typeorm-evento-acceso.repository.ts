@@ -47,6 +47,12 @@ export class TypeOrmEventoAccesoRepository implements IEventoAccesoRepository {
     });
   }
 
+  async contarPorRangoFechaYTipo(desde: Date, hasta: Date, tipoMovimiento: string): Promise<number> {
+    return this.repo.count({
+      where: { capturadoEn: Between(desde, hasta), tipoMovimiento },
+    });
+  }
+
   async buscarInvitadosActivos(): Promise<EventoAcceso[]> {
     const ahora = new Date();
     const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());

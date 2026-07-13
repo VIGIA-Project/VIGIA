@@ -55,6 +55,12 @@ export class AccessControlController {
     return { count };
   }
 
+  @Get('eventos/count-por-tipo')
+  @Roles(UserRole.ADMIN, UserRole.GUARD)
+  async contarEventosHoyPorTipo() {
+    return this.accessControlService.contarHoyPorTipo();
+  }
+
   @Get('eventos/:id')
   @Roles(UserRole.ADMIN, UserRole.GUARD)
   async buscarEventoPorId(@Param('id') id: string) {

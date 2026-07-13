@@ -79,6 +79,17 @@ export class AccessControlService {
     return this.eventoAccesoRepository.contarPorRangoFecha(inicioDia, finDia);
   }
 
+  async contarHoyPorTipo(): Promise<{ entradas: number; salidas: number }> {
+    const ahora = new Date();
+    const inicioDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const finDia = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1);
+    const [entradas, salidas] = await Promise.all([
+      this.eventoAccesoRepository.contarPorRangoFechaYTipo(inicioDia, finDia, 'ENTRADA'),
+      this.eventoAccesoRepository.contarPorRangoFechaYTipo(inicioDia, finDia, 'SALIDA'),
+    ]);
+    return { entradas, salidas };
+  }
+
   async listarInvitadosActivos(): Promise<InvitadoActivoDto[]> {
     const eventos = await this.eventoAccesoRepository.buscarInvitadosActivos();
     const invitados = eventos.map((evento) => this.aInvitadoActivoDto(evento));

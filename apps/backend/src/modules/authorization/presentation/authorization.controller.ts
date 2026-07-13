@@ -162,6 +162,12 @@ export class AuthorizationController {
     return this.authorizationService.listarPorPersona(personaId);
   }
 
+  @Get('temporales/propietario/:propietarioId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async listarTemporalesPorPropietario(@Param('propietarioId') propietarioId: string) {
+    return this.authorizationService.listarTemporalesPorPropietario(propietarioId);
+  }
+
   @Patch('temporales/:id/revocar')
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   async revocarPermisoTemporal(@Param('id') id: string) {

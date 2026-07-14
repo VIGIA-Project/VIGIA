@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
@@ -28,6 +29,24 @@ export class BiometricController {
   async crearPerfil(@Param('personaId') personaId: string) {
     const perfil = await this.biometricService.crearPerfil(personaId);
     return perfil.toJSON();
+  }
+
+  @Post('persona/:personaId/enroll')
+  @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
+  @UseInterceptors(FilesInterceptor('archivos', 3))
+  async enrollBiometria(
+    @Param('personaId') personaId: string,
+    @UploadedFiles() archivos: Express.Multer.File[],
+  ) {
+    if (!archivos || archivos.length !== 3) {
+      throw new BadRequestException('Se requieren exactamente 3 imágenes biométricas (Frontal, Izquierdo, Derecho)');
+    }
+    
+    // Convert to buffers
+    const buffers = archivos.map(a => a.buffer);
+    
+    const result = await this.biometricService.enrolarBiometria(personaId, buffers);
+    return result;
   }
 
   @Get('persona/:personaId')

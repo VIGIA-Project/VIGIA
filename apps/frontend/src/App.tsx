@@ -27,6 +27,9 @@ import {
 import HomePage from "./pages/Home";
 import { LoginPage, CambiarPasswordPage } from "./pages/auth";
 
+// ─── Simulador Edge ───────────────────────────────────────────────────────
+import { SimuladorCamaraEdge } from "./pages/simulador/SimuladorCamaraEdge";
+
 // ─── Páginas: Propietario ─────────────────────────────────────────────────
 import BiometricOnboardingPage from "./pages/propietario/onboarding/BiometricOnboardingPage";
 import VehicleOnboardingPage from "./pages/propietario/onboarding/VehicleOnboardingPage";
@@ -114,6 +117,16 @@ const AnimatedRoutes: React.FC = () => {
                     <LoginPage />
                   </PageTransition>
                 </PublicRoute>
+              }
+            />
+
+            {/* ═══ Simulador Edge Device ═══ */}
+            <Route
+              path="/camara-ip"
+              element={
+                <PageTransition>
+                  <SimuladorCamaraEdge />
+                </PageTransition>
               }
             />
 

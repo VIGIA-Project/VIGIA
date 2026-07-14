@@ -7,10 +7,12 @@ import { EventoAccesoOrmEntity } from '../infrastructure/entities/evento-acceso.
 import { EVENTO_ACCESO_REPOSITORY } from '@shared/constants/injection-tokens';
 import { RegistryModule } from '../../registry/presentation/registry.module';
 import { AlertingModule } from '../../alerting/presentation/alerting.module';
+import { BiometricModule } from '../../biometric/presentation/biometric.module';
+import { EdgeDeviceController } from './edge-device.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EventoAccesoOrmEntity]), RegistryModule, AlertingModule],
-  controllers: [AccessControlController],
+  imports: [TypeOrmModule.forFeature([EventoAccesoOrmEntity]), RegistryModule, AlertingModule, BiometricModule],
+  controllers: [AccessControlController, EdgeDeviceController],
   providers: [
     AccessControlService,
     {

@@ -11,6 +11,7 @@ import Select from "@mui/material/Select";
 import Alert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
+import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stepper from "@mui/material/Stepper";
@@ -32,6 +33,8 @@ import KeyIcon from "@mui/icons-material/Key";
 import Avatar from "@mui/material/Avatar";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import SecurityIcon from "@mui/icons-material/Security";
+import { useCrearPersonaAdmin, useCrearUsuarioAdmin } from "../../../hooks/useAdmin";
+import { UserRole } from "../../../services/types/admin.types";
 
 interface RegistrarUnificadoModalProps {
   open: boolean;
@@ -62,6 +65,10 @@ export default function RegistrarUnificadoModal({
   const [tipoRegistro, setTipoRegistro] = useState<"USUARIO" | "GUARDIA">(
     "USUARIO",
   );
+  const crearPersona = useCrearPersonaAdmin();
+  const crearUsuario = useCrearUsuarioAdmin();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     id: undefined as string | undefined,
@@ -108,13 +115,43 @@ export default function RegistrarUnificadoModal({
     setForm((f) => ({ ...f, password: generarPasswordTemporal() }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (activeStep < steps.length - 1) {
       setActiveStep((prev) => prev + 1);
     } else {
-      onSuccess({ tipoRegistro, ...form });
-      onClose();
-      setTimeout(() => setActiveStep(0), 300);
+      setError(null);
+      setIsSubmitting(true);
+      try {
+        let tipoDoc = form.tipoId.toUpperCase();
+        if (tipoDoc === "CÉDULA") tipoDoc = "CEDULA";
+        
+        const nuevaPersona = await crearPersona.mutateAsync({
+          identificacionTipo: tipoDoc as any,
+          identificacionNumero: form.identificacion,
+          nombres: form.nombres,
+          apellidos: form.apellidos,
+          correoInstitucional: form.correo,
+          telefonoContacto: form.telefono,
+        });
+
+        let roleToAssign: UserRole = "OWNER";
+        if (tipoRegistro === "GUARDIA") roleToAssign = "GUARD";
+        else if (form.rol === "Administrador") roleToAssign = "ADMIN";
+
+        await crearUsuario.mutateAsync({
+          email: form.correo,
+          role: roleToAssign,
+          temporaryPassword: form.password,
+          personaId: nuevaPersona.personaId,
+        });
+
+        onSuccess({ tipoRegistro, ...form });
+        handleClose();
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Ocurrió un error al registrar en el sistema.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -372,6 +409,11 @@ export default function RegistrarUnificadoModal({
           </Box>
 
           <Box sx={{ flex: 1, p: 4, pt: 2 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
             {activeStep === 0 && (
               <Box sx={{ animation: "fadeIn 0.4s ease-in-out" }}>
                 <Typography
@@ -829,10 +871,13 @@ export default function RegistrarUnificadoModal({
               </Button>
               <Button
                 onClick={handleNext}
+                disabled={isSubmitting}
                 variant="contained"
                 color={isUsuario ? "primary" : "warning"}
                 endIcon={
-                  activeStep === steps.length - 1 ? (
+                  isSubmitting ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : activeStep === steps.length - 1 ? (
                     <SaveIcon />
                   ) : (
                     <NavigateNextIcon />
@@ -845,7 +890,7 @@ export default function RegistrarUnificadoModal({
                 }}
               >
                 {activeStep === steps.length - 1
-                  ? "Finalizar Registro"
+                  ? isSubmitting ? "Guardando..." : "Finalizar Registro"
                   : "Siguiente"}
               </Button>
             </Box>

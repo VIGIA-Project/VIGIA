@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -33,6 +34,8 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import RegistrarUnificadoModal from './registry/RegistrarUnificadoModal';
 import {
   usePersonasCountAdmin,
   useVehiculosCountAdmin,
@@ -71,6 +74,7 @@ const decisionIcon = (decision: string) => {
 };
 
 export default function Dashboard() {
+  const [modalRegistroOpen, setModalRegistroOpen] = useState(false);
   const personasCount = usePersonasCountAdmin();
   const vehiculosCount = useVehiculosCountAdmin();
   const temporalesCount = useTemporalesCountAdmin();
@@ -107,6 +111,14 @@ export default function Dashboard() {
             Resumen general del sistema VIGIA · {new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </Typography>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<PersonAddAlt1Icon />}
+          onClick={() => setModalRegistroOpen(true)}
+          sx={{ borderRadius: 2, px: 3 }}
+        >
+          Nuevo Registro Unificado
+        </Button>
       </Box>
 
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
@@ -156,6 +168,8 @@ export default function Dashboard() {
                           {severityIcon(alerta.severidad)}
                         </ListItemIcon>
                         <ListItemText
+                          primaryTypographyProps={{ component: 'div' }}
+                          secondaryTypographyProps={{ component: 'div' }}
                           primary={
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
                               <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', flex: 1 }}>
@@ -291,6 +305,8 @@ export default function Dashboard() {
                           </Avatar>
                         </ListItemIcon>
                         <ListItemText
+                          primaryTypographyProps={{ component: 'div' }}
+                          secondaryTypographyProps={{ component: 'div' }}
                           primary={<Typography variant="body2" sx={{ fontWeight: 600 }}>{persona.nombreCompleto}</Typography>}
                           secondary={
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -341,6 +357,8 @@ export default function Dashboard() {
                           <ScheduleIcon sx={{ color: 'warning.main' }} />
                         </ListItemIcon>
                         <ListItemText
+                          primaryTypographyProps={{ component: 'div' }}
+                          secondaryTypographyProps={{ component: 'div' }}
                           primary={
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -367,6 +385,15 @@ export default function Dashboard() {
           </Card>
         </Grid>
       </Grid>
+
+      <RegistrarUnificadoModal
+        open={modalRegistroOpen}
+        onClose={() => setModalRegistroOpen(false)}
+        onSuccess={() => {
+          personasCount.refetch();
+          // Here we could also show a success toast if we had a toast context
+        }}
+      />
     </Box>
   );
 }

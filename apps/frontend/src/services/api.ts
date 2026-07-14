@@ -130,4 +130,13 @@ export const apiDeleteData = async <T>(url: string): Promise<T> => {
   return envelope.data;
 };
 
+export const apiPostFormData = async <T>(url: string, formData: FormData): Promise<T> => {
+  const response = await apiClient.post<ApiEnvelope<T>>(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.data;
+};
+
 export default apiClient;

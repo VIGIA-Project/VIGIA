@@ -8,7 +8,9 @@ import { DecisionOperativa } from '../domain/value-objects/decision-operativa.vo
 import { RegistrarEventoManualDto } from './dtos/registrar-evento-manual.dto';
 import { InvitadoActivoDto } from './dtos/invitado-activo.dto';
 import { AlertingService } from '../../alerting/application/alerting.service';
-
+import { REGISTRY_PORT, IRegistryPort } from '../../registry/application/ports/registry.port';
+import { BiometricService } from '../../biometric/application/biometric.service';
+import { TipoMovimiento } from '../domain/value-objects/tipo-movimiento.vo';
 /**
  * Servicio de aplicación — orquesta los casos de uso del BC Access Control.
  * La resolución automática (OCR + biometría) todavía no está conectada;
@@ -22,6 +24,9 @@ export class AccessControlService {
     @Inject(EVENTO_ACCESO_REPOSITORY)
     private readonly eventoAccesoRepository: IEventoAccesoRepository,
     private readonly alertingService: AlertingService,
+    @Inject(REGISTRY_PORT)
+    private readonly registryPort: IRegistryPort,
+    private readonly biometricService: BiometricService,
   ) {}
 
   async registrarEventoManual(dto: RegistrarEventoManualDto): Promise<EventoAcceso> {
@@ -40,6 +45,110 @@ export class AccessControlService {
       resueltoEn: ahora,
       duracionAutorizadaMin: dto.duracionAutorizadaMin,
     });
+    const guardado = await this.eventoAccesoRepository.guardar(evento);
+
+    if (guardado.decisionOperativa === DecisionOperativa.DENIED) {
+      this.alertingService
+        .crearAlertaDesdeEventoDenegado({
+          eventoId: guardado.id,
+          vehiculoId: guardado.vehiculoId,
+          placa: guardado.placaObservada,
+          motivoCodigo: guardado.motivoCodigo,
+        })
+        .catch((err) => this.logger.warn(`No se pudo generar alerta de acceso denegado: ${err?.message}`));
+    }
+
+    return guardado;
+  }
+
+  async procesarAccesoEdge(
+    fotoRostro: Buffer,
+    tipoMovimiento: TipoMovimiento,
+    fotoPlaca?: Buffer,
+    placaManual?: string
+  ): Promise<EventoAcceso> {
+    // 1. Obtener placa (mockeando OCR si no llega placa manual)
+    const placa = placaManual || 'PCH0001';
+    
+    // 2. Validar vehiculo
+    const vehiculo = await this.registryPort.findVehiculoByPlaca(placa);
+    if (!vehiculo) {
+      return this.guardarEventoEdge({
+        vehiculoId: null,
+        personaId: null,
+        placaObservada: placa,
+        tipoMovimiento,
+        decisionOperativa: DecisionOperativa.DENIED,
+        motivoCodigo: 'VEHICULO_NO_REGISTRADO',
+        motivoDetalle: 'La placa no existe en el registro',
+      });
+    }
+
+    // 3. Obtener personas autorizadas
+    const propietario = await this.registryPort.findPropietarioByVehiculo(vehiculo.vehiculoId);
+    const grupoFamiliar = await this.registryPort.findGrupoFamiliarByVehiculo(vehiculo.vehiculoId);
+    const autorizados = await this.registryPort.findPersonasAutorizadasByVehiculo(vehiculo.vehiculoId);
+
+    const candidatosIds = new Set<string>();
+    if (propietario) candidatosIds.add(propietario.personaId);
+    grupoFamiliar.forEach(p => candidatosIds.add(p.personaId));
+    autorizados.forEach(p => candidatosIds.add(p.personaId));
+
+    if (candidatosIds.size === 0) {
+       return this.guardarEventoEdge({
+        vehiculoId: vehiculo.vehiculoId,
+        personaId: null,
+        placaObservada: placa,
+        tipoMovimiento,
+        decisionOperativa: DecisionOperativa.DENIED,
+        motivoCodigo: 'SIN_AUTORIZADOS',
+        motivoDetalle: 'El vehiculo no tiene conductores autorizados enrolados',
+      });
+    }
+
+    // 4. Verificar biometria
+    const resultadoBio = await this.biometricService.verificarIdentidad(fotoRostro, Array.from(candidatosIds));
+
+    if (!resultadoBio.match) {
+      return this.guardarEventoEdge({
+        vehiculoId: vehiculo.vehiculoId,
+        personaId: null,
+        placaObservada: placa,
+        tipoMovimiento,
+        decisionOperativa: DecisionOperativa.DENIED,
+        motivoCodigo: 'CONDUCTOR_NO_AUTORIZADO',
+        motivoDetalle: resultadoBio.message || 'El rostro no coincide con ningún autorizado',
+      });
+    }
+
+    // Match exitoso
+    return this.guardarEventoEdge({
+      vehiculoId: vehiculo.vehiculoId,
+      personaId: resultadoBio.personaId,
+      placaObservada: placa,
+      tipoMovimiento,
+      decisionOperativa: DecisionOperativa.SUCCESSFUL,
+      motivoCodigo: 'BIOMETRIA_VALIDADA',
+      motivoDetalle: 'Identidad confirmada automáticamente',
+    });
+  }
+
+  private async guardarEventoEdge(data: any): Promise<EventoAcceso> {
+    const ahora = new Date();
+    const evento = EventoAcceso.crear({
+      id: uuidv4(),
+      vehiculoId: data.vehiculoId,
+      personaDetectadaId: data.personaId,
+      placaObservada: data.placaObservada,
+      tipoMovimiento: data.tipoMovimiento,
+      decisionOperativa: data.decisionOperativa,
+      motivoCodigo: data.motivoCodigo,
+      motivoDetalle: data.motivoDetalle,
+      origenResolucion: OrigenResolucion.AUTOMATICA,
+      capturadoEn: ahora,
+      resueltoEn: ahora,
+    });
+
     const guardado = await this.eventoAccesoRepository.guardar(evento);
 
     if (guardado.decisionOperativa === DecisionOperativa.DENIED) {

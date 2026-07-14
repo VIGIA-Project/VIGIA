@@ -85,6 +85,17 @@ export const usePersonasAdmin = () =>
     queryFn: () => adminService.listarPersonas(),
   });
 
+export const useCrearPersonaAdmin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: import('../services/types/registry.types').CrearPersonaDto) => registryService.crearPersona(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.personas() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.personasCount() });
+    },
+  });
+};
+
 export const usePersonasCountAdmin = () =>
   useQuery({
     queryKey: adminKeys.personasCount(),

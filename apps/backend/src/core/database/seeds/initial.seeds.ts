@@ -1,57 +1,31 @@
 import { DataSource } from 'typeorm';
 
 export async function runInitialSeed(dataSource: DataSource): Promise<void> {
-  console.log('🌱 Ejecutando seeds iniciales...');
+  console.log('🌱 Ejecutando seeds iniciales (Limpieza aplicada)...');
 
-  // 1. Persona de prueba (propietario)
+  // 1. Personas base
   await dataSource.query(`
     INSERT INTO registry.personas
       (persona_id, identificacion_tipo, identificacion_numero, nombres, apellidos, correo_institucional, estado_registro)
     VALUES
-      ('00000000-0000-0000-0000-000000000001', 'CEDULA', '1700000001', 'Carlos', 'Mendoza', 'cmendoza@uce.edu.ec', 'ACTIVO'),
-      ('00000000-0000-0000-0000-000000000002', 'CEDULA', '1700000002', 'María', 'López', 'mlopez@uce.edu.ec', 'ACTIVO'),
-      ('00000000-0000-0000-0000-000000000003', 'CEDULA', '1700000003', 'Admin', 'Sistema', 'admin@uce.edu.ec', 'ACTIVO')
-    ON CONFLICT (identificacion_tipo, identificacion_numero) DO NOTHING
+      ('00000000-0000-0000-0000-000000000001', 'CEDULA', '0000000001', 'Admin', 'Sistema', 'admin@uce.edu.ec', 'ACTIVO'),
+      ('00000000-0000-0000-0000-000000000002', 'CEDULA', '0000000002', 'Guardia', 'Principal', 'guardia@uce.edu.ec', 'ACTIVO'),
+      ('00000000-0000-0000-0000-000000000003', 'CEDULA', '0000000003', 'Propietario', 'Uno', 'propietario@uce.edu.ec', 'ACTIVO'),
+      ('00000000-0000-0000-0000-000000000004', 'CEDULA', '0000000004', 'Propietario', 'Dos', 'propietario2@uce.edu.ec', 'ACTIVO')
+    ON CONFLICT (persona_id) DO NOTHING
   `);
 
-  // 2. Asignaciones de rol
-  await dataSource.query(`
-    INSERT INTO registry.asignaciones_rol
-      (asignacion_rol_id, persona_id, rol_institucional, estado_asignacion)
-    VALUES
-      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000003', 'ADMIN_OPERATIVO', 'ACTIVA'),
-      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000002', 'GUARDIA', 'ACTIVA')
-    ON CONFLICT (asignacion_rol_id) DO NOTHING
-  `);
-
-  // 3. Vehículo de prueba
-  await dataSource.query(`
-    INSERT INTO registry.vehiculos
-      (vehiculo_id, propietario_persona_id, placa, marca, modelo, color, anio, estado_registro)
-    VALUES
-      ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'PCH0001', 'Toyota', 'Corolla', 'Blanco', 2020, 'ACTIVO')
-    ON CONFLICT (placa) DO NOTHING
-  `);
-
-  // 4. Autorización permanente
-  await dataSource.query(`
-    INSERT INTO "authorization".autorizaciones_permanentes
-      (autorizacion_permanente_id, vehiculo_id, persona_id, otorgado_por_persona_id, estado_autorizacion, tipo_autorizacion)
-    VALUES
-      ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000003', 'ACTIVA', 'PERMANENTE')
-    ON CONFLICT (autorizacion_permanente_id) DO NOTHING
-  `);
-
-  // 5. Usuario administrador (contraseña: "password" — solo para desarrollo)
+  // 2. Usuarios del sistema
   await dataSource.query(`
     INSERT INTO auth.users
       (user_id, persona_id, email, password_hash, role, status, must_change_password)
     VALUES
-      ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000003', 'admin@uce.edu.ec', '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'ADMIN', 'PENDING_PASSWORD_CHANGE', true)
-    ON CONFLICT (email) DO NOTHING
+      ('11111111-1111-1111-1111-000000000001', '00000000-0000-0000-0000-000000000001', 'admin@uce.edu.ec', '$2b$10$nTKhEFGsUPM2kOSIztb7zO3KIi8zxgAKp2sUxuc43/9SGu96c.Am.', 'ADMIN', 'ACTIVE', false),
+      ('22222222-2222-2222-2222-000000000002', '00000000-0000-0000-0000-000000000002', 'guardia@uce.edu.ec', '$2b$10$IHpI07Xv6nPenXTmeqZ7G.ld2gMi9S0jDGxX.VHsrstXpxq8YeZmG', 'GUARD', 'ACTIVE', false),
+      ('33333333-3333-3333-3333-000000000003', '00000000-0000-0000-0000-000000000003', 'propietario@uce.edu.ec', '$2b$10$EwTreHRS7yj/Lb0/dF49zuaWoXnv.dh/RCrB/hB/RXOffHLxN39Qi', 'OWNER', 'ACTIVE', false),
+      ('44444444-4444-4444-4444-000000000004', '00000000-0000-0000-0000-000000000004', 'propietario2@uce.edu.ec', '$2b$10$EwTreHRS7yj/Lb0/dF49zuaWoXnv.dh/RCrB/hB/RXOffHLxN39Qi', 'OWNER', 'ACTIVE', false)
+    ON CONFLICT (user_id) DO NOTHING
   `);
 
-  console.log('✅ Seeds completados.');
-  console.log('   Placa de prueba: PCH0001');
-  console.log('   Admin: admin@uce.edu.ec / password (cambio obligatorio)');
+  console.log('✅ Seeds completados (Entorno limpio).');
 }

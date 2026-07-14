@@ -22,12 +22,28 @@ const BiometricOnboardingPage: React.FC = () => {
   const { user, logout, completeBiometricOnboarding, setAuthNotice } = useAuth();
 
   const [capturesDone, setCapturesDone] = React.useState(0);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const initials = (user?.email || 'U').split('@')[0].slice(0, 2).toUpperCase();
 
-  const handleAllCaptured = () => {
-    completeBiometricOnboarding();
-    navigate(AUTH_ROUTES.onboardingVehiculo);
+  const handleAllCaptured = async (files: File[]) => {
+    try {
+      setIsSubmitting(true);
+      if (user?.personaId) {
+        const formData = new FormData();
+        files.forEach(f => formData.append('archivos', f));
+        
+        const { enrolarPerfilBiometrico } = await import('../../../services/admin.service');
+        await enrolarPerfilBiometrico(user.personaId, formData);
+      }
+      completeBiometricOnboarding();
+      navigate(AUTH_ROUTES.onboardingVehiculo);
+    } catch (error) {
+      console.error('Error al registrar biometría', error);
+      alert('Ocurrió un problema al guardar tus datos biométricos. Por favor, asegúrate de que tu rostro sea visible e inténtalo nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSkipForNow = () => {
@@ -133,6 +149,7 @@ const BiometricOnboardingPage: React.FC = () => {
               onAllCaptured={handleAllCaptured}
               onSkipForNow={handleSkipForNow}
               onCaptureProgress={(done) => setCapturesDone(done)}
+              isSubmitting={isSubmitting}
             />
           </motion.div>
         </Box>

@@ -31,16 +31,26 @@ const BiometricCapturePersonaPage: React.FC = () => {
 
   const backToPersonas = () => navigate('/propietario/personas');
 
-  const handleAllCaptured = async () => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleAllCaptured = async (files: File[]) => {
     if (!autorizacion) return;
     try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      files.forEach(f => formData.append('archivos', f));
+      
+      const { enrolarPerfilBiometrico } = await import('../../services/admin.service');
+      await enrolarPerfilBiometrico(autorizacion.personaId, formData);
+
       await marcarEnrollmentMutation.mutateAsync(autorizacion.personaId);
+      navigate(`/propietario/personas/${autorizacion.id}`);
     } catch (err) {
-      // El BC Biometric real (pgvector) no existe todavía — solo persistimos
-      // el flag de Registry. Si falla, no bloqueamos la navegación.
       console.error('No se pudo marcar el enrollment biométrico:', err);
+      alert('Ocurrió un problema al guardar los datos biométricos. Por favor intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
     }
-    navigate(`/propietario/personas/${autorizacion.id}`);
   };
 
   if (isLoading) {
@@ -129,6 +139,7 @@ const BiometricCapturePersonaPage: React.FC = () => {
             onAllCaptured={handleAllCaptured}
             onSkipForNow={backToPersonas}
             successCopy={{ title: COPY.successTitle, subtitle: COPY.successSubtitle, cta: COPY.successCta }}
+            isSubmitting={isSubmitting}
           />
         </motion.div>
       </Box>

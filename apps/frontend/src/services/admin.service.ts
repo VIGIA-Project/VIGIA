@@ -112,6 +112,11 @@ export const buscarPerfilBiometricoPorPersona = (personaId: string): Promise<Per
 export const registrarPerfilBiometrico = (personaId: string): Promise<PerfilBiometrico> =>
   apiPostData(`/biometric/perfiles/persona/${personaId}`);
 
+import { apiPostFormData } from './api';
+
+export const enrolarPerfilBiometrico = (personaId: string, formData: FormData): Promise<{ success: boolean; message: string }> =>
+  apiPostFormData(`/biometric/perfiles/persona/${personaId}/enroll`, formData);
+
 // ─── Alerting ────────────────────────────────────────────────────────────────
 
 export const listarAlertasRecientes = (limite = 10): Promise<Alerta[]> =>

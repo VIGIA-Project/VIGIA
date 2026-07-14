@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -12,6 +13,8 @@ import DataTable, {
 import StatusChip from "../../../components/admin-legacy/StatusChip";
 import { usePersonasAdmin } from "../../../hooks/useAdmin";
 import { Persona } from "../../../services/types/registry.types";
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import RegistrarUnificadoModal from './RegistrarUnificadoModal';
 
 interface Row extends Persona {
   id: string;
@@ -68,6 +71,7 @@ const columns: Column<Row>[] = [
 ];
 
 export default function PersonasList() {
+  const [modalRegistroOpen, setModalRegistroOpen] = useState(false);
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = usePersonasAdmin();
 
@@ -79,6 +83,16 @@ export default function PersonasList() {
         title="Directorio de Personas"
         subtitle="Identidad base institucional registrada en el sistema VIGIA"
         breadcrumbs={[{ label: "Registro" }, { label: "Personas" }]}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1Icon />}
+            onClick={() => setModalRegistroOpen(true)}
+            sx={{ borderRadius: 2 }}
+          >
+            Nuevo Registro Unificado
+          </Button>
+        }
       />
 
       <Box sx={{ mb: 2 }}>
@@ -102,6 +116,12 @@ export default function PersonasList() {
           onRowClick={(row) => navigate(`/admin/registry/personas/${row.id}`)}
         />
       )}
+
+      <RegistrarUnificadoModal
+        open={modalRegistroOpen}
+        onClose={() => setModalRegistroOpen(false)}
+        onSuccess={() => refetch()}
+      />
     </Box>
   );
 }

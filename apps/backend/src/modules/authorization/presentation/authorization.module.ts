@@ -21,7 +21,7 @@ import {
 import { IMiembroGrupoFamiliarRepository } from '../domain/repositories/miembro-grupo-familiar.repository';
 import { IPermisoTemporalRepository } from '../domain/repositories/permiso-temporal.repository';
 import { IPaseAccesoRapidoRepository } from '../domain/repositories/pase-acceso-rapido.repository';
-import { AuthorizationSeedService } from '../infrastructure/seeds/authorization-seed.service';
+// import { AuthorizationSeedService } from '../infrastructure/seeds/authorization-seed.service';
 import { UserOrmEntity } from '@core/auth/infrastructure/user.orm-entity';
 import { PersonaOrmEntity } from '../../registry/infrastructure/repositories/persona.orm-entity';
 import { VehiculoOrmEntity } from '../../registry/infrastructure/repositories/vehiculo.orm-entity';
@@ -52,7 +52,7 @@ import { PerfilBiometricoOrmEntity } from '../../biometric/infrastructure/entiti
   controllers: [AuthorizationController],
   providers: [
     AuthorizationService,
-    AuthorizationSeedService,
+    // AuthorizationSeedService,
     {
       provide: MIEMBRO_GRUPO_FAMILIAR_REPOSITORY,
       useClass: TypeOrmMiembroGrupoFamiliarRepository,

@@ -19,8 +19,8 @@ Before reproducing this locally, it matters to know what's actually wired to a r
 | **Backend — `core/auth`** | Real: JWT login, forced password change, user management (CRUD, activate/deactivate, reset password). Automatic dev seeder. |
 | **Backend — `registry`** | Real: CRUD for `Persona`, `Vehiculo`, and `AsignacionRol` against PostgreSQL. |
 | **Backend — `authorization`** | Real: family group membership (global per owner), temporary permits, and quick-access passes — all with live endpoints and PostgreSQL persistence. |
-| **Backend — `biometric`, `access_control`, `alerting`** | Modules and database schemas scaffolded (entities/tables exist), but **no controllers/endpoints exposed yet**. The frontend covers these features with mocks. |
-| **Biometric / vehicle onboarding** | Real: `POST /api/v1/auth/login` returns `biometric_registered` / `vehicle_registered`, persisted on the `User` entity and updated via `PATCH /api/v1/auth/users/me/onboarding-status` when the owner completes each step. |
+| **Backend — `biometric`, `access_control`, `alerting`** | Modules and database schemas scaffolded. **Biometric is now live and integrated with `vigia-bio` microservice**, auto-creating `pgvector` extensions and raw tables. Access Control and Alerting are pending. |
+| **Biometric / vehicle onboarding** | Real: `POST /api/v1/auth/login` returns `biometric_registered` / `vehicle_registered`, persisted on the `User` entity and updated via `PATCH /api/v1/auth/users/me/onboarding-status` when the owner completes each step. Authorized Persons (Familiares/Invitados) biometric flow is also fully wired to the backend and AI microservice. |
 
 Before extending the backend, check `apps/backend/src/modules/<bc>/` first to confirm whether that Bounded Context already has a `presentation/*.controller.ts` or only `domain/` + `infrastructure/`.
 
@@ -53,7 +53,7 @@ Before extending the backend, check `apps/backend/src/modules/<bc>/` first to co
 | `registry` | ✅ Complete | People, vehicles, biometric enrollment (structure) |
 | `authorization` | ✅ Complete | Family group (global per owner), temporary permits, quick-access passes |
 | `access-control` | 🔲 Scaffolded | Gate/checkpoint evaluation (post-MVP) |
-| `biometric` | 🔲 Scaffolded | Face embeddings (post-MVP) |
+| `biometric` | ✅ Complete | Face embeddings generation & comparison connected to `vigia-bio` with InsightFace |
 | `alerting` | 🔲 Scaffolded | Notifications and alerts (post-MVP) |
 
 ## Authorization model
@@ -85,7 +85,7 @@ docker compose up -d
 docker compose ps   # all four services should show "healthy"
 ```
 
-Expected credentials: `postgres` / `admin` on `localhost:5432`, database `vigia_db` (matches `apps/backend/.env`).
+Expected credentials: `postgres` / `admin` on `localhost:5433` (note the mapped port from docker-compose), database `vigia_db` (matches `apps/backend/.env`).
 
 ### Environment variables
 
@@ -108,6 +108,7 @@ pnpm dev:backend
 3. Inserts the 3 test users if `auth.users` is empty and `NODE_ENV=development` (`SeedService`).
 
 API available at `http://localhost:3000/api/v1` · Health check at `http://localhost:3000/health`.
+*(Note: If you plan to test biometric features, ensure the `vigia-bio` container is running and `BIO_SERVICE_URL` points to `http://localhost:8002`)*
 
 ### Frontend
 
@@ -229,7 +230,7 @@ pnpm --filter frontend run preview
 | `postgres` | `5432→5432` | `pgvector/pgvector:pg17` image (pgvector reserved for future biometric use, not used yet) |
 | `redis` | `6379→6379` | `redis:7-alpine`, reserved for future caching/queues, not used yet |
 | `ocr` | `8001→8000` | **Stub** FastAPI service (`docker/ocr/`), `GET /health`, `POST /detect-plate` → `{ placa, confianza }` |
-| `bio` | `8002→8000` | **Stub** FastAPI service (`docker/bio/`), `GET /health`, `POST /compare-face` → `{ match, score }` |
+| `bio` | `8002→8000` | **Live** FastAPI service (`docker/bio/`), real InsightFace models mounted on `/root/.insightface/models` |
 
 ```bash
 docker compose up -d        # start everything
@@ -239,7 +240,7 @@ docker compose down         # stop
 docker compose down -v      # stop and delete the data volume
 ```
 
-The OCR/Bio services are placeholders for future real AI-service integration; the frontend doesn't call them today.
+The Bio service is fully connected for capturing, encoding, and verifying face vectors (using `pgvector` in PostgreSQL). The OCR service remains a placeholder for future real AI-service integration.
 
 ---
 
@@ -341,7 +342,7 @@ VITE_API_BASE_URL=https://api.your-domain.com/api/v1
 | Limitation | Reason | Post-MVP resolution |
 |-----------|--------|----------------------|
 | Temporary permits / quick passes operate on `vehiculos[0]` | No active-vehicle selector yet | Implement a `<VehiculoSelector>` |
-| No real biometric verification | Face-matching service not connected | Connect the Bio service |
+| No real biometric verification | Face-matching service fully implemented and connected for enroll/verify | Done |
 | No real-time plate OCR | Detection/OCR service not connected | Connect the OCR service |
 | Guard dashboard has no real data | Access Control BC not implemented | Implement Access Control |
 | No push notifications | Alerting BC scaffolded | Implement Alerting |

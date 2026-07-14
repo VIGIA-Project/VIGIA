@@ -1,8 +1,9 @@
 // src/pages/propietario/onboarding/VehicleOnboardingPage.tsx
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardByRole } from '../../../config/auth.config';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { getDashboardByRole, AUTH_ROUTES } from '../../../config/auth.config';
 import { useAuth } from '../../../context/AuthContext';
 import { vigiaColors } from '../../../theme/vigia-theme';
 import { UserAvatar } from '../../../components/molecules';
@@ -81,19 +82,33 @@ const VehicleOnboardingPage: React.FC = () => {
             p: { xs: 3, md: 4 },
           }}
         >
-          <Typography
-            sx={{
-              fontFamily: '"Inter", sans-serif',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              color: vigiaColors.textTertiary,
-              mb: 1,
-            }}
-          >
-            {VEHICLE_MAIN_COPY.eyebrow}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(AUTH_ROUTES.onboardingBiometria)}
+              sx={{
+                color: vigiaColors.textSecondary,
+                textTransform: 'none',
+                fontFamily: '"Inter", sans-serif',
+                mr: 2,
+                '&:hover': { background: 'transparent', color: vigiaColors.primary },
+              }}
+            >
+              Volver a Biometría
+            </Button>
+            <Typography
+              sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                color: vigiaColors.textTertiary,
+              }}
+            >
+              {VEHICLE_MAIN_COPY.eyebrow}
+            </Typography>
+          </Box>
           <Typography
             component="h1"
             sx={{

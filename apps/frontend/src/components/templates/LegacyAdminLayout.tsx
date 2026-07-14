@@ -62,6 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { label: 'Personas', path: '/admin/registry/personas', icon: <GroupIcon /> },
         { label: 'Vehículos', path: '/admin/registry/vehiculos', icon: <DirectionsCarIcon /> },
+        { label: 'Cuentas de Usuario', path: '/admin/usuarios', icon: <AccountCircle /> },
       ]
     },
     {

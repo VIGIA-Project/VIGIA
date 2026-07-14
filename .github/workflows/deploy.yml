@@ -29,8 +29,8 @@ jobs:
             git pull origin main
             
             # Detener y construir los contenedores de producción
-            sudo docker-compose -f docker-compose.prod.yml down
-            sudo docker-compose -f docker-compose.prod.yml up -d --build
+            sudo docker compose -f docker-compose.prod.yml down
+            sudo docker compose -f docker-compose.prod.yml up -d --build
             
             # Limpiar imágenes colgadas para evitar llenar el disco de 8GB de Free Tier
             sudo docker image prune -f

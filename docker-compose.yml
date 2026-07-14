@@ -4,15 +4,15 @@ services:
     container_name: vigia-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USERNAME:-vigia_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-vigia_secret}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
       POSTGRES_DB: ${DB_NAME:-vigia_db}
     ports:
       - '5432:5432'
     volumes:
       - vigia_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-vigia_user} -d ${DB_NAME:-vigia_db}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-vigia_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -76,8 +76,8 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USERNAME=${DB_USERNAME:-vigia_user}
-      - DB_PASSWORD=${DB_PASSWORD:-vigia_secret}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-admin}
       - DB_NAME=${DB_NAME:-vigia_db}
       - DB_SYNCHRONIZE=true
       - DB_LOGGING=false

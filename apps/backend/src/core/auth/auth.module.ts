@@ -13,6 +13,8 @@ import { UserOrmEntity } from './infrastructure/user.orm-entity';
 import { USER_REPOSITORY } from './domain/user.repository';
 import { SeedService } from '../database/seed.service';
 import { RegistryModule } from '../../modules/registry/presentation/registry.module';
+import { PersonaOrmEntity } from '../../modules/registry/infrastructure/repositories/persona.orm-entity';
+import { VehiculoOrmEntity } from '../../modules/registry/infrastructure/repositories/vehiculo.orm-entity';
 
 @Module({
   imports: [
@@ -32,7 +34,7 @@ import { RegistryModule } from '../../modules/registry/presentation/registry.mod
         };
       },
     }),
-    TypeOrmModule.forFeature([UserOrmEntity]),
+    TypeOrmModule.forFeature([UserOrmEntity, PersonaOrmEntity, VehiculoOrmEntity]),
   ],
   controllers: [AuthController],
   providers: [

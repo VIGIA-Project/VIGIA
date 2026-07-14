@@ -67,19 +67,26 @@ export class AccessControlService {
     fotoPlaca?: Buffer,
     placaManual?: string
   ): Promise<EventoAcceso> {
-    // 1. Obtener placa (mockeando OCR si no llega placa manual o foto)
-    let placa = placaManual || 'PCH0001';
-    
-    if (fotoPlaca) {
+    // 1. Obtener placa: manual, o vía OCR si llega foto
+    let placa: string | null = placaManual || null;
+
+    if (!placa && fotoPlaca) {
       try {
         const ocrUrl = process.env.OCR_SERVICE_URL || 'http://127.0.0.1:8001';
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+
         const formData = new FormData();
         formData.append('imagen', new Blob([fotoPlaca as any]), 'placa.jpg');
 
         const ocrRes = await fetch(`${ocrUrl}/ocr/leer-placa`, {
           method: 'POST',
           body: formData as any,
+          signal: controller.signal,
         });
+
+        clearTimeout(timeout);
 
         if (ocrRes.ok) {
           const ocrData = await ocrRes.json();
@@ -90,10 +97,31 @@ export class AccessControlService {
           this.logger.warn(`OCR API falló con status: ${ocrRes.status}`);
         }
       } catch (err: any) {
-        this.logger.error(`Error de red al invocar OCR: ${err.message}`);
+        if (err.name === 'AbortError') {
+          this.logger.error('OCR timeout: servicio no respondió en 10s');
+        } else {
+          this.logger.error(`Error de red al invocar OCR: ${err.message}`);
+        }
       }
     }
-    
+
+    if (!placa) {
+      const motivo = fotoPlaca ? 'OCR_FALLO_DETECCION' : 'PLACA_NO_PROPORCIONADA';
+      const detalle = fotoPlaca
+        ? 'El servicio OCR no pudo detectar una placa válida en la imagen'
+        : 'No se proporcionó placa manual ni imagen de placa';
+
+      return this.guardarEventoEdge({
+        vehiculoId: null,
+        personaId: null,
+        placaObservada: 'SINPLACA',
+        tipoMovimiento,
+        decisionOperativa: DecisionOperativa.DENIED,
+        motivoCodigo: motivo,
+        motivoDetalle: detalle,
+      });
+    }
+
     // 2. Validar vehiculo
     const vehiculo = await this.registryPort.findVehiculoByPlaca(placa);
     if (!vehiculo) {

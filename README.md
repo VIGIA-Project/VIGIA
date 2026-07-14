@@ -85,7 +85,7 @@ docker compose up -d
 docker compose ps   # all four services should show "healthy"
 ```
 
-Expected credentials: `postgres` / `admin` on `localhost:5433` (note the mapped port from docker-compose), database `vigia_db` (matches `apps/backend/.env`).
+Expected credentials: `postgres` / `admin` on `localhost:5432`, database `vigia_db` (matches `apps/backend/.env`).
 
 ### Environment variables
 
@@ -229,8 +229,8 @@ pnpm --filter frontend run preview
 |---------|-----------|-------|
 | `postgres` | `5432→5432` | `pgvector/pgvector:pg17` image (pgvector reserved for future biometric use, not used yet) |
 | `redis` | `6379→6379` | `redis:7-alpine`, reserved for future caching/queues, not used yet |
-| `ocr` | `8001→8000` | **Stub** FastAPI service (`docker/ocr/`), `GET /health`, `POST /detect-plate` → `{ placa, confianza }` |
-| `bio` | `8002→8000` | **Live** FastAPI service (`docker/bio/`), real InsightFace models mounted on `/root/.insightface/models` |
+| `ocr` | `8001→8000` | FastAPI service (`services/OCR/`), `GET /health`, `POST /ocr/leer-placa` |
+| `bio` | `8002→8000` | **Live** FastAPI service (`services/bio/`), real InsightFace models mounted on `/root/.insightface/models` |
 
 ```bash
 docker compose up -d        # start everything

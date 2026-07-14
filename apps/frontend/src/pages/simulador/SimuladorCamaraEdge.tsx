@@ -98,8 +98,12 @@ export const SimuladorCamaraEdge: React.FC = () => {
 
     try {
       const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+      const token = localStorage.getItem('vigia_access_token');
       const res = await axios.post(`${API_URL}/access-control/edge/reconocimiento`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
       });
       setResultado(res.data.data);
     } catch (err: any) {

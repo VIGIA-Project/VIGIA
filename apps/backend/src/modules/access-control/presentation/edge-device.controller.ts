@@ -1,12 +1,14 @@
-import { Controller, Post, UseInterceptors, UploadedFiles, Body } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFiles, Body, UseGuards } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AccessControlService } from '../application/access-control.service';
 import { TipoMovimiento } from '../domain/value-objects/tipo-movimiento.vo';
+import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 
 @Controller('access-control/edge')
 export class EdgeDeviceController {
   constructor(private readonly accessControlService: AccessControlService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('reconocimiento')
   @UseInterceptors(
     FileFieldsInterceptor([

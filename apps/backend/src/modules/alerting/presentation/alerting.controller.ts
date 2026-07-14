@@ -12,9 +12,7 @@ export class AlertingController {
   constructor(private readonly alertingService: AlertingService) {}
 
   @Sse('stream')
-  // No usamos AuthGuard en el simulador SSE por simplicidad en MVP (o lo configuramos si el front pasa token)
-  // Pero para que el guardia escuche, sí lo usaríamos. Como el EventSource del navegador no envía Headers Authorization fácil,
-  // en un caso real se pasaría por query. Por ahora lo dejamos público u omitimos el guard solo para este endpoint.
+  @UseGuards(JwtAuthGuard)
   streamAlerts(): Observable<MessageEvent> {
     return this.alertingService.alertas$.pipe(
       map((alerta) => ({ data: alerta.toJSON() } as MessageEvent)),

@@ -17,7 +17,7 @@ jobs:
     services:
       # Levantar base de datos PostgreSQL temporal para las pruebas de integración en CI
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: admin
@@ -74,8 +74,9 @@ jobs:
       - name: Inicializar variables de entorno para pruebas E2E
         run: |
           cp apps/backend/.env.example apps/backend/.env
-          # Ajustar contraseña al PostgreSQL levantado en el servicio del CI
+          # Ajustar contraseña y puerto al PostgreSQL levantado en el servicio del CI
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=admin/g' apps/backend/.env
+          sed -i 's/DB_PORT=.*/DB_PORT=5432/g' apps/backend/.env
 
       - name: Ejecutar pruebas E2E (Integración) del Backend
         run: pnpm --filter @vigia/backend run test:e2e

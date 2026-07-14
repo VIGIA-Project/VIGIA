@@ -68,7 +68,9 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
     if (rol !== 'GUARD') return;
 
     const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
-    const eventSource = new EventSource(`${API_URL}/alerting/stream`);
+    const token = localStorage.getItem('vigia_access_token');
+    const url = token ? `${API_URL}/alerting/stream?token=${token}` : `${API_URL}/alerting/stream`;
+    const eventSource = new EventSource(url);
 
     eventSource.onmessage = (event) => {
       try {

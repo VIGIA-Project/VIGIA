@@ -82,6 +82,7 @@ services:
       - DB_SYNCHRONIZE=true
       - DB_LOGGING=false
       - JWT_SECRET=vigia-dev-secret-2026
+      - EDGE_DEVICE_API_KEY=${EDGE_DEVICE_API_KEY:-vigia-edge-dev-key-2026}
       - APP_PORT=3000
       - NODE_ENV=development
       - REDIS_HOST=redis

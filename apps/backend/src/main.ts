@@ -54,7 +54,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN', '*'),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   });
 
   const port = configService.get<number>('APP_PORT', 3000);

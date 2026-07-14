@@ -1,9 +1,11 @@
-import { Controller, Post, UseInterceptors, UploadedFiles, Body } from '@nestjs/common';
+import { Controller, Post, UseGuards, UseInterceptors, UploadedFiles, Body } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ApiKeyGuard } from '@core/auth/guards/api-key.guard';
 import { AccessControlService } from '../application/access-control.service';
 import { TipoMovimiento } from '../domain/value-objects/tipo-movimiento.vo';
 
 @Controller('access-control/edge')
+@UseGuards(ApiKeyGuard)
 export class EdgeDeviceController {
   constructor(private readonly accessControlService: AccessControlService) {}
 

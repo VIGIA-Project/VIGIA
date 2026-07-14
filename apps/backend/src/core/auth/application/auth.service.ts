@@ -17,11 +17,15 @@ import {
     PaginatedUsers,
 } from '../domain/user.repository';
 import { User, UserRole, UserStatus } from '../domain/user.entity';
+import { REGISTRY_PORT } from '../../../modules/registry/application/ports/registry.port';
+import type { IRegistryPort } from '../../../modules/registry/application/ports/registry.port';
 
 export interface LoginResult {
     access_token: string;
     must_change_password: boolean;
     role: UserRole;
+    biometric_registered: boolean;
+    vehicle_registered: boolean;
 }
 
 export interface UserResponseDto {
@@ -31,6 +35,8 @@ export interface UserResponseDto {
     status: UserStatus;
     mustChangePassword: boolean;
     personaId?: string;
+    biometricRegistered: boolean;
+    vehicleRegistered: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -48,6 +54,8 @@ export class AuthService {
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
+        @Inject(REGISTRY_PORT)
+        private readonly registryPort: IRegistryPort,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
     ) {}
@@ -73,18 +81,33 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
+        // Compatibilidad con usuarios creados antes de que el seed vinculara Persona → User:
+        // si el JWT no tiene personaId, se busca la persona por correo institucional y se
+        // persiste el vínculo para no repetir esta búsqueda en logins futuros.
+        let personaId = user.personaId;
+        if (!personaId) {
+            const persona = await this.registryPort.findPersonaByCorreo(user.email);
+            if (persona) {
+                personaId = persona.personaId;
+                await this.userRepository.update(user.id, { personaId });
+            }
+        }
+
         const payload = {
             sub: user.id,
             email: user.email,
             role: user.role,
             name: user.email.split('@')[0],
             mustChangePassword: user.mustChangePassword,
+            personaId,
         };
 
         return {
             access_token: this.jwtService.sign(payload),
             must_change_password: user.mustChangePassword,
             role: user.role,
+            biometric_registered: user.biometricRegistered,
+            vehicle_registered: user.vehicleRegistered,
         };
     }
 
@@ -147,6 +170,20 @@ export class AuthService {
 
         const saved = await this.userRepository.save(user);
         return this.toResponse(saved);
+    }
+
+    async updateOnboardingStatus(
+        userId: string,
+        data: { biometric_registered?: boolean; vehicle_registered?: boolean },
+    ): Promise<UserResponseDto> {
+        const user = await this.userRepository.findById(userId);
+        if (!user) throw new NotFoundException('Usuario no encontrado');
+
+        const updated = await this.userRepository.update(userId, {
+            biometricRegistered: data.biometric_registered,
+            vehicleRegistered: data.vehicle_registered,
+        });
+        return this.toResponse(updated);
     }
 
     async findById(userId: string): Promise<UserResponseDto> {
@@ -219,6 +256,8 @@ export class AuthService {
             status: user.status,
             mustChangePassword: user.mustChangePassword,
             personaId: user.personaId,
+            biometricRegistered: user.biometricRegistered,
+            vehicleRegistered: user.vehicleRegistered,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

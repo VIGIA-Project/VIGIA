@@ -1,0 +1,16 @@
+// ============================================================
+// Tokens de inyección de dependencias compartidos
+// ============================================================
+
+export const MIEMBRO_GRUPO_FAMILIAR_REPOSITORY = 'MIEMBRO_GRUPO_FAMILIAR_REPOSITORY';
+export const PERMISO_TEMPORAL_REPOSITORY = 'PERMISO_TEMPORAL_REPOSITORY';
+export const PASE_ACCESO_RAPIDO_REPOSITORY = 'PASE_ACCESO_RAPIDO_REPOSITORY';
+
+export const AUTHORIZATION_CONTRACT = 'AUTHORIZATION_CONTRACT';
+
+export const PERFIL_BIOMETRICO_REPOSITORY = 'PERFIL_BIOMETRICO_REPOSITORY';
+
+export const ALERTA_REPOSITORY = 'ALERTA_REPOSITORY';
+export const NOTIFICACION_REPOSITORY = 'NOTIFICACION_REPOSITORY';
+
+export const EVENTO_ACCESO_REPOSITORY = 'EVENTO_ACCESO_REPOSITORY';

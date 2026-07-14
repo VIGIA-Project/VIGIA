@@ -11,6 +11,7 @@ export interface JwtPayload {
     role: string;
     name: string;
     mustChangePassword: boolean;
+    personaId?: string;
 }
 
 @Injectable()
@@ -21,7 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         private readonly userRepository: IUserRepository,
     ) {
         super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: ExtractJwt.fromExtractors([
+                ExtractJwt.fromAuthHeaderAsBearerToken(),
+                ExtractJwt.fromUrlQueryParameter('token'),
+            ]),
             ignoreExpiration: false,
             secretOrKey: configService.get<string>('JWT_SECRET'),
         });
@@ -38,6 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             role: payload.role,
             name: payload.name,
             mustChangePassword: payload.mustChangePassword,
+            personaId: payload.personaId,
         };
     }
 }

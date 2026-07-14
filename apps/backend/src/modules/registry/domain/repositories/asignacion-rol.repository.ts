@@ -2,6 +2,7 @@ import { AsignacionRol, RolAsignacion } from '../entities/asignacion-rol.entity'
 
 export interface IAsignacionRolRepository {
     save(asignacion: AsignacionRol): Promise<AsignacionRol>;
+    findAll(): Promise<AsignacionRol[]>;
     findByVehiculo(vehiculoId: string): Promise<AsignacionRol[]>;
     findByPersona(personaId: string): Promise<AsignacionRol[]>;
     findByVehiculoYRol(

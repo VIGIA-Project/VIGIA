@@ -1,56 +1,40 @@
 // src/pages/propietario/Historial.tsx
 import React, { useMemo, useState } from 'react';
 import { Box, Button, InputAdornment, MenuItem, TextField, Typography } from '@mui/material';
+import { useQueries } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { LoadingSkeleton, ErrorState } from '../../components/atoms';
 import { staggerContainer, fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows, vigiaSpacing } from '../../theme/vigia-theme';
+import { useAuth } from '../../context';
+import { useVehiculosDelPropietario } from '../../hooks/useRegistry';
+import * as guardService from '../../services/guard.service';
+import { EventoAcceso } from '../../services/types/guard.types';
 
-type ResultadoEvento = 'ENTRADA_PERMITIDA' | 'SALIDA_PERMITIDA' | 'DENEGADO' | 'REVISION_MANUAL' | 'PASE_CONSUMIDO' | 'PERMISO_EXPIRADO';
-
-interface HistorialEvento {
-  id: string;
-  fecha: string; // ISO
-  hora: string;
-  placa: string;
-  resultado: ResultadoEvento;
-  puntoAcceso: string;
-  persona: string;
-  grupo: 'hoy' | 'ayer' | 'anterior';
-}
+type ResultadoEvento = 'ENTRADA_PERMITIDA' | 'SALIDA_PERMITIDA' | 'DENEGADO' | 'REVISION_MANUAL';
 
 const RESULTADO_BADGE: Record<ResultadoEvento, { label: string; bg: string; color: string }> = {
   ENTRADA_PERMITIDA: { label: 'Entrada permitida', bg: '#DCFCE7', color: '#166534' },
   SALIDA_PERMITIDA: { label: 'Salida permitida', bg: '#DCFCE7', color: '#166534' },
   DENEGADO: { label: 'Acceso denegado', bg: '#FEE2E2', color: '#991B1B' },
   REVISION_MANUAL: { label: 'Revisión manual', bg: '#FEF3C7', color: '#92400E' },
-  PASE_CONSUMIDO: { label: 'Pase consumido', bg: '#DBEAFE', color: '#1E40AF' },
-  PERMISO_EXPIRADO: { label: 'Permiso expirado', bg: '#F1F5F9', color: '#64748B' },
 };
 
-const MOCK_EVENTOS: HistorialEvento[] = [
-  { id: 'hi-1', fecha: '2026-07-09', hora: '08:05', placa: 'ABC-1234', resultado: 'ENTRADA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Andrea Torres', grupo: 'hoy' },
-  { id: 'hi-2', fecha: '2026-07-09', hora: '07:42', placa: 'XYZ-5678', resultado: 'REVISION_MANUAL', puntoAcceso: 'Garita Sur', persona: 'Luis Pérez', grupo: 'hoy' },
-  { id: 'hi-3', fecha: '2026-07-08', hora: '18:10', placa: 'ABC-1234', resultado: 'SALIDA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Propietario', grupo: 'ayer' },
-  { id: 'hi-4', fecha: '2026-07-08', hora: '11:30', placa: 'XYZ-5678', resultado: 'PASE_CONSUMIDO', puntoAcceso: 'Garita Norte', persona: 'Laura Vega', grupo: 'ayer' },
-  { id: 'hi-5', fecha: '2026-07-07', hora: '22:00', placa: 'ABC-1234', resultado: 'DENEGADO', puntoAcceso: 'Garita Sur', persona: 'Desconocido', grupo: 'anterior' },
-  { id: 'hi-6', fecha: '2026-07-06', hora: '09:15', placa: 'XYZ-5678', resultado: 'PERMISO_EXPIRADO', puntoAcceso: 'Garita Norte', persona: 'Juan Paredes', grupo: 'anterior' },
-  { id: 'hi-7', fecha: '2026-07-05', hora: '14:20', placa: 'ABC-1234', resultado: 'ENTRADA_PERMITIDA', puntoAcceso: 'Garita Norte', persona: 'Carlos Ruiz', grupo: 'anterior' },
-  { id: 'hi-8', fecha: '2026-07-04', hora: '17:05', placa: 'XYZ-5678', resultado: 'SALIDA_PERMITIDA', puntoAcceso: 'Garita Sur', persona: 'Propietario', grupo: 'anterior' },
-];
+const resolverResultado = (evento: EventoAcceso): ResultadoEvento => {
+  if (evento.decisionOperativa === 'DENIED') return 'DENEGADO';
+  if (evento.decisionOperativa === 'PENDING_VERIFY') return 'REVISION_MANUAL';
+  return evento.tipoMovimiento === 'SALIDA' ? 'SALIDA_PERMITIDA' : 'ENTRADA_PERMITIDA';
+};
 
-const VEHICULO_OPTIONS = ['Todos', 'ABC-1234', 'XYZ-5678'];
 const RESULTADO_OPTIONS: { key: 'TODOS' | ResultadoEvento; label: string }[] = [
   { key: 'TODOS', label: 'Todos' },
   { key: 'ENTRADA_PERMITIDA', label: 'Entrada permitida' },
   { key: 'SALIDA_PERMITIDA', label: 'Salida permitida' },
   { key: 'DENEGADO', label: 'Denegado' },
   { key: 'REVISION_MANUAL', label: 'Revisión manual' },
-  { key: 'PASE_CONSUMIDO', label: 'Pase consumido' },
-  { key: 'PERMISO_EXPIRADO', label: 'Permiso expirado' },
 ];
 const RANGO_OPTIONS = [
   { value: '7', label: 'Últimos 7 días' },
@@ -58,26 +42,72 @@ const RANGO_OPTIONS = [
   { value: 'todo', label: 'Todo el historial' },
 ];
 
-const GRUPO_LABEL: Record<HistorialEvento['grupo'], string> = { hoy: 'Hoy', ayer: 'Ayer', anterior: 'Fechas anteriores' };
+const formatFecha = (iso: string) => {
+  const fecha = new Date(iso);
+  const hoy = new Date();
+  const ayer = new Date(hoy);
+  ayer.setDate(hoy.getDate() - 1);
+  const esMismoDia = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (esMismoDia(fecha, hoy)) return 'hoy';
+  if (esMismoDia(fecha, ayer)) return 'ayer';
+  return 'anterior';
+};
+
+const formatHora = (iso: string) =>
+  new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+const GRUPO_LABEL: Record<'hoy' | 'ayer' | 'anterior', string> = { hoy: 'Hoy', ayer: 'Ayer', anterior: 'Fechas anteriores' };
 
 const HistorialPage: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
+  const { user } = useAuth();
   const [rango, setRango] = useState('7');
   const [vehiculo, setVehiculo] = useState('Todos');
   const [resultado, setResultado] = useState<'TODOS' | ResultadoEvento>('TODOS');
   const [busqueda, setBusqueda] = useState('');
 
+  const vehiculosQuery = useVehiculosDelPropietario(user?.personaId);
+  const vehiculos = vehiculosQuery.data ?? [];
+
+  const eventosQueries = useQueries({
+    queries: vehiculos.map((v) => ({
+      queryKey: ['guard', 'eventos', 'vehiculo', v.vehiculoId, 50] as const,
+      queryFn: () => guardService.listarEventosPorVehiculo(v.vehiculoId, 50),
+      enabled: !!v.vehiculoId,
+    })),
+  });
+
+  const isLoading = vehiculosQuery.isLoading || eventosQueries.some((q) => q.isLoading);
+  const isError = vehiculosQuery.isError || eventosQueries.some((q) => q.isError);
+
+  const todosLosEventos = useMemo(
+    () => eventosQueries.flatMap((q) => q.data ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [eventosQueries.map((q) => q.dataUpdatedAt).join(',')]
+  );
+
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
-    return MOCK_EVENTOS.filter((e) => {
-      const matchVehiculo = vehiculo === 'Todos' || e.placa === vehiculo;
-      const matchResultado = resultado === 'TODOS' || e.resultado === resultado;
-      const matchBusqueda = !term || e.persona.toLowerCase().includes(term) || e.placa.toLowerCase().includes(term) || e.puntoAcceso.toLowerCase().includes(term);
-      return matchVehiculo && matchResultado && matchBusqueda;
-    });
-  }, [vehiculo, resultado, busqueda]);
+    const ahora = Date.now();
+    const rangoMs = rango === '7' ? 7 * 86400000 : rango === '30' ? 30 * 86400000 : Infinity;
 
-  const grupos: HistorialEvento['grupo'][] = ['hoy', 'ayer', 'anterior'];
+    return todosLosEventos
+      .filter((e) => {
+        const matchVehiculo = vehiculo === 'Todos' || e.placaObservada === vehiculo;
+        const resultadoEvento = resolverResultado(e);
+        const matchResultado = resultado === 'TODOS' || resultadoEvento === resultado;
+        const matchBusqueda =
+          !term ||
+          e.placaObservada.toLowerCase().includes(term) ||
+          (e.motivoDetalle ?? '').toLowerCase().includes(term);
+        const matchRango = ahora - new Date(e.capturadoEn).getTime() <= rangoMs;
+        return matchVehiculo && matchResultado && matchBusqueda && matchRango;
+      })
+      .sort((a, b) => new Date(b.capturadoEn).getTime() - new Date(a.capturadoEn).getTime());
+  }, [todosLosEventos, vehiculo, resultado, busqueda, rango]);
+
+  const grupos: Array<'hoy' | 'ayer' | 'anterior'> = ['hoy', 'ayer', 'anterior'];
 
   const limpiarFiltros = () => {
     setRango('7');
@@ -107,14 +137,15 @@ const HistorialPage: React.FC = () => {
               ))}
             </TextField>
             <TextField select label="Vehículo" size="small" value={vehiculo} onChange={(e) => setVehiculo(e.target.value)}>
-              {VEHICULO_OPTIONS.map((v) => (
-                <MenuItem key={v} value={v}>{v}</MenuItem>
+              <MenuItem value="Todos">Todos</MenuItem>
+              {vehiculos.map((v) => (
+                <MenuItem key={v.vehiculoId} value={v.placa}>{v.placa}</MenuItem>
               ))}
             </TextField>
             <TextField
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar persona, placa o punto de acceso..."
+              placeholder="Buscar por placa o motivo..."
               size="small"
               InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: vigiaColors.textTertiary }} /></InputAdornment> }}
             />
@@ -149,7 +180,11 @@ const HistorialPage: React.FC = () => {
         </Box>
 
         {/* Listado */}
-        {filtrados.length === 0 ? (
+        {isLoading ? (
+          <LoadingSkeleton variant="cards" rows={4} />
+        ) : isError ? (
+          <ErrorState mensaje="No se pudo cargar tu historial de accesos." onRetry={() => vehiculosQuery.refetch()} />
+        ) : filtrados.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8, borderRadius: vigiaRadius.lg, border: '1px solid #E2E8F0' }}>
             <HistoryOutlinedIcon sx={{ fontSize: 48, color: vigiaColors.textTertiary, mb: 2 }} />
             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.9rem', color: vigiaColors.textSecondary, mb: 2 }}>
@@ -167,7 +202,7 @@ const HistorialPage: React.FC = () => {
           <motion.div variants={shouldReduceMotion ? undefined : staggerContainer} initial="hidden" animate="visible">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               {grupos.map((grupo) => {
-                const eventos = filtrados.filter((e) => e.grupo === grupo);
+                const eventos = filtrados.filter((e) => formatFecha(e.capturadoEn) === grupo);
                 if (eventos.length === 0) return null;
                 return (
                   <Box key={grupo}>
@@ -176,10 +211,10 @@ const HistorialPage: React.FC = () => {
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {eventos.map((evento) => {
-                        const badge = RESULTADO_BADGE[evento.resultado];
+                        const badge = RESULTADO_BADGE[resolverResultado(evento)];
                         return (
                           <Box
-                            key={evento.id}
+                            key={evento.eventoAccesoId}
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
@@ -194,27 +229,17 @@ const HistorialPage: React.FC = () => {
                             }}
                           >
                             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#0F172A', width: 56 }}>
-                              {evento.hora}
+                              {formatHora(evento.capturadoEn)}
                             </Typography>
                             <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '0.9rem', color: '#0A2F86', backgroundColor: 'rgba(13,92,207,0.06)', px: 1, py: 0.25, borderRadius: '4px' }}>
-                              {evento.placa}
+                              {evento.placaObservada}
                             </Typography>
                             <Box sx={{ px: 1.25, py: 0.3, borderRadius: vigiaRadius.full, backgroundColor: badge.bg, color: badge.color, fontFamily: '"Inter", sans-serif', fontSize: '0.72rem', fontWeight: 700 }}>
                               {badge.label}
                             </Box>
-                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B' }}>
-                              {evento.puntoAcceso}
-                            </Typography>
                             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#64748B', flex: 1 }}>
-                              {evento.persona}
+                              {evento.motivoDetalle || evento.motivoCodigo || '—'}
                             </Typography>
-                            <Button
-                              size="small"
-                              startIcon={<VisibilityOutlinedIcon sx={{ fontSize: 16 }} />}
-                              sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, textTransform: 'none', color: vigiaColors.primary }}
-                            >
-                              Ver
-                            </Button>
                           </Box>
                         );
                       })}

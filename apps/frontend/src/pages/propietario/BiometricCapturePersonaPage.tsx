@@ -7,32 +7,61 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
 import { BiometricCapture } from '../../components/organisms/onboarding';
+import { LoadingSkeleton } from '../../components/atoms';
 import { fadeInUp } from '../../config/animations.config';
 import { vigiaColors, vigiaRadius } from '../../theme/vigia-theme';
-import {
-  loadPersonas,
-  savePersonas,
-  PERSONA_BIOMETRIC_CAPTURE_COPY as COPY,
-} from '../../config/propietario-personas.config';
+import { usePersona, useMarcarEnrollmentCompleto } from '../../hooks/useRegistry';
+import { useMiembrosGrupoFamiliar } from '../../hooks/useAuthorization';
+import { useAuth } from '../../context';
+import { PERSONA_BIOMETRIC_CAPTURE_COPY as COPY } from '../../config/propietario-personas.config';
 
 const BiometricCapturePersonaPage: React.FC = () => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const { id } = useParams<{ id: string }>();
 
-  const personas = loadPersonas();
-  const persona = personas.find((p) => p.id === id);
+  const { user } = useAuth();
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
+  const autorizacion = autorizacionesQuery.data?.find((a) => a.id === id);
+  const personaQuery = usePersona(autorizacion?.personaId);
+  const marcarEnrollmentMutation = useMarcarEnrollmentCompleto();
+
+  const isLoading = autorizacionesQuery.isLoading || personaQuery.isLoading;
+  const persona = personaQuery.data;
 
   const backToPersonas = () => navigate('/propietario/personas');
 
-  const handleAllCaptured = () => {
-    if (!persona) return;
-    const next = personas.map((p) => (p.id === persona.id ? { ...p, biometria: 'COMPLETADA' as const } : p));
-    savePersonas(next);
-    navigate(`/propietario/personas/${persona.id}`);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleAllCaptured = async (files: File[]) => {
+    if (!autorizacion) return;
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      files.forEach(f => formData.append('archivos', f));
+      
+      const { enrolarPerfilBiometrico } = await import('../../services/admin.service');
+      await enrolarPerfilBiometrico(autorizacion.personaId, formData);
+
+      await marcarEnrollmentMutation.mutateAsync(autorizacion.personaId);
+      navigate(`/propietario/personas/${autorizacion.id}`);
+    } catch (err) {
+      console.error('No se pudo marcar el enrollment biométrico:', err);
+      alert('Ocurrió un problema al guardar los datos biométricos. Por favor intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (!persona) {
+  if (isLoading) {
+    return (
+      <DashboardTemplate rol="OWNER" pageTitle="Captura biométrica">
+        <LoadingSkeleton variant="detail" />
+      </DashboardTemplate>
+    );
+  }
+
+  if (!autorizacion || !persona) {
     return (
       <DashboardTemplate rol="OWNER" pageTitle="Captura biométrica">
         <Box
@@ -92,7 +121,7 @@ const BiometricCapturePersonaPage: React.FC = () => {
               mb: 1.5,
             }}
           >
-            {COPY.headerTitle(persona.nombre)}
+            {COPY.headerTitle(persona.nombreCompleto)}
           </Typography>
           <Typography
             sx={{
@@ -110,6 +139,7 @@ const BiometricCapturePersonaPage: React.FC = () => {
             onAllCaptured={handleAllCaptured}
             onSkipForNow={backToPersonas}
             successCopy={{ title: COPY.successTitle, subtitle: COPY.successSubtitle, cta: COPY.successCta }}
+            isSubmitting={isSubmitting}
           />
         </motion.div>
       </Box>

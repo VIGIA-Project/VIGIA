@@ -1,515 +1,493 @@
-import React, { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useEventosRecientes, useRegistrarEventoManual, useValidarPase } from '../../hooks/useGuard';
 import {
   Box,
   Typography,
-  Paper,
-  Grid,
-  Select,
-  MenuItem,
+  Card,
+  CardContent,
   TextField,
   Button,
+  ToggleButtonGroup,
+  ToggleButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Select,
+  MenuItem,
+  InputLabel,
   FormControl,
-  LinearProgress,
-  Tabs,
-  Tab,
+  Snackbar,
+  Alert,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  InputAdornment,
+  Stack,
+  Chip,
 } from '@mui/material';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { fadeInUp, staggerContainer } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
-
-// Icons
-import TimerIcon from '@mui/icons-material/Timer';
-import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import GavelIcon from '@mui/icons-material/Gavel';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import DashboardTemplate from '../../components/templates/DashboardTemplate';
+import { StatusChip, EmptyState } from '../../components/atoms';
+import { TipoMovimiento, RegistrarEventoManualDto } from '../../services/types/guard.types';
+import { vigiaColors } from '../../theme/vigia-theme';
 
-export const RevisionManualPage: React.FC = () => {
-  const navigate = useNavigate();
+const selectedToggleSx = (color: string) => ({
+  '&.Mui-selected': {
+    backgroundColor: color,
+    color: '#fff',
+    '&:hover': { backgroundColor: color, filter: 'brightness(0.92)' },
+  },
+});
 
-  const [actionTab, setActionTab] = useState(0);
+type AccionModal = 'APROBAR' | 'DENEGAR' | 'CONTINGENCIA' | null;
 
-  // Flow 1: Resolución
-  const [estadoFinal, setEstadoFinal] = useState('');
-  const [justificacion, setJustificacion] = useState('');
+const MOTIVOS_APROBAR = [
+  { value: 'CONDUCTOR_AUTORIZADO', label: 'Conductor autorizado' },
+  { value: 'PERMISO_TEMPORAL_VIGENTE', label: 'Permiso temporal vigente' },
+  { value: 'PASE_VALIDADO', label: 'Pase validado' },
+];
 
-  // Flow 2: Pase Visitante
-  const [visitanteTipo, setVisitanteTipo] = useState('');
-  const [visitanteNombre, setVisitanteNombre] = useState('');
-  const [visitanteDoc, setVisitanteDoc] = useState('');
-  const [visitanteDestino, setVisitanteDestino] = useState('');
-  const [paseDuracion, setPaseDuracion] = useState('');
-  const [visitanteDescripcion, setVisitanteDescripcion] = useState('');
+const MOTIVOS_DENEGAR = [
+  { value: 'CONDUCTOR_NO_AUTORIZADO', label: 'Conductor no autorizado' },
+  { value: 'VEHICULO_NO_REGISTRADO', label: 'Vehículo no registrado' },
+  { value: 'HORARIO_NO_PERMITIDO', label: 'Horario no permitido' },
+  { value: 'DOCUMENTO_INVALIDO', label: 'Documento inválido' },
+];
 
-  const [timeLeft, setTimeLeft] = useState(262); // 04:22 in seconds
+const DURACIONES = [
+  { value: 30, label: '30 minutos' },
+  { value: 60, label: '1 hora' },
+  { value: 120, label: '2 horas' },
+  { value: 240, label: '4 horas' },
+  { value: 480, label: '8 horas' },
+];
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+export default function RevisionManualPage() {
+  const location = useLocation();
+  const placaInicial = (location.state as { placa?: string } | null)?.placa ?? '';
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const [placaInput, setPlacaInput] = useState(placaInicial);
+  const [placaBuscada, setPlacaBuscada] = useState(placaInicial.toUpperCase());
+  const [tipoMovimiento, setTipoMovimiento] = useState<TipoMovimiento>('ENTRADA');
+
+  // Pase de acceso
+  const [paseCodigo, setPaseCodigo] = useState('');
+  const [resultadoPase, setResultadoPase] = useState<{ valido: boolean; motivo?: string } | null>(null);
+
+  // Modal de acción
+  const [modal, setModal] = useState<AccionModal>(null);
+  const [motivoAprobar, setMotivoAprobar] = useState(MOTIVOS_APROBAR[0].value);
+  const [motivoDenegar, setMotivoDenegar] = useState(MOTIVOS_DENEGAR[0].value);
+  const [conductorNombre, setConductorNombre] = useState('');
+  const [conductorCedula, setConductorCedula] = useState('');
+  const [destino, setDestino] = useState('');
+  const [duracion, setDuracion] = useState(60);
+
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  const eventosRecientes = useEventosRecientes(20);
+  const registrar = useRegistrarEventoManual();
+  const validarPase = useValidarPase();
+
+  const contexto = useMemo(
+      () => (eventosRecientes.data ?? []).filter((e) => e.placaObservada === placaBuscada),
+      [eventosRecientes.data, placaBuscada]
+  );
+
+  const puedeAccionar = placaBuscada.trim().length > 0;
+  const esSalida = tipoMovimiento === 'SALIDA';
+  const labelAprobar = esSalida ? 'Autorizar bajo responsabilidad' : 'Aprobar';
+
+  const handleBuscar = () => {
+    setPlacaBuscada(placaInput.trim().toUpperCase());
+    setResultadoPase(null);
   };
 
-  const handleConfirmar = () => {
-    if (!estadoFinal || !justificacion) return;
-    navigate('/guardia/cola-eventos');
+  const handleValidarPase = () => {
+    validarPase.mutate(
+        { codigo: paseCodigo, placa: placaBuscada },
+        {
+          onSuccess: (data) => {
+            setResultadoPase({ valido: data.valido, motivo: data.motivo });
+            setSnackbar({
+              open: true,
+              message: data.valido ? 'Pase validado correctamente' : data.motivo || 'Pase no válido',
+              severity: data.valido ? 'success' : 'error',
+            });
+            if (data.valido) {
+              setMotivoAprobar('PASE_VALIDADO');
+            }
+          },
+          onError: () => {
+            setResultadoPase(null);
+            setSnackbar({ open: true, message: 'Error al validar pase', severity: 'error' });
+          },
+        }
+    );
   };
 
-  const handleContingencia = () => {
-    navigate('/guardia/contingencia');
+  const cerrarModal = () => {
+    setModal(null);
+    setConductorNombre('');
+    setConductorCedula('');
+    setDestino('');
+    setDuracion(60);
+  };
+
+  const construirMotivoDetalle = () => {
+    const partes: string[] = [];
+    if (conductorNombre) partes.push(`Conductor: ${conductorNombre}${conductorCedula ? ` (${conductorCedula})` : ''}`);
+    if (destino) partes.push(`Destino: ${destino}`);
+    return partes.length > 0 ? partes.join('. ') : undefined;
+  };
+
+  const confirmarAprobar = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'SUCCESSFUL',
+      motivoCodigo: motivoAprobar,
+      motivoDetalle: construirMotivoDetalle(),
+    };
+    registrar.mutate(
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: `Movimiento ${labelAprobar.toLowerCase()}`, severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar la aprobación', severity: 'error' });
+          },
+        }
+    );
+  };
+
+  const confirmarDenegar = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'DENIED',
+      motivoCodigo: motivoDenegar,
+    };
+    registrar.mutate(
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: 'Movimiento denegado', severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar la denegación', severity: 'error' });
+          },
+        }
+    );
+  };
+
+  const confirmarContingencia = () => {
+    const dto: RegistrarEventoManualDto = {
+      placaObservada: placaBuscada,
+      tipoMovimiento,
+      decisionOperativa: 'SUCCESSFUL',
+      motivoCodigo: 'CONTINGENCIA',
+      motivoDetalle: construirMotivoDetalle(),
+      duracionAutorizadaMin: duracion,
+    };
+    registrar.mutate(
+        dto,
+        {
+          onSuccess: () => {
+            setSnackbar({ open: true, message: 'Registrado bajo contingencia', severity: 'success' });
+            cerrarModal();
+            eventosRecientes.refetch?.();
+          },
+          onError: () => {
+            setSnackbar({ open: true, message: 'Error al registrar contingencia', severity: 'error' });
+          },
+        }
+    );
   };
 
   return (
-    <DashboardTemplate rol="GUARD" pageTitle="Revisión Manual">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1000, margin: '0 auto' }}>
-        
-        {/* Header Section */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography variant="h4" sx={{ color: vigiaColors.textBody, mb: 1, fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                Resolución Manual
-              </Typography>
-              <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                Analice la evidencia y determine el estado final de acceso.
-              </Typography>
-            </Box>
-            
-            {/* Timer Pill */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 1,
-                borderRadius: vigiaRadius.full,
-                backgroundColor: '#FFFBEB',
-                border: '1px solid #FDE68A',
-                color: '#D97706',
-              }}
-            >
-              <TimerIcon sx={{ fontSize: '1.2rem' }} />
-              <Typography sx={{ fontSize: '1rem', fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                {formatTime(timeLeft)}
-              </Typography>
-            </Box>
-          </Box>
-        </motion.div>
+      <DashboardTemplate rol="GUARD" pageTitle="Revisión manual">
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" fontWeight={600}>
+            Revisión manual de acceso
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Busca una placa para consultar su historial, validar un pase o registrar una decisión manual.
+          </Typography>
+        </Box>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <Grid container spacing={3}>
-            
-            {/* LEFT COLUMN: DETAILS */}
-            <Grid item xs={12} md={7}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                
-                {/* Placa y Movimiento */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={8}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        PLACA DETECTADA
-                      </Typography>
-                      <Box sx={{ backgroundColor: '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center' }}>
-                        <Typography sx={{ fontSize: '2rem', fontWeight: 800, fontFamily: '"Exo 2", sans-serif', color: '#1F2937', letterSpacing: 2 }}>
-                          ABC-1234
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        MOVIMIENTO
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          justifyContent: 'center',
-                          backgroundColor: '#1E3A8A', // Dark blue background for ENTRADA
-                          color: '#FFFFFF',
-                          p: 2,
-                          borderRadius: vigiaRadius.sm,
-                          height: '100%',
-                          maxHeight: '75px', // Match the height of the plate box
-                        }}
-                      >
-                        <ArrowRightAltIcon />
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: 1 }}>
-                          ENTRADA
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Paper>
+        {/* Búsqueda + tipo de movimiento */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+              <TextField
+                  label="Placa"
+                  value={placaInput}
+                  onChange={(e) => setPlacaInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
+                  InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                    ),
+                  }}
+                  size="small"
+              />
+              <Button variant="contained" onClick={handleBuscar} disabled={!placaInput.trim()}>
+                Buscar
+              </Button>
 
-                {/* Alerta y Match */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid #FDE68A', backgroundColor: '#FFFBEB' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <WarningAmberIcon sx={{ color: '#D97706', fontSize: '1.5rem' }} />
-                      <Typography sx={{ fontWeight: 700, color: '#B45309', fontFamily: '"Inter", sans-serif' }}>
-                        EVIDENCIA_INSUFICIENTE
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontWeight: 800, color: '#D97706', fontFamily: '"Exo 2", sans-serif' }}>
-                      65% MATCH
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ position: 'relative', pt: 1, pb: 2 }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={65} 
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4, 
-                        backgroundColor: '#FDE68A',
-                        '& .MuiLinearProgress-bar': { backgroundColor: '#D97706', borderRadius: 4 }
-                      }} 
-                    />
-                    {/* Umbral Indicator */}
-                    <Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        left: '85%', 
-                        top: 4, 
-                        bottom: 0, 
-                        width: 2, 
-                        backgroundColor: '#DC2626',
-                        zIndex: 1
-                      }} 
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#B45309', fontWeight: 600 }}>0%</Typography>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: 700, position: 'absolute', left: '85%', transform: 'translateX(-50%)' }}>
-                        UMBRAL 85%
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.7rem', color: '#B45309', fontWeight: 600 }}>100%</Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-
-                {/* Contexto Registrado */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <PersonOutlineIcon sx={{ color: vigiaColors.textSecondary }} />
-                    <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.1rem' }}>
-                      Contexto Registrado
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* Vehiculo */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(0,0,0,0.05)', borderRadius: vigiaRadius.sm, backgroundColor: '#FAFBFC' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E0E7FF', borderRadius: vigiaRadius.sm, color: '#4F46E5', display: 'flex' }}>
-                        <DirectionsCarIcon />
-                      </Box>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Toyota Corolla
-                        </Typography>
-                        <Typography sx={{ color: vigiaColors.textSecondary, fontSize: '0.8rem' }}>
-                          Blanco • 2020
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Propietario */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: '1px solid rgba(46,125,50,0.2)', borderRadius: vigiaRadius.sm, backgroundColor: '#F6FBF6' }}>
-                      <Box sx={{ p: 1, backgroundColor: '#E8F5E9', borderRadius: vigiaRadius.sm, color: '#2E7D32', display: 'flex' }}>
-                        <PersonOutlineIcon />
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontSize: '0.9rem' }}>
-                          Lenin David
-                        </Typography>
-                        <Typography sx={{ color: '#2E7D32', fontSize: '0.75rem', fontWeight: 700 }}>
-                          PROPIETARIO
-                        </Typography>
-                      </Box>
-                      <CheckCircleIcon sx={{ color: '#2E7D32' }} />
-                    </Box>
-                  </Box>
-                </Paper>
-              </Box>
-            </Grid>
-
-            {/* RIGHT COLUMN: ACTION */}
-            <Grid item xs={12} md={5}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  borderRadius: vigiaRadius.md, 
-                  border: '1px solid rgba(0,0,0,0.08)', 
-                  backgroundColor: '#F8FAFC',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden'
-                }}
+              <ToggleButtonGroup
+                  value={tipoMovimiento}
+                  exclusive
+                  onChange={(_, val) => val && setTipoMovimiento(val)}
+                  size="small"
               >
-                <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: vigiaColors.white }}>
-                  <Tabs
-                    value={actionTab}
-                    onChange={(_e, newValue) => setActionTab(newValue)}
-                    variant="fullWidth"
-                    sx={{
-                      '& .MuiTab-root': { fontFamily: '"Exo 2", sans-serif', fontWeight: 600, textTransform: 'none', py: 2 },
-                      '& .Mui-selected': { color: vigiaColors.primary },
-                      '& .MuiTabs-indicator': { backgroundColor: vigiaColors.primary, height: 3 }
-                    }}
+                <ToggleButton value="ENTRADA" sx={selectedToggleSx(vigiaColors.success)}>Entrada</ToggleButton>
+                <ToggleButton value="SALIDA" sx={selectedToggleSx(vigiaColors.warning)}>Salida</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
+
+            {/* Validación de pase */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, flexWrap: 'wrap' }}>
+              <TextField
+                  label="Código de Pase"
+                  value={paseCodigo}
+                  onChange={(e) => {
+                    setPaseCodigo(e.target.value);
+                    setResultadoPase(null);
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                          <VpnKeyIcon />
+                        </InputAdornment>
+                    ),
+                  }}
+                  size="small"
+              />
+              <Button
+                  variant="outlined"
+                  onClick={handleValidarPase}
+                  disabled={!paseCodigo || !puedeAccionar || validarPase.isPending}
+              >
+                {validarPase.isPending ? 'Validando...' : 'Validar'}
+              </Button>
+
+              {resultadoPase && (
+                  <Chip
+                      label={resultadoPase.valido ? 'Pase válido' : resultadoPase.motivo || 'Pase inválido'}
+                      color={resultadoPase.valido ? 'success' : 'error'}
+                      icon={resultadoPase.valido ? <CheckCircleOutlineIcon /> : <HighlightOffIcon />}
+                      size="small"
+                  />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Acciones */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+              Acción sobre {placaBuscada || 'la placa buscada'}
+            </Typography>
+            {!puedeAccionar && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Busca una placa para habilitar las acciones de aprobar, denegar o registrar contingencia/invitado.
+              </Typography>
+            )}
+            {puedeAccionar && <Box sx={{ mb: 1.5 }} />}
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleOutlineIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('APROBAR')}
+              >
+                {labelAprobar}
+              </Button>
+              <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<HighlightOffIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('DENEGAR')}
+              >
+                Denegar
+              </Button>
+              <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<ReportProblemOutlinedIcon />}
+                  disabled={!puedeAccionar}
+                  onClick={() => setModal('CONTINGENCIA')}
+              >
+                Contingencia / Invitado
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* Historial reciente de la placa */}
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+              Eventos recientes
+            </Typography>
+            {contexto.length === 0 ? (
+                <EmptyState
+                    titulo="Sin eventos recientes"
+                    descripcion="No hay eventos registrados para esta placa."
+                />
+            ) : (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Fecha/Hora</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Resultado</TableCell>
+                      <TableCell>Motivo</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {contexto.map((evento) => (
+                        <TableRow key={evento.eventoAccesoId}>
+                          <TableCell>{new Date(evento.capturadoEn).toLocaleString()}</TableCell>
+                          <TableCell>{evento.tipoMovimiento}</TableCell>
+                          <TableCell>
+                            <StatusChip estado={evento.decisionOperativa} />
+                          </TableCell>
+                          <TableCell>{evento.motivoDetalle ?? evento.motivoCodigo}</TableCell>
+                        </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Modal de acción */}
+        <Dialog open={modal !== null} onClose={cerrarModal} fullWidth maxWidth="sm">
+          <DialogTitle>
+            {modal === 'APROBAR' && labelAprobar}
+            {modal === 'DENEGAR' && 'Denegar acceso'}
+            {modal === 'CONTINGENCIA' && 'Registrar bajo contingencia'}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Placa: <strong>{placaBuscada}</strong> · Movimiento: <strong>{tipoMovimiento}</strong>
+            </DialogContentText>
+
+            {modal === 'APROBAR' && (
+                <RadioGroup value={motivoAprobar} onChange={(e) => setMotivoAprobar(e.target.value)}>
+                  {MOTIVOS_APROBAR.map((m) => (
+                      <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
+                  ))}
+                </RadioGroup>
+            )}
+
+            {modal === 'DENEGAR' && (
+                <RadioGroup value={motivoDenegar} onChange={(e) => setMotivoDenegar(e.target.value)}>
+                  {MOTIVOS_DENEGAR.map((m) => (
+                      <FormControlLabel key={m.value} value={m.value} control={<Radio />} label={m.label} />
+                  ))}
+                </RadioGroup>
+            )}
+
+            {(modal === 'APROBAR' || modal === 'CONTINGENCIA') && (
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  <TextField
+                      label="Nombre del conductor"
+                      value={conductorNombre}
+                      onChange={(e) => setConductorNombre(e.target.value)}
+                      fullWidth
+                  />
+                  <TextField
+                      label="Cédula del conductor"
+                      value={conductorCedula}
+                      onChange={(e) => setConductorCedula(e.target.value)}
+                      fullWidth
+                  />
+                  <TextField
+                      label="Destino"
+                      value={destino}
+                      onChange={(e) => setDestino(e.target.value)}
+                      fullWidth
+                  />
+                </Stack>
+            )}
+
+            {modal === 'CONTINGENCIA' && (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="duracion-label">Duración</InputLabel>
+                  <Select
+                      labelId="duracion-label"
+                      label="Duración"
+                      value={duracion}
+                      onChange={(e) => setDuracion(Number(e.target.value))}
                   >
-                    <Tab label="Resolución" />
-                    <Tab label="Pase Visitante" />
-                  </Tabs>
-                </Box>
+                    {DURACIONES.map((d) => (
+                        <MenuItem key={d.value} value={d.value}>
+                          {d.label}
+                        </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={cerrarModal}>Cancelar</Button>
+            {modal === 'APROBAR' && (
+                <Button variant="contained" color="success" onClick={confirmarAprobar} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+            {modal === 'DENEGAR' && (
+                <Button variant="contained" color="error" onClick={confirmarDenegar} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+            {modal === 'CONTINGENCIA' && (
+                <Button variant="contained" color="warning" onClick={confirmarContingencia} disabled={registrar.isPending}>
+                  Confirmar
+                </Button>
+            )}
+          </DialogActions>
+        </Dialog>
 
-                <Box sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-                  {actionTab === 0 ? (
-                    // FLOW 1: RESOLUCIÓN ESTÁNDAR
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                        <GavelIcon sx={{ color: vigiaColors.primary }} />
-                        <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.2rem' }}>
-                          Decisión de Acceso
-                        </Typography>
-                      </Box>
-
-                      <FormControl fullWidth sx={{ mb: 3 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 1, letterSpacing: 0.5 }}>
-                          ESTADO FINAL *
-                        </Typography>
-                        <Select
-                          value={estadoFinal}
-                          onChange={(e) => setEstadoFinal(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{
-                            backgroundColor: vigiaColors.white,
-                            borderRadius: vigiaRadius.sm,
-                            fontFamily: '"Inter", sans-serif',
-                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' },
-                          }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>
-                            Seleccione estado...
-                          </MenuItem>
-                          <MenuItem value="PERMITIDO">Acceso Permitido</MenuItem>
-                          <MenuItem value="DENEGADO">Acceso Denegado</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <FormControl fullWidth sx={{ mb: 4, flex: 1 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 1, letterSpacing: 0.5 }}>
-                          JUSTIFICACIÓN TÉCNICA *
-                        </Typography>
-                        <TextField
-                          multiline
-                          rows={4}
-                          value={justificacion}
-                          onChange={(e) => setJustificacion(e.target.value)}
-                          placeholder="El conductor coincide visualmente con el perfil registrado..."
-                          variant="outlined"
-                          sx={{
-                            backgroundColor: vigiaColors.white,
-                            borderRadius: vigiaRadius.sm,
-                            '& .MuiOutlinedInput-root': {
-                              fontFamily: '"Inter", sans-serif',
-                              fontSize: '0.9rem',
-                              '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' },
-                            }
-                          }}
-                        />
-                      </FormControl>
-
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Button
-                          variant="contained"
-                          onClick={handleConfirmar}
-                          disabled={!estadoFinal || !justificacion}
-                          startIcon={<CheckCircleOutlineIcon />}
-                          sx={{
-                            backgroundColor: '#0A2F86',
-                            color: vigiaColors.white,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            '&:hover': { backgroundColor: '#07205A' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(10, 47, 134, 0.4)', color: 'rgba(255,255,255,0.7)' }
-                          }}
-                        >
-                          Confirmar Resolución
-                        </Button>
-
-                        <Button
-                          variant="outlined"
-                          onClick={handleContingencia}
-                          startIcon={<WarningAmberIcon />}
-                          sx={{
-                            borderColor: 'rgba(0,0,0,0.15)',
-                            color: vigiaColors.textBody,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            backgroundColor: '#F3F4F6',
-                            '&:hover': { backgroundColor: '#E5E7EB', borderColor: 'rgba(0,0,0,0.2)' }
-                          }}
-                        >
-                          Registrar Contingencia
-                        </Button>
-                      </Box>
-                    </Box>
-                  ) : (
-                    // FLOW 2: PASE VISITANTE
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <PersonOutlineIcon sx={{ color: vigiaColors.primary }} />
-                        <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.2rem' }}>
-                          Generar Pase Temporal
-                        </Typography>
-                      </Box>
-
-                      <FormControl fullWidth>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>TIPO DE VISITANTE *</Typography>
-                        <Select
-                          value={visitanteTipo}
-                          onChange={(e) => setVisitanteTipo(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{ backgroundColor: vigiaColors.white, borderRadius: vigiaRadius.sm, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' } }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>Seleccione el tipo...</MenuItem>
-                          <MenuItem value="VISITA">Visita Familiar/Amigo</MenuItem>
-                          <MenuItem value="DELIVERY">Delivery / Repartidor</MenuItem>
-                          <MenuItem value="TAXI">Taxi / Transporte</MenuItem>
-                          <MenuItem value="SERVICIO">Servicios Técnicos</MenuItem>
-                          <MenuItem value="OTRO">Otro</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>NOMBRE *</Typography>
-                            <TextField
-                              size="small"
-                              value={visitanteNombre}
-                              onChange={(e) => setVisitanteNombre(e.target.value)}
-                              placeholder="Ej. Juan Pérez"
-                              sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                            />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <FormControl fullWidth>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DOCUMENTO *</Typography>
-                            <TextField
-                              size="small"
-                              value={visitanteDoc}
-                              onChange={(e) => setVisitanteDoc(e.target.value)}
-                              placeholder="Ej. 1712345678"
-                              sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                            />
-                          </FormControl>
-                        </Grid>
-                      </Grid>
-
-                      <FormControl fullWidth>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DESTINO / RESIDENTE *</Typography>
-                        <TextField
-                          size="small"
-                          value={visitanteDestino}
-                          onChange={(e) => setVisitanteDestino(e.target.value)}
-                          placeholder="Ej. Casa 42 - Familia Gómez"
-                          sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                        />
-                      </FormControl>
-
-                      <FormControl fullWidth sx={{ mb: 1 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DURACIÓN DEL PASE *</Typography>
-                        <Select
-                          value={paseDuracion}
-                          onChange={(e) => setPaseDuracion(e.target.value)}
-                          displayEmpty
-                          size="small"
-                          sx={{ backgroundColor: vigiaColors.white, borderRadius: vigiaRadius.sm, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.1)' } }}
-                        >
-                          <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>Seleccione duración...</MenuItem>
-                          <MenuItem value="30m">30 minutos</MenuItem>
-                          <MenuItem value="1h">1 hora</MenuItem>
-                          <MenuItem value="2h">2 horas</MenuItem>
-                          <MenuItem value="4h">4 horas</MenuItem>
-                          <MenuItem value="12h">12 horas</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: vigiaColors.textSecondary, mb: 0.5 }}>DESCRIPCIÓN (OPCIONAL)</Typography>
-                        <TextField
-                          size="small"
-                          multiline
-                          rows={2}
-                          value={visitanteDescripcion}
-                          onChange={(e) => setVisitanteDescripcion(e.target.value)}
-                          placeholder="Ej. Ingresa a dejar un paquete, color del auto..."
-                          sx={{ backgroundColor: vigiaColors.white, '& .MuiOutlinedInput-root': { borderRadius: vigiaRadius.sm, '& fieldset': { borderColor: 'rgba(0,0,0,0.1)' } } }}
-                        />
-                      </FormControl>
-
-                      <Box sx={{ mt: 'auto', pt: 1 }}>
-                        <Button
-                          variant="contained"
-                          onClick={() => {
-                            if (!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion) return;
-                            navigate('/guardia/cola-eventos');
-                          }}
-                          disabled={!visitanteTipo || !visitanteNombre || !visitanteDoc || !visitanteDestino || !paseDuracion}
-                          startIcon={<CheckCircleOutlineIcon />}
-                          fullWidth
-                          sx={{
-                            backgroundColor: '#059669', // Green for new pass
-                            color: vigiaColors.white,
-                            py: 1.5,
-                            fontWeight: 600,
-                            borderRadius: vigiaRadius.sm,
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            '&:hover': { backgroundColor: '#047857' },
-                            '&.Mui-disabled': { backgroundColor: 'rgba(5, 150, 105, 0.4)', color: 'rgba(255,255,255,0.7)' }
-                          }}
-                        >
-                          Generar Pase y Permitir
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
-            </Grid>
-
-          </Grid>
-        </motion.div>
-
-      </Box>
-    </DashboardTemplate>
+        <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </DashboardTemplate>
   );
-};
-
-export default RevisionManualPage;
+}

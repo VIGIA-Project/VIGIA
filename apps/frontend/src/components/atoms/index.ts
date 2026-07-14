@@ -6,6 +6,7 @@ export * from './SeverityDot';
 export * from './RolBadge';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { ErrorState } from './ErrorState';
+export { PerfilIncompletoState } from './PerfilIncompletoState';
 export { EmptyState } from './EmptyState';
 export { AnimatedCounter } from './AnimatedCounter';
 export { SectionHeader } from './SectionHeader';

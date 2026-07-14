@@ -26,6 +26,9 @@ export interface IUserRepository {
             passwordHash: string;
             status: string;
             mustChangePassword: boolean;
+            biometricRegistered: boolean;
+            vehicleRegistered: boolean;
+            personaId: string;
             updatedBy: string;
         }>,
     ): Promise<User>;

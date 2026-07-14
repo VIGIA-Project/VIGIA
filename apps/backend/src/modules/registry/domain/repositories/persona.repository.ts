@@ -7,7 +7,10 @@ export interface IPersonaRepository {
         tipo: string,
         numero: string,
     ): Promise<Persona | null>;
+    findByCorreo(correoInstitucional: string): Promise<Persona | null>;
     findAll(): Promise<Persona[]>;
+    contarTotal(): Promise<number>;
+    findSinPerfilBiometrico(): Promise<Persona[]>;
     update(
         personaId: string,
         data: Partial<{

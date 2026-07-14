@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Link from '@mui/material/Link';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface PageHeaderProps {
   title: string;
@@ -26,7 +27,7 @@ export default function PageHeader({ title, subtitle, breadcrumbs, action }: Pag
                 {bc.label}
               </Typography>
             ) : (
-              <Link key={i} href={bc.href} variant="caption" underline="hover" sx={{ fontWeight: 600 }}>
+              <Link key={i} component={RouterLink} to={bc.href} variant="caption" underline="hover" sx={{ fontWeight: 600 }}>
                 {bc.label}
               </Link>
             );

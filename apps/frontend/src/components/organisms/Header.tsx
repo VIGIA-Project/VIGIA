@@ -9,16 +9,20 @@ import { useAuth } from '../../context';
 
 export interface HeaderProps {
     pageTitle: string;
-    notificationCount: number;
     userInitials: string;
     isMobile: boolean;
     onMenuClick: () => void;
     rol?: 'OWNER' | 'GUARD' | 'ADMIN';
 }
 
+const ALERTAS_PATH_POR_ROL: Record<'OWNER' | 'GUARD' | 'ADMIN', string> = {
+    OWNER: '/propietario/alertas',
+    GUARD: '/guardia/alertas',
+    ADMIN: '/admin/alerting/alertas',
+};
+
 export const Header: React.FC<HeaderProps> = ({
     pageTitle,
-    notificationCount,
     userInitials,
     isMobile,
     onMenuClick,
@@ -79,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <NotificationBell count={notificationCount} alertasPath={rol === 'GUARD' ? '/guardia/alertas' : '/propietario/alertas'} />
+                    <NotificationBell alertasPath={rol ? ALERTAS_PATH_POR_ROL[rol] : '/propietario/alertas'} />
                     <UserAvatar
                         initials={userInitials}
                         onClick={handleAvatarClick}

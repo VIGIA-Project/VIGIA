@@ -18,6 +18,7 @@ import {
     IsOptional,
     IsEnum,
     IsInt,
+    IsBoolean,
     Min,
     Max,
 } from 'class-validator';
@@ -45,6 +46,16 @@ export class ChangePasswordDto {
     @IsString()
     @MinLength(8)
     newPassword: string;
+}
+
+export class UpdateOnboardingStatusDto {
+    @IsOptional()
+    @IsBoolean()
+    biometric_registered?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    vehicle_registered?: boolean;
 }
 
 export class CreateUserDto {
@@ -106,6 +117,12 @@ export class AuthController {
             dto.newPassword,
         );
         return { message: 'Contraseña actualizada correctamente' };
+    }
+
+    @Patch('users/me/onboarding-status')
+    @HttpCode(HttpStatus.OK)
+    async updateOwnOnboardingStatus(@Request() req, @Body() dto: UpdateOnboardingStatusDto) {
+        return this.authService.updateOnboardingStatus(req.user.id, dto);
     }
 
     @Post('users')

@@ -2,6 +2,8 @@
 // Constantes compartidas de VIGIA
 // ============================================================
 
+export * from './injection-tokens';
+
 export const VIGIA_CONSTANTS = {
   // Paginación por defecto
   DEFAULT_PAGE_SIZE: 20,

@@ -1,164 +1,283 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Avatar from '@mui/material/Avatar';
-import Grid from '@mui/material/Grid2';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import BadgeIcon from '@mui/icons-material/Badge';
-import LockResetIcon from '@mui/icons-material/LockReset';
-import ToggleOnIcon from '@mui/icons-material/ToggleOn';
-import ToggleOffIcon from '@mui/icons-material/ToggleOff';
-import PageHeader from '../../../components/admin-legacy/PageHeader';
-import DataTable, { type Column } from '../../../components/admin-legacy/DataTable';
-import StatusChip from '../../../components/admin-legacy/StatusChip';
-import ConfirmDialog from '../../../components/admin-legacy/ConfirmDialog';
+import { useState } from "react";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid2";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Alert from "@mui/material/Alert";
+import Skeleton from "@mui/material/Skeleton";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import ToggleOffIcon from "@mui/icons-material/ToggleOff";
+import PageHeader from "../../../components/admin-legacy/PageHeader";
+import DataTable, {
+  type Column,
+} from "../../../components/admin-legacy/DataTable";
+import StatusChip from "../../../components/admin-legacy/StatusChip";
+import ConfirmDialog from "../../../components/admin-legacy/ConfirmDialog";
+import {
+  useUsuariosAdmin,
+  useActivarUsuarioAdmin,
+  useDesactivarUsuarioAdmin,
+  useResetearPasswordUsuarioAdmin,
+} from "../../../hooks/useAdmin";
+import { UserRole, UserStatus, UsuarioAdmin } from "../../../services/types/admin.types";
 
-interface Cuenta {
-  id: number;
-  identificacion: string;
-  nombre: string;
-  correo: string;
-  rol: string;
-  estado: 'ACTIVO' | 'INACTIVO' | 'PENDIENTE_CONTRASEÑA' | 'PENDIENTE_BIOMETRIA' | 'DESACTIVADO';
-  ultimoLogin: string;
+const rolLabel: Record<UserRole, string> = {
+  ADMIN: "Administrador",
+  GUARD: "Guardia",
+  OWNER: "Propietario",
+};
+
+interface Row extends UsuarioAdmin {
+  id: string;
 }
 
-const rows: Cuenta[] = [
-  { id: 1, identificacion: '1712345670', nombre: 'Administrador del Sistema', correo: 'admin@uce.edu.ec', rol: 'Administrador', estado: 'ACTIVO', ultimoLogin: '2024-08-20 08:15' },
-  { id: 2, identificacion: '1718901235', nombre: 'Juan Pérez Guardia', correo: 'jperez@uce.edu.ec', rol: 'Guardia', estado: 'PENDIENTE_CONTRASEÑA', ultimoLogin: 'Nunca' },
-  { id: 3, identificacion: '1712345678', nombre: 'María Fernanda López', correo: 'mflopez@uce.edu.ec', rol: 'Docente', estado: 'ACTIVO', ultimoLogin: '2024-08-19 14:32' },
-  { id: 4, identificacion: '1718901234', nombre: 'Carlos Andrés Mendoza', correo: 'camendoza@uce.edu.ec', rol: 'Guardia', estado: 'PENDIENTE_BIOMETRIA', ultimoLogin: '2024-08-20 06:00' },
-  { id: 5, identificacion: '1709876543', nombre: 'Patricia Salazar Naranjo', correo: 'psalazar@uce.edu.ec', rol: 'Administrativo', estado: 'DESACTIVADO', ultimoLogin: '2024-07-15 10:20' },
-  { id: 6, identificacion: '1714567890', nombre: 'Jorge Luis Velasteguí', correo: 'jvelastegui@uce.edu.ec', rol: 'Guardia', estado: 'ACTIVO', ultimoLogin: '2024-08-20 07:45' },
-];
-
-const columns: Column<Cuenta>[] = [
+const columns: Column<Row>[] = [
   {
-    id: 'nombre',
-    label: 'Persona',
+    id: "email",
+    label: "Cuenta",
     render: (row) => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Avatar sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: 'primary.main' }}>
-          {row.nombre.charAt(0).toUpperCase()}
-        </Avatar>
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.nombre}</Typography>
-          <Typography variant="caption" color="text.secondary">{row.correo}</Typography>
-        </Box>
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {row.email}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {row.personaId ? `Persona ${row.personaId.slice(0, 8)}` : "Sin persona vinculada"}
+        </Typography>
       </Box>
     ),
   },
-  { id: 'identificacion', label: 'Identificación', render: (row) => <Typography variant="body2" sx={{ fontWeight: 500 }}>{row.identificacion}</Typography> },
-  { id: 'rol', label: 'Rol', render: (row) => <Typography variant="body2" sx={{ fontWeight: 600, color: row.rol === 'Guardia' ? 'warning.main' : row.rol === 'Administrador' ? 'error.main' : 'text.primary' }}>{row.rol}</Typography> },
-  { id: 'estado', label: 'Estado', render: (row) => <StatusChip kind="cuenta" value={row.estado} /> },
-  { id: 'ultimoLogin', label: 'Último Login', render: (row) => <Typography variant="caption" color="text.secondary">{row.ultimoLogin}</Typography> },
+  {
+    id: "role",
+    label: "Rol",
+    render: (row) => (
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 600,
+          color:
+            row.role === "GUARD"
+              ? "warning.main"
+              : row.role === "ADMIN"
+                ? "error.main"
+                : "text.primary",
+        }}
+      >
+        {rolLabel[row.role]}
+      </Typography>
+    ),
+  },
+  {
+    id: "status",
+    label: "Estado",
+    render: (row) => <StatusChip kind="cuenta" value={row.status} />,
+  },
 ];
 
 export default function CuentasList() {
-  const navigate = useNavigate();
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [filterRol, setFilterRol] = useState<string>('');
-  const [confirm, setConfirm] = useState<{ open: boolean; title: string; message: string; action?: () => void }>({ open: false, title: '', message: '' });
+  const [filterRol, setFilterRol] = useState<UserRole | "">("");
+  const [filterEstado, setFilterEstado] = useState<UserStatus | "">("");
+  const [confirm, setConfirm] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    action?: () => void;
+  }>({ open: false, title: "", message: "" });
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
 
-  const filteredRows = filterRol ? rows.filter((r) => r.rol === filterRol) : rows;
+  const { data, isLoading, isError, refetch } = useUsuariosAdmin({
+    role: filterRol || undefined,
+    status: filterEstado || undefined,
+    limit: 100,
+  });
+
+  const activar = useActivarUsuarioAdmin();
+  const desactivar = useDesactivarUsuarioAdmin();
+  const resetPassword = useResetearPasswordUsuarioAdmin();
+
+  const rows: Row[] = (data?.data ?? []).map((u) => ({ ...u, id: u.id }));
 
   return (
     <Box>
       <PageHeader
         title="Cuentas de Usuario"
         subtitle="Gestión de cuentas de acceso al sistema VIGIA"
-        breadcrumbs={[{ label: 'Auth' }, { label: 'Cuentas de Usuario' }]}
-        action={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="contained"
-              startIcon={<PersonAddIcon />}
-              onClick={() => navigate('/admin/registro/usuario')}
-            >
-              Registrar Usuario
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<BadgeIcon />}
-              onClick={() => navigate('/admin/registro/guardia')}
-              sx={{ borderColor: 'warning.main', color: 'warning.main', '&:hover': { borderColor: 'warning.dark', bgcolor: 'warning.main', color: '#fff' } }}
-            >
-              Registrar Guardia
-            </Button>
-          </Box>
-        }
+        breadcrumbs={[{ label: "Auth" }, { label: "Cuentas de Usuario" }]}
       />
 
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {[
-          { label: 'Cuentas Activas', value: '4', color: 'success.main' },
-          { label: 'Pendientes de Cambio', value: '1', color: 'warning.main' },
-          { label: 'Inactivas', value: '1', color: 'text.secondary' },
+          { label: "Cuentas Activas", value: rows.filter((r) => r.status === "ACTIVE").length, color: "success.main" },
+          { label: "Pendientes de Cambio", value: rows.filter((r) => r.status === "PENDING_PASSWORD_CHANGE").length, color: "warning.main" },
+          { label: "Inactivas", value: rows.filter((r) => r.status === "INACTIVE").length, color: "text.secondary" },
         ].map((s) => (
           <Grid key={s.label} size={{ xs: 12, sm: 4 }}>
-            <Card><CardContent>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{s.label}</Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: s.color }}>{s.value}</Typography>
-            </CardContent></Card>
+            <Card>
+              <CardContent>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600 }}
+                >
+                  {s.label}
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, color: s.color }}
+                >
+                  {isLoading ? "-" : s.value}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         ))}
       </Grid>
 
-      <DataTable
-        columns={columns}
-        rows={filteredRows}
-        searchPlaceholder="Buscar por nombre, identificación o correo..."
-        searchKeys={(r) => `${r.nombre} ${r.identificacion} ${r.correo}`}
-        onRowClick={(row) => navigate(`/admin/registry/personas/${row.id}`)}
-        rowActions={(row) => [
-          { icon: <LockResetIcon fontSize="small" />, label: 'Resetear contraseña', onClick: () => setConfirm({ open: true, title: 'Resetear contraseña', message: `Se enviará una nueva contraseña temporal a ${row.correo}.`, action: () => setConfirm((s) => ({ ...s, open: false })) }), color: 'warning' },
-          row.estado === 'ACTIVO' || row.estado === 'PENDIENTE_CONTRASEÑA' || row.estado === 'PENDIENTE_BIOMETRIA'
-            ? { icon: <ToggleOffIcon fontSize="small" />, label: 'Desactivar', onClick: () => setConfirm({ open: true, title: 'Desactivar cuenta', message: `La cuenta de ${row.nombre} quedará desactivada y no podrá ingresar al sistema.`, action: () => setConfirm((s) => ({ ...s, open: false })) }), color: 'error' }
-            : { icon: <ToggleOnIcon fontSize="small" />, label: 'Activar', onClick: () => setConfirm({ open: true, title: 'Activar cuenta', message: `La cuenta de ${row.nombre} quedará activa de nuevo.`, action: () => setConfirm((s) => ({ ...s, open: false })) }), color: 'success' },
-        ]}
-      />
-
-      <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Filtrar por Rol</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth size="small" sx={{ mt: 1 }}>
-            <InputLabel>Rol</InputLabel>
-            <Select value={filterRol} label="Rol" onChange={(e) => setFilterRol(e.target.value)}>
-              <MenuItem value="">Todos</MenuItem>
-              <MenuItem value="Administrador">Administrador</MenuItem>
-              <MenuItem value="Guardia">Guardia</MenuItem>
-              <MenuItem value="Docente">Docente</MenuItem>
-              <MenuItem value="Administrativo">Administrativo</MenuItem>
-              <MenuItem value="Estudiante">Estudiante</MenuItem>
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => { setFilterRol(''); setFilterOpen(false); }} color="inherit">Limpiar</Button>
-          <Button variant="contained" onClick={() => setFilterOpen(false)}>Aplicar</Button>
-        </DialogActions>
-      </Dialog>
+      {isLoading ? (
+        <Skeleton variant="rounded" height={320} />
+      ) : isError ? (
+        <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => refetch()}>Reintentar</Button>}>
+          No se pudieron cargar las cuentas de usuario.
+        </Alert>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={rows}
+          searchPlaceholder="Buscar por correo..."
+          searchKeys={(r) => r.email}
+          headerActions={
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Rol</InputLabel>
+                <Select
+                  value={filterRol}
+                  label="Rol"
+                  onChange={(e) => setFilterRol(e.target.value as UserRole | "")}
+                >
+                  <MenuItem value="">Todos los roles</MenuItem>
+                  <MenuItem value="ADMIN">Administrador</MenuItem>
+                  <MenuItem value="GUARD">Guardia</MenuItem>
+                  <MenuItem value="OWNER">Propietario</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>Estado</InputLabel>
+                <Select
+                  value={filterEstado}
+                  label="Estado"
+                  onChange={(e) => setFilterEstado(e.target.value as UserStatus | "")}
+                >
+                  <MenuItem value="">Todos los estados</MenuItem>
+                  <MenuItem value="ACTIVE">Activa</MenuItem>
+                  <MenuItem value="INACTIVE">Inactiva</MenuItem>
+                  <MenuItem value="PENDING_PASSWORD_CHANGE">Cambio de contraseña pendiente</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          }
+          rowActions={(row) => [
+            {
+              icon: <LockResetIcon fontSize="small" />,
+              label: "Resetear contraseña",
+              onClick: () =>
+                setConfirm({
+                  open: true,
+                  title: "Resetear contraseña",
+                  message: `Se generará una nueva contraseña temporal para ${row.email}.`,
+                  action: () => {
+                    resetPassword.mutate(row.id, {
+                      onSuccess: (result) => setTempPassword(result.temporaryPassword),
+                    });
+                    setConfirm((s) => ({ ...s, open: false }));
+                  },
+                }),
+              color: "warning",
+            },
+            row.status === "ACTIVE" || row.status === "PENDING_PASSWORD_CHANGE"
+              ? {
+                  icon: <ToggleOffIcon fontSize="small" />,
+                  label: "Desactivar",
+                  onClick: () =>
+                    setConfirm({
+                      open: true,
+                      title: "Desactivar cuenta",
+                      message: `La cuenta ${row.email} quedará desactivada y no podrá ingresar al sistema.`,
+                      action: () => {
+                        desactivar.mutate(row.id);
+                        setConfirm((s) => ({ ...s, open: false }));
+                      },
+                    }),
+                  color: "error",
+                }
+              : {
+                  icon: <ToggleOnIcon fontSize="small" />,
+                  label: "Activar",
+                  onClick: () =>
+                    setConfirm({
+                      open: true,
+                      title: "Activar cuenta",
+                      message: `La cuenta ${row.email} quedará activa de nuevo.`,
+                      action: () => {
+                        activar.mutate(row.id);
+                        setConfirm((s) => ({ ...s, open: false }));
+                      },
+                    }),
+                  color: "success",
+                },
+          ]}
+        />
+      )}
 
       <ConfirmDialog
         open={confirm.open}
         title={confirm.title}
         message={confirm.message}
-        destructive={confirm.title.includes('Desactivar')}
+        destructive={confirm.title.includes("Desactivar")}
         onConfirm={() => confirm.action?.()}
         onClose={() => setConfirm((s) => ({ ...s, open: false }))}
       />
+
+      <Dialog open={!!tempPassword} onClose={() => setTempPassword(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Contraseña temporal generada</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Esta contraseña se muestra una única vez. Compártela de forma segura con el usuario.
+          </Typography>
+          <TextField
+            fullWidth
+            value={tempPassword ?? ""}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => tempPassword && navigator.clipboard.writeText(tempPassword)}>
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="contained" onClick={() => setTempPassword(null)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

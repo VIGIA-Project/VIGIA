@@ -1,5 +1,5 @@
 // src/components/organisms/propietario/VehiculoPersonasTab.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -8,12 +8,37 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import { staggerContainer, staggerItem } from '../../../config/animations.config';
 import { vigiaColors, vigiaRadius, vigiaShadows } from '../../../theme/vigia-theme';
-import { MOCK_PERSONAS_AUTORIZADAS, PERSONAS_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { mapMiembroAPersonaAutorizada, PERSONAS_TAB_COPY } from '../../../config/propietario-vehiculo-detalle.config';
+import { useAuth } from '../../../context';
+import { useMiembrosGrupoFamiliar } from '../../../hooks/useAuthorization';
+import { usePersonasDelPropietario as usePersonasResolver } from '../../../hooks/useRegistry';
+import { LoadingSkeleton, ErrorState } from '../../atoms';
 
 export const VehiculoPersonasTab: React.FC = () => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
-  const personas = MOCK_PERSONAS_AUTORIZADAS;
+  const { user } = useAuth();
+
+  const autorizacionesQuery = useMiembrosGrupoFamiliar(user?.personaId);
+  const autorizaciones = useMemo(
+    () => (autorizacionesQuery.data ?? []).filter((a) => a.estado === 'ACTIVA'),
+    [autorizacionesQuery.data]
+  );
+  const personaIds = useMemo(() => autorizaciones.map((a) => a.personaId), [autorizaciones]);
+  const { personasById, isLoading: isLoadingPersonas } = usePersonasResolver(personaIds);
+
+  const personas = useMemo(
+    () => autorizaciones.map((a) => mapMiembroAPersonaAutorizada(a, personasById.get(a.personaId))),
+    [autorizaciones, personasById]
+  );
+
+  if (autorizacionesQuery.isLoading || isLoadingPersonas) {
+    return <LoadingSkeleton variant="cards" rows={3} />;
+  }
+
+  if (autorizacionesQuery.isError) {
+    return <ErrorState mensaje="No se pudo cargar el grupo familiar." onRetry={() => autorizacionesQuery.refetch()} />;
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

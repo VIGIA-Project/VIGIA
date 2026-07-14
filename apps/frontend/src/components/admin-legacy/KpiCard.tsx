@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import type { SxProps } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 
 interface KpiCardProps {
   title: string;
@@ -12,6 +13,7 @@ interface KpiCardProps {
   icon: React.ReactNode;
   accent?: 'primary' | 'secondary' | 'warning' | 'error' | 'success' | 'info';
   sx?: SxProps<Theme>;
+  path?: string;
 }
 
 const accentColors: Record<NonNullable<KpiCardProps['accent']>, string> = {
@@ -23,10 +25,23 @@ const accentColors: Record<NonNullable<KpiCardProps['accent']>, string> = {
   info: '#4A8EC0',
 };
 
-export default function KpiCard({ title, value, subtitle, icon, accent = 'primary', sx }: KpiCardProps) {
+export default function KpiCard({ title, value, subtitle, icon, accent = 'primary', sx, path }: KpiCardProps) {
   const color = accentColors[accent];
+  const navigate = useNavigate();
   return (
-    <Card sx={{ height: '100%', ...sx }}>
+    <Card 
+      onClick={() => path && navigate(path)}
+      sx={{ 
+        height: '100%', 
+        cursor: path ? 'pointer' : 'default',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        '&:hover': path ? {
+          transform: 'translateY(-4px)',
+          boxShadow: 4,
+        } : {},
+        ...sx 
+      }}
+    >
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, lineHeight: 1.2 }}>

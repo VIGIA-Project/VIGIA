@@ -38,6 +38,12 @@ export class UserOrmEntity {
     @Column({ name: 'must_change_password', default: true })
     mustChangePassword: boolean;
 
+    @Column({ name: 'biometric_registered', default: false })
+    biometricRegistered: boolean;
+
+    @Column({ name: 'vehicle_registered', default: false })
+    vehicleRegistered: boolean;
+
     @Column({ name: 'last_login_at', nullable: true, type: 'timestamptz' })
     lastLoginAt: Date | null;
 

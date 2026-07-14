@@ -1,223 +1,239 @@
 # VIGIA — Frontend Web
 
-> Ecosistema Inteligente de Seguridad y Control de Acceso Vehicular Biométrico
+> Intelligent Vehicle Access and Biometric Security System
 > Universidad Central del Ecuador · 2026
 
-SPA en React 19 + Vite, con tres experiencias por rol (Propietario, Guardia, Administrador) sobre un mismo shell de autenticación. El dashboard de **Propietario** es hoy el más completo e iterado; Guardia y Admin están implementados pero congelados (ver reglas de aislamiento por rol).
+SPA built with React 19 + Vite, with three role-based experiences (Owner, Guard, Administrator) on top of a shared authentication shell. The **Owner (Propietario)** dashboard is the most complete and iterated today; Guard and Admin are implemented but frozen (see the role-isolation rules below).
 
-> Para instrucciones de arranque del monorepo completo (incluye backend y DB), ver el [README de la raíz](../../README.md).
+> For instructions to run the whole monorepo (backend + DB included), see the [root README](../../README.md).
 
 ---
 
-## Stack Tecnológico
+## Tech stack
 
-| Tecnología | Versión | Propósito |
+| Technology | Version | Purpose |
 |-----------|---------|-----------|
-| React | 19 | UI Library |
-| TypeScript | 5.8 | Tipado estático |
-| Vite | 6.x | Build tool y dev server |
-| Material UI | 6.x | Componentes de UI |
-| React Router | 7.x | Enrutamiento SPA |
-| TanStack Query | 5.x | Estado del servidor y caché (instalado; la mayoría de páginas hoy usan `useState` + mocks, no queries reales) |
-| React Hook Form + Zod | — | Formularios y validación |
-| Framer Motion | — | Animaciones y transiciones de página |
-| Axios | 1.x | Cliente HTTP (`src/services/api.ts`) |
+| React | 19 | UI library |
+| TypeScript | 5.8 | Static typing |
+| Vite | 6.x | Build tool and dev server |
+| Material UI | 6.x | UI components |
+| React Router | 7.x | SPA routing |
+| TanStack Query | 5.x | Server state and caching (installed; Owner's authorization/registry pages use real queries, other roles still use `useState` + mocks) |
+| React Hook Form + Zod | — | Forms and validation |
+| Framer Motion | — | Animations and page transitions |
+| Axios | 1.x | HTTP client (`src/services/api.ts`) |
 
 ---
 
-## Requisitos previos
+## Prerequisites
 
 - Node.js **22.x**
 - pnpm **11.x**
-- Backend corriendo en `http://localhost:3000` (ver [`apps/backend/README.md`](../backend/README.md)) — el login real requiere el backend arriba.
+- Backend running on `http://localhost:3000` (see [`apps/backend/README.md`](../backend/README.md)) — real login and the Owner dashboard's authorization data require the backend to be up.
 
-## Instalación
+## Install
 
 ```bash
-# Desde la raíz del monorepo
+# From the monorepo root
 pnpm install
 ```
 
-## Variables de entorno
+## Environment variables
 
 ```bash
 cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
-| Variable | Descripción | Default |
+| Variable | Description | Default |
 |----------|-------------|---------|
-| `VITE_API_BASE_URL` | URL base del backend (también acepta `VITE_API_URL` como alias) | `http://localhost:3000/api/v1` |
-| `VITE_APP_ENV` | Entorno lógico de la app | `development` |
-| `VITE_APP_NAME` | Nombre mostrado en títulos/meta tags | `VIGIA` |
-| `VITE_APP_VERSION` | Versión mostrada en la UI | `0.1.0` |
+| `VITE_API_BASE_URL` | Backend base URL (also accepts `VITE_API_URL` as an alias) | `http://localhost:3000/api/v1` |
+| `VITE_APP_ENV` | Logical app environment | `development` |
+| `VITE_APP_NAME` | Shown in titles/meta tags | `VIGIA` |
+| `VITE_APP_VERSION` | Version shown in the UI | `0.1.0` |
 
-## Arranque local
+## Run locally
 
 ```bash
-pnpm dev:frontend        # desde la raíz
-# o
+pnpm dev:frontend        # from the root
+# or
 cd apps/frontend && pnpm dev
 ```
 
-Disponible en **http://localhost:5173**.
+Available at **http://localhost:5173**.
 
-## Build de producción
+## Production build
 
 ```bash
-pnpm build:frontend      # ejecuta `tsc && vite build` — obligatorio antes de push
+pnpm build:frontend      # runs `tsc && vite build` — required before push
 ```
 
-Salida en `apps/frontend/dist/`.
+Output in `apps/frontend/dist/`.
 
 ---
 
-## Estructura de carpetas (Atomic Design + Feature-based)
+## Folder structure (Atomic Design + feature-based)
 
 ```
 src/
-├── assets/                # Imágenes, logos
+├── assets/                # Images, logos
 ├── components/
 │   ├── atoms/              # SkipToContent, PageTransition, SessionExpiredAlert...
 │   ├── molecules/          # PersonaCard, PaseRapidoCard, PermisoTemporalCard, NotificationBell, UserAvatar...
-│   ├── organisms/           # Header, Sidebar, drawers y grids por feature (organisms/propietario/, organisms/onboarding/)
+│   ├── organisms/           # Header, Sidebar, feature drawers/grids (organisms/propietario/, organisms/onboarding/)
 │   ├── guards/              # ProtectedRoute, PublicRoute
 │   └── templates/           # DashboardTemplate (OWNER/GUARD), LegacyAdminLayout (ADMIN)
-├── config/                 # navigation.config.tsx + un *.config.ts por feature (mocks + copy + tipos)
-├── context/                # AuthContext (login, JWT, normalización de rol, onboarding)
+├── config/                 # navigation.config.tsx + one *.config.ts per feature (mocks + copy + types)
+├── context/                # AuthContext (login, JWT, role normalization, onboarding)
+├── hooks/                  # TanStack Query hooks per service (useAuthorization, useRegistry, ...)
 ├── pages/
 │   ├── auth/                # Login, CambiarPassword
-│   ├── propietario/         # Ver inventario completo abajo
+│   ├── propietario/         # See full inventory below
 │   ├── guardia/              # Inicio, ColaEventos, RevisionManual, Contingencia, AlertasGuardia
 │   └── admin/                # Dashboard + registry/ authorization/ biometric/ alerting/ auditoria/
-├── services/                # api.ts — instancia Axios con interceptor de JWT
-├── theme/                   # vigia-theme.ts — paleta, radios, sombras, spacing
-├── App.tsx                  # Definición de rutas
+├── services/                # api.ts (Axios instance with JWT interceptor) + one *.service.ts per backend BC
+├── theme/                   # vigia-theme.ts — palette, radii, shadows, spacing
+├── App.tsx                  # Route definitions
 └── main.tsx                 # Entry point
 ```
 
-### Patrón de `config/*.config.ts`
+### Service layer pattern
 
-Cada feature de Propietario sigue el mismo patrón: **un único archivo `config` que exporta a la vez** el/los `interface` TypeScript, constantes de dominio, arrays `MOCK_*`, y objetos de copy en español (`*_COPY`). Ejemplos: `propietario-personas.config.ts`, `propietario-pases.config.ts`, `propietario-permisos.config.ts`, `propietario-vehiculos.config.ts`, `propietario-vehiculo-detalle.config.ts`. Al agregar una feature nueva, sigue este mismo patrón en vez de crear tipos sueltos.
+Each connected feature follows the same chain: **Axios instance (`services/api.ts`) → typed service functions (`services/<bc>.service.ts` + `services/types/<bc>.types.ts`) → TanStack Query hooks (`hooks/use<Bc>.ts`) → pages**. Example for authorization: `services/authorization.service.ts` wraps every `/api/v1/authorization/*` call, `services/types/authorization.types.ts` mirrors the backend aggregates' `toJSON()` shape, and `hooks/useAuthorization.ts` exposes `useMiembrosGrupoFamiliar`, `useCrearMiembroGrupoFamiliar`, `usePermisosVigentesPorVehiculo`, `useMisPases`, etc., with query-key based cache invalidation on every mutation.
 
-⚠️ Existen **dos definiciones distintas de `PersonaAutorizada`**: la completa en `propietario-personas.config.ts` (con `cedula`, `tipo`, `telefono`) y una reducida en `propietario-vehiculo-detalle.config.ts` (solo para el tab "Personas" del detalle de vehículo), con mocks independientes no sincronizados entre sí. Ten esto en cuenta si tocas ambas pantallas.
+### `config/*.config.ts` pattern
+
+Every Owner feature follows the same pattern: **a single config file that exports** the TypeScript `interface`(s), domain constants, any remaining `MOCK_*` arrays, and Spanish copy objects (`*_COPY`). Examples: `propietario-personas.config.ts`, `propietario-pases.config.ts`, `propietario-permisos.config.ts`, `propietario-vehiculos.config.ts`, `propietario-vehiculo-detalle.config.ts`. When adding a new feature, follow this same pattern instead of scattering loose types.
+
+⚠️ There are **two separate definitions of `PersonaAutorizada`**: the full one in `propietario-personas.config.ts` (with `cedula`, `tipo`, `telefono`, built from real API data via `mapAutorizacionAPersona`) and a reduced one in `propietario-vehiculo-detalle.config.ts` (only for the "Personas" tab of the vehicle detail screen, still mock-backed and not synced with the other one). Keep this in mind if you touch both screens.
 
 ---
 
-## Roles, normalización y guards
+## Roles, normalization, and guards
 
-El backend envía `role: 'OWNER' | 'GUARD' | 'ADMIN'`. `AuthContext.normalizeUser()` siempre expone **ambos** `role` y `rol` (alias legado `PROPIETARIO`/`GUARDIA`/`ADMIN`); en código nuevo compara siempre contra el valor del backend (`'OWNER'`, no `'PROPIETARIO'`).
+The backend sends `role: 'OWNER' | 'GUARD' | 'ADMIN'`. `AuthContext.normalizeUser()` always exposes **both** `role` and `rol` (legacy alias `PROPIETARIO`/`GUARDIA`/`ADMIN`); new code always compares against the backend value (`'OWNER'`, not `'PROPIETARIO'`).
 
-| Rol backend | Rutas | Layout |
+| Backend role | Routes | Layout |
 |-------------|-------|--------|
 | `OWNER` | `/propietario/*` | `DashboardTemplate` |
 | `GUARD` | `/guardia/*` | `DashboardTemplate` |
 | `ADMIN` | `/admin/*` | `LegacyAdminLayout` |
 
-### Flujo de autenticación y onboarding (`ProtectedRoute`)
+### Authentication and onboarding flow (`ProtectedRoute`)
 
 ```
 Login
   └─ must_change_password? ──────────────► /cambiar-password
-  └─ rol no permitido en la ruta? ────────► redirect
+  └─ role not allowed on this route? ─────► redirect
   └─ OWNER + !biometric_registered? ──────► /propietario/onboarding/biometria
   └─ OWNER + !vehicle_registered? ────────► /propietario/onboarding/primer-vehiculo
-  └─ Dashboard según rol
+  └─ Dashboard for the role
 ```
 
-`ProtectedRoute` (`components/guards/ProtectedRoute.tsx`) implementa esta cadena de gates en orden: loading → no autenticado → `must_change_password` → `allowedRoles` → biometría pendiente (solo OWNER) → vehículo pendiente (solo OWNER).
+`ProtectedRoute` (`components/guards/ProtectedRoute.tsx`) implements this gate chain in order: loading → not authenticated → `must_change_password` → `allowedRoles` → pending biometrics (OWNER only) → pending vehicle (OWNER only).
 
-> ⚠️ **Limitación conocida:** `biometric_registered` y `vehicle_registered` no vienen persistidos desde el backend (`POST /auth/login` no los devuelve todavía). El frontend los resuelve en `AuthContext` (`completeBiometricOnboarding()` / `completeVehicleOnboarding()`) y solo viven en `localStorage` del lado del cliente — se pierden si el backend no los persiste, por lo que el onboarding puede repetirse tras cada login real. No es un bug de UI, es un gap de backend documentado en su README.
+`biometric_registered` and `vehicle_registered` come from the backend on login (`POST /auth/login`) and are persisted server-side on the `User` entity. `AuthContext.completeBiometricOnboarding()` / `completeVehicleOnboarding()` update local state immediately and call `PATCH /auth/users/me/onboarding-status` to persist the change — see [`apps/backend/README.md`](../backend/README.md#auth-apiv1auth) for the endpoint contract.
 
 ---
 
-## Inventario de páginas — Propietario (`/propietario/*`)
+## Page inventory — Owner (`/propietario/*`)
 
-Es el dashboard más completo. Todas usan `DashboardTemplate rol="OWNER"`.
+The most complete dashboard. All pages use `DashboardTemplate rol="OWNER"`.
 
-| Ruta | Página | Descripción |
+| Route | Page | Description |
 |------|--------|-------------|
-| `/propietario/onboarding/biometria` | `BiometricOnboardingPage` | Captura de 3 fotos (frontal/perfil izq/perfil der), obligatorio si `!biometric_registered` |
-| `/propietario/onboarding/primer-vehiculo` | `VehicleOnboardingPage` | Registro del primer vehículo, obligatorio si `!vehicle_registered` |
-| `/propietario/inicio` | `InicioPage` | Saludo dinámico, 5 KPIs, actividad reciente, mini-vehículos, mini-familia, 4 acciones rápidas |
-| `/propietario/vehiculos` | `MisVehiculosPage` | Grid de vehículos, registro (drawer) |
-| `/propietario/vehiculos/:placa` | `VehiculoDetallePage` | Detalle con tabs (resumen/personas/permisos/pases/actividad) + edición (placa bloqueada) |
-| `/propietario/personas` | `PersonasAutorizadasPage` | Grupo familiar y personas frecuentes, alta con biometría presencial opcional |
-| `/propietario/personas/:id` | `PersonaDetallePage` | Detalle de persona: info, estado biométrico, actividad, revocar |
-| `/propietario/personas/:id/biometria` | `BiometricCapturePersonaPage` | Captura biométrica presencial de un tercero (reutiliza el organism de onboarding) |
-| `/propietario/permisos-temporales` | `PermisosTemporalesPage` | Permisos con vigencia auto-calculada (máx. 30 días desde el inicio) |
-| `/propietario/pases-rapidos` | `PasesRapidosPage` | Generación de pases de acceso puntual sin biometría (overlay premium) |
-| `/propietario/alertas` | `AlertasPage` | Alertas + resumen de atención + acciones recomendadas |
-| `/propietario/historial` | `HistorialPage` | Eventos de acceso agrupados por Hoy/Ayer/Anteriores, con filtros |
-| `/propietario/perfil` | `PerfilPage` | Info de cuenta, resumen, seguridad, cerrar sesión (solo accesible desde el menú del avatar, no está en el sidebar) |
+| `/propietario/onboarding/biometria` | `BiometricOnboardingPage` | Captures 3 photos (front/left profile/right profile), required if `!biometric_registered` |
+| `/propietario/onboarding/primer-vehiculo` | `VehicleOnboardingPage` | Registers the first vehicle, required if `!vehicle_registered` |
+| `/propietario/inicio` | `InicioPage` | Dynamic greeting, 5 KPIs, recent activity, mini vehicle/family lists, 4 quick actions |
+| `/propietario/vehiculos` | `MisVehiculosPage` | Vehicle grid, registration (drawer) |
+| `/propietario/vehiculos/:placa` | `VehiculoDetallePage` | Detail with tabs (summary/people/permits/passes/activity) + edit (plate locked) |
+| `/propietario/personas` | `PersonasAutorizadasPage` | Family group and frequent visitors, connected to the real Authorization + Registry APIs, optional in-person biometric enrollment on add |
+| `/propietario/personas/:id` | `PersonaDetallePage` | Person detail: info, biometric status, activity, revoke |
+| `/propietario/personas/:id/biometria` | `BiometricCapturePersonaPage` | In-person biometric capture for a third party (reuses the onboarding organism) |
+| `/propietario/permisos-temporales` | `PermisosTemporalesPage` | Permits with auto-calculated validity (max. 30 days from start), connected to the real API |
+| `/propietario/pases-rapidos` | `PasesRapidosPage` | Generates one-time access passes without biometrics (premium overlay), connected to the real API |
+| `/propietario/alertas` | `AlertasPage` | Alerts + attention summary + recommended actions (mock) |
+| `/propietario/historial` | `HistorialPage` | Access events grouped by Today/Yesterday/Earlier, with filters (mock) |
+| `/propietario/perfil` | `PerfilPage` | Account info, summary, security, logout (only reachable from the avatar menu, not in the sidebar) |
 
-Todas las rutas de auto-apertura de drawers usan `location.state` (`{ openGenerarPase, openCrearPermiso, openRegistrar, openDrawer }`) disparado desde las acciones rápidas de `Inicio`.
+All drawer auto-open routes use `location.state` (`{ openGenerarPase, openCrearPermiso, openRegistrar, openDrawer }`) triggered from `Inicio`'s quick actions.
 
-## Inventario de páginas — Guardia (`/guardia/*`)
+## Page inventory — Guard (`/guardia/*`)
 
-`Inicio`, `ColaEventos`, `RevisionManual`, `Contingencia`, `AlertasGuardia`. Datos mock, sin cambios recientes — **no modificar sin que lo pida explícitamente el ticket**.
+`Inicio`, `ColaEventos`, `RevisionManual`, `Contingencia`, `AlertasGuardia`. Mock data, no recent changes — **do not modify unless the ticket explicitly asks for it**.
 
-## Inventario de páginas — Admin (`/admin/*`)
+## Page inventory — Admin (`/admin/*`)
 
-Usa `LegacyAdminLayout` (no `DashboardTemplate`). Incluye `Dashboard` y submódulos `registry/` (vehículos, personas, roles institucionales), `authorization/` (permanentes, temporales, vista por vehículo), `biometric/` (perfiles, registro), `alerting/` (alertas, notificaciones), `auditoria/` (historial de eventos) y `auth/CuentasList`. Datos mock, sin cambios recientes — **no modificar sin que lo pida explícitamente el ticket**.
-
----
-
-## Persistencia mock (localStorage)
-
-Mientras el backend no expone todos los endpoints, algunas features simulan persistencia entre navegaciones con `localStorage` (se pierde al limpiar el storage del navegador, no es una base de datos real):
-
-| Key | Usado por | Contenido |
-|-----|-----------|-----------|
-| `vigia_auth_user` | `AuthContext` | Usuario normalizado (email, role, rol, flags de onboarding) |
-| `vigia_access_token` | `AuthContext`, `services/api.ts` | JWT devuelto por el backend, inyectado en cada request |
-| `vigia_personas_autorizadas` | `propietario-personas.config.ts` (`loadPersonas`/`savePersonas`) | Lista completa de personas autorizadas — permite que altas/revocaciones/biometría sobrevivan la navegación entre `PersonasAutorizadas`, `PersonaDetallePage` y `BiometricCapturePersonaPage` |
-| `vigia_first_vehicle` | `VehicleRegistrationForm` / `propietario-vehiculos.config.ts` | Vehículo registrado durante el onboarding obligatorio |
-
-Si agregas una feature nueva que necesite sobrevivir la navegación entre páginas sin backend real, sigue este mismo patrón (`load*`/`save*` con `try/catch` silencioso) en vez de introducir un store global.
+Uses `LegacyAdminLayout` (not `DashboardTemplate`). Includes `Dashboard` and the submodules `registry/` (vehicles, people, institutional roles), `authorization/` (family group, temporary, per-vehicle view), `biometric/` (profiles, enrollment), `alerting/` (alerts, notifications), `auditoria/` (event history), and `auth/CuentasList`. Mock data, no recent changes — **do not modify unless the ticket explicitly asks for it**.
 
 ---
 
-## Sistema de diseño
+## Connection status by dashboard
 
-Definido en `src/theme/vigia-theme.ts`, expone:
+| Dashboard | Status |
+|-----------|--------|
+| Propietario (Owner) | Real API for auth, registry (vehicles/people), and authorization (family group, temporary permits, quick-access passes). Alerts and history still mock. |
+| Guardia (Guard) | Mock data end to end. |
+| Admin | Mock data end to end. |
 
-- `vigiaColors` — paleta institucional (`primary #0D5CCF`, `deep #0A2F86`, `greenIA`, `gold`, `success/warning/error`, gradientes `gradientIA`/`gradientHero`).
+---
+
+## Mock persistence (localStorage)
+
+While the backend doesn't expose every endpoint, some features still simulate persistence across navigations with `localStorage` (lost when the browser storage is cleared, not a real database):
+
+| Key | Used by | Content |
+|-----|-----------|---------|
+| `vigia_auth_user` | `AuthContext` | Normalized user (email, role, rol, onboarding flags) |
+| `vigia_access_token` | `AuthContext`, `services/api.ts` | JWT returned by the backend, injected into every request |
+| `vigia_first_vehicle` | `VehicleRegistrationForm` / `propietario-vehiculos.config.ts` | Vehicle registered during mandatory onboarding |
+
+`vigia_personas_autorizadas` (formerly used by `propietario-personas.config.ts`) is no longer needed — Personas Autorizadas now reads and writes through `useAuthorization`/`useRegistry` against the real backend.
+
+If you add a new feature that needs to survive navigation without a real backend endpoint yet, follow the same pattern (`load*`/`save*` with a silent `try/catch`) instead of introducing a global store.
+
+---
+
+## Design system
+
+Defined in `src/theme/vigia-theme.ts`, exposing:
+
+- `vigiaColors` — institutional palette (`primary #0D5CCF`, `deep #0A2F86`, `greenIA`, `gold`, `success/warning/error`, gradients `gradientIA`/`gradientHero`).
 - `vigiaRadius` — `sm 6px · md 8px · lg 12px · xl 16px · full 9999px`.
-- `vigiaShadows` — `sm/md/lg/xl` + glows temáticos.
+- `vigiaShadows` — `sm/md/lg/xl` + themed glows.
 - `vigiaSpacing` — `page/section/card/cardGap/element`.
 
-Tipografía: **Exo 2** para headings/marca/números, **Inter** para texto funcional/UI. Reglas de color de estado:
+Typography: **Exo 2** for headings/brand/numbers, **Inter** for functional/UI text. State color rules:
 
-- Badge de biometría pendiente: **amarillo** (`#FEF3C7` fondo / `#F59E0B` borde / `#92400E` texto) — nunca azul/celeste.
-- Botón de acción principal: gradiente IA (`linear-gradient(135deg, #19D6C4, #0D5CCF)`).
-- Touch targets mínimo 44px de alto en botones interactivos.
+- Pending-biometrics badge: **yellow** (`#FEF3C7` background / `#F59E0B` border / `#92400E` text) — never blue/cyan.
+- Primary action button: AI gradient (`linear-gradient(135deg, #19D6C4, #0D5CCF)`).
+- Interactive touch targets at least 44px tall.
 
-Ver también las skills `vigia-design-system` y `vigia-domain` del repo (`.claude/`) para las reglas completas de negocio y visuales que debe respetar cualquier cambio de UI.
+Also see the `vigia-design-system` and `vigia-domain` skills in the repo (`.claude/`) for the full business and visual rules any UI change must respect.
 
 ---
 
-## Convenciones
+## Conventions
 
-- **Idioma:** UI visible en español; código (variables, funciones, tipos, commits) en inglés.
-- **Aislamiento por rol:** nunca modificar componentes/rutas de un rol al trabajar en otro. Si un componente se necesita en 2+ roles, va a `components/` compartido (no a `pages/<rol>/`).
-- **Sin jerga técnica en UI:** nunca mostrar "JWT", "pgvector", "E2E", "OCR", "512D" al usuario.
-- **Sin "Olvidé mi contraseña" ni auto-registro público** — está fuera del dominio.
-- **Formularios:** siempre React Hook Form + Zod, nunca `useState` por campo.
-- **Mocks:** deben quedar fácilmente removibles (comentario `// TODO: replace with API call` donde aplique) y nunca hardcodear credenciales fuera del seeder del backend.
-- **Imports:** el proyecto tiene configurado el alias `@/` → `src/` (`vite.config.ts` y `tsconfig.json`), pero el código existente usa consistentemente **imports relativos** (`../../theme/vigia-theme`) — sigue ese patrón salvo que el equipo decida migrar.
-- **Proxy de dev:** `vite.config.ts` proxea `/api` → `http://localhost:3000`, pero el cliente Axios (`services/api.ts`) usa `VITE_API_BASE_URL` directamente y no depende de ese proxy.
+- **Language:** visible UI in Spanish; code (variables, functions, types, commits) in English.
+- **Role isolation:** never modify one role's components/routes while working on another. If a component is needed by 2+ roles, it goes in shared `components/` (not `pages/<role>/`).
+- **No technical jargon in the UI:** never show "JWT", "pgvector", "E2E", "OCR", "512D" to the user.
+- **No "forgot password" and no public self-registration** — out of scope for this domain.
+- **Forms:** always React Hook Form + Zod, never per-field `useState`.
+- **Mocks:** must stay easy to remove (`// TODO: replace with API call` comment where applicable) and never hardcode credentials outside the backend seeder.
+- **Imports:** the project has the `@/` → `src/` alias configured (`vite.config.ts` and `tsconfig.json`), but existing code consistently uses **relative imports** (`../../theme/vigia-theme`) — follow that pattern unless the team decides to migrate.
+- **Dev proxy:** `vite.config.ts` proxies `/api` → `http://localhost:3000`, but the Axios client (`services/api.ts`) uses `VITE_API_BASE_URL` directly and doesn't rely on that proxy.
 
-## Comandos disponibles
+## Available commands
 
-| Comando | Descripción |
+| Command | Description |
 |---------|-------------|
-| `pnpm dev` | Servidor de desarrollo con HMR |
-| `pnpm build` | `tsc && vite build` — build de producción |
-| `pnpm preview` | Sirve el build de producción localmente |
+| `pnpm dev` | Dev server with HMR |
+| `pnpm build` | `tsc && vite build` — production build |
+| `pnpm preview` | Serves the production build locally |
 | `pnpm lint` | ESLint |
 
-## Verificación pre-commit
+## Pre-commit check
 
 ```bash
-pnpm --filter frontend build   # obligatorio antes de push — tsc debe pasar sin errores
+pnpm --filter frontend build   # required before push — tsc must pass with no errors
 ```

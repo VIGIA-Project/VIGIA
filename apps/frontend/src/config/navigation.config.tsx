@@ -86,17 +86,17 @@ export const OWNER_CONFIG = {
 export const GUARD_NAV_ROUTES: NavRoute[] = [
   {
     label: 'Inicio',
-    path: '/guardia/inicio',
+    path: '/guardia',
     icon: <DashboardIcon />,
   },
   {
     label: 'Cola de Eventos',
-    path: '/guardia/cola-eventos',
+    path: '/guardia/cola',
     icon: <QueueIcon />,
   },
   {
     label: 'Revisión Manual',
-    path: '/guardia/revision-manual',
+    path: '/guardia/revision',
     icon: <FactCheckIcon />,
   },
   {

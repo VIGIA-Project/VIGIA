@@ -11,56 +11,36 @@ import {
     ListItemIcon,
     ListItemText,
     Divider,
+    CircularProgress,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import CircleIcon from '@mui/icons-material/Circle';
+import { useAlertasNoAtendidasCount, useNotificaciones, useMarcarNotificacionLeida } from '../../hooks/useNotifications';
 
-type SeveridadNotificacion = 'ALTA' | 'MEDIA' | 'INFORMATIVA';
-
-interface NotificacionMock {
-    alerta_id: string;
-    severidad: SeveridadNotificacion;
-    titulo: string;
-    subtitulo: string;
-}
-
-const SEVERIDAD_COLOR: Record<SeveridadNotificacion, string> = {
-    ALTA: '#C62828',
-    MEDIA: '#EDB200',
-    INFORMATIVA: '#16A34A',
+const tiempoRelativo = (iso?: string) => {
+    if (!iso) return '';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const minutos = Math.round(diffMs / 60000);
+    if (minutos < 1) return 'ahora';
+    if (minutos < 60) return `hace ${minutos} min`;
+    const horas = Math.round(minutos / 60);
+    if (horas < 24) return `hace ${horas} h`;
+    return `hace ${Math.round(horas / 24)} d`;
 };
 
-const MOCK_NOTIFICACIONES: NotificacionMock[] = [
-    {
-        alerta_id: 'al-001',
-        severidad: 'ALTA',
-        titulo: 'Acceso denegado · PBW-1234',
-        subtitulo: 'Garita Sur · hace 2h',
-    },
-    {
-        alerta_id: 'al-002',
-        severidad: 'MEDIA',
-        titulo: 'Permiso por expirar · PBB-3456',
-        subtitulo: 'Expira en 4h',
-    },
-    {
-        alerta_id: 'al-003',
-        severidad: 'INFORMATIVA',
-        titulo: 'Pase consumido · A7K3M2',
-        subtitulo: 'Garita Norte · ayer',
-    },
-];
-
 interface NotificationBellProps {
-    count: number;
     /** Ruta de alertas del rol actual — cada rol tiene su propio módulo de alertas */
     alertasPath?: string;
 }
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alertasPath = '/propietario/alertas' }) => {
+export const NotificationBell: React.FC<NotificationBellProps> = ({ alertasPath = '/propietario/alertas' }) => {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+
+    const alertasCount = useAlertasNoAtendidasCount();
+    const notificaciones = useNotificaciones();
+    const marcarLeida = useMarcarNotificacionLeida();
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
@@ -75,7 +55,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alert
         navigate(alertasPath);
     };
 
+    const handleNotificacionClick = (id: string, leida: boolean) => {
+        if (!leida) marcarLeida.mutate(id);
+        goToAlertas();
+    };
+
     const open = Boolean(anchorEl);
+    const count = alertasCount.data ?? 0;
 
     return (
         <>
@@ -126,23 +112,37 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ count, alert
                         </Typography>
                     </Box>
                     <Divider />
-                    <List disablePadding>
-                        {MOCK_NOTIFICACIONES.map((n) => (
-                            <ListItem key={n.alerta_id} divider disablePadding>
-                                <ListItemButton onClick={goToAlertas} sx={{ alignItems: 'flex-start', py: 1.25 }}>
-                                    <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-                                        <CircleIcon sx={{ fontSize: 12, color: SEVERIDAD_COLOR[n.severidad] }} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={n.titulo}
-                                        secondary={n.subtitulo}
-                                        primaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.85rem', color: '#0F172A' } }}
-                                        secondaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#6B7280' } }}
-                                    />
-                                </ListItemButton>
-                            </ListItem>
-                        ))}
-                    </List>
+                    {notificaciones.isLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                            <CircularProgress size={22} />
+                        </Box>
+                    ) : notificaciones.isError ? (
+                        <Typography sx={{ px: 2, py: 3, fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#6B7280', textAlign: 'center' }}>
+                            No se pudieron cargar las notificaciones.
+                        </Typography>
+                    ) : (notificaciones.data ?? []).length === 0 ? (
+                        <Typography sx={{ px: 2, py: 3, fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#6B7280', textAlign: 'center' }}>
+                            No tienes notificaciones.
+                        </Typography>
+                    ) : (
+                        <List disablePadding>
+                            {(notificaciones.data ?? []).map((n) => (
+                                <ListItem key={n.notificacionId} divider disablePadding>
+                                    <ListItemButton onClick={() => handleNotificacionClick(n.notificacionId, n.leida)} sx={{ alignItems: 'flex-start', py: 1.25 }}>
+                                        <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
+                                            <CircleIcon sx={{ fontSize: 12, color: n.leida ? '#D1D5DB' : '#0D5CCF' }} />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={n.titulo}
+                                            secondary={`${n.contenidoResumen}${n.enviadaEn ? ` · ${tiempoRelativo(n.enviadaEn)}` : ''}`}
+                                            primaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontWeight: n.leida ? 500 : 700, fontSize: '0.85rem', color: '#0F172A' } }}
+                                            secondaryTypographyProps={{ sx: { fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: '#6B7280' } }}
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+                            ))}
+                        </List>
+                    )}
                     <Box
                         onClick={goToAlertas}
                         sx={{

@@ -1,0 +1,40 @@
+# Excluir dependencias locales de la copia en Docker
+node_modules
+**/node_modules
+
+# Excluir compilaciones locales
+dist
+**/dist
+build
+**/build
+
+# Excluir variables de entorno locales (seguridad)
+.env
+.env.local
+.env.development
+.env.production
+**/ .env*
+
+# Excluir configuraciones de editores e IDEs
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Excluir logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Excluir Git y OS
+.git
+.gitignore
+.gitattributes
+.github
+.DS_Store
+Thumbs.db

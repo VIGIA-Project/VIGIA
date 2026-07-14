@@ -1,171 +1,280 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, Button, useMediaQuery, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Box, Grid2 as Grid, Card, CardContent, Typography, Divider, Chip, Button, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { KpiCard, EventQueueItem, RecentAlertItem } from '../../components/molecules';
-import { staggerContainer, fadeInUp } from '../../config/animations.config';
-import { vigiaShadows, vigiaRadius, vigiaColors, vigiaSpacing } from '../../theme/vigia-theme';
+import { KpiCard, EventQueueItem } from '../../components/molecules';
+import { EmptyState, LoadingSkeleton } from '../../components/atoms';
+import { useAuth } from '../../context';
+import {
+  useEventosRecientes,
+  useEventosCountHoy,
+  useEventosCountHoyPorTipo,
+  useInvitadosActivos,
+  useInvitadosActivosCount,
+} from '../../hooks/useGuard';
+import { useAlertasNoAtendidasCount } from '../../hooks/useNotifications';
+import { vigiaColors } from '../../theme/vigia-theme';
 
-// Icons
-import HourglassTopIcon from '@mui/icons-material/HourglassTop';
-import CampaignIcon from '@mui/icons-material/Campaign';
+const decodeJwtName = (token: string | null): string | null => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join('')
+    );
+    const claims = JSON.parse(json);
+    return typeof claims?.name === 'string' ? claims.name : null;
+  } catch {
+    return null;
+  }
+};
 
-// === MOCK DATA ===
-const MOCK_KPIS = [
-  { value: 3, label: 'Eventos Pendientes', indicator: 'ATENCIÓN REQ.', indicatorColor: vigiaColors.warning, accentColor: vigiaColors.warning },
-  { value: 2, label: 'Tiempo Promedio', indicator: '— Estable', indicatorColor: vigiaColors.textSecondary, accentColor: vigiaColors.textSecondary, suffix: 'm' },
-  { value: 14, label: 'Eventos del Turno', accentColor: vigiaColors.primary },
-  { value: 1, label: 'Alertas Activas', indicator: 'SEVERIDAD ALTA', indicatorColor: vigiaColors.error, accentColor: vigiaColors.error },
-];
+const tiempoRelativo = (iso: string) => {
+  const minutos = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutos < 1) return 'ahora';
+  if (minutos < 60) return `hace ${minutos} min`;
+  return `hace ${Math.round(minutos / 60)} h`;
+};
 
-const MOCK_COLA = [
-  { placa: 'XYZ-8888', timeAgo: 'hace 4m', timeAgoColor: 'error' as const, motivo: 'FALLO_OCR', buttonType: 'primary' as const },
-  { placa: 'ABC-1234', timeAgo: 'hace 2m', timeAgoColor: 'warning' as const, motivo: 'SIN_PERFILES', buttonType: 'outline' as const },
-  { placa: 'LMN-9012', timeAgo: 'hace 1m', timeAgoColor: 'default' as const, motivo: 'CONFIRMACION_VISUAL', buttonType: 'outline' as const },
-];
+const decisionColor = (decision: string): 'error' | 'warning' | 'default' => {
+  if (decision === 'DENIED') return 'error';
+  if (decision === 'PENDING_VERIFY') return 'warning';
+  return 'default';
+};
 
-const MOCK_ALERTAS = [
-  { severity: 'alta' as const, title: 'Intento de salida no autorizado', subtitle: 'Puerta Norte • 06:12 AM' },
-  { severity: 'media' as const, title: 'Puerta abierta demasiado tiempo', subtitle: 'Acceso Peatonal B • 06:05 AM' },
-];
-
-export const GuardiaInicioPage: React.FC = () => {
+export default function GuardiaInicioPage() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user, token } = useAuth();
+
+  const nombreGuardia = decodeJwtName(token) || user?.email?.split('@')[0] || 'Guardia';
+  const nombreCapitalizado = nombreGuardia.charAt(0).toUpperCase() + nombreGuardia.slice(1);
+  const ahora = new Date().toLocaleString('es-EC', { dateStyle: 'long', timeStyle: 'short' });
+
+  const eventosCount = useEventosCountHoy();
+  const eventosPorTipo = useEventosCountHoyPorTipo();
+  const invitadosCount = useInvitadosActivosCount();
+  const alertasCount = useAlertasNoAtendidasCount();
+  const eventosRecientes = useEventosRecientes(5);
+  const invitadosActivos = useInvitadosActivos();
 
   return (
     <DashboardTemplate rol="GUARD" pageTitle="Inicio">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: `${vigiaSpacing.section}px` }}>
-        {/* BLOQUE 1: Título y subtítulo */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Box>
-            <Typography
-              sx={{
-                fontFamily: '"Exo 2", sans-serif',
-                fontWeight: 600,
-                fontSize: isMobile ? '1.25rem' : '1.5rem',
-                color: '#0A2F86', // Matches the image's dark blue header
-              }}
-            >
-              Panel Operativo - Inicio
-            </Typography>
-            <Typography
-              sx={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.85rem',
-                color: vigiaColors.textSecondary,
-                mt: 0.5,
-              }}
-            >
-              Resumen de actividad y tareas pendientes para el turno actual.
-            </Typography>
-          </Box>
-        </motion.div>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, color: vigiaColors.textHeading }}>
+          Bienvenido, {nombreCapitalizado}
+        </Typography>
+        <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, mt: 0.5 }}>
+          {ahora}
+        </Typography>
+      </Box>
 
-        {/* BLOQUE 2: KPIs */}
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
-              gap: `${vigiaSpacing.cardGap}px`,
-            }}
-          >
-            {MOCK_KPIS.map((kpi) => (
-              <KpiCard
-                key={kpi.label}
-                value={kpi.value}
-                label={kpi.label}
-                indicator={kpi.indicator}
-                indicatorColor={kpi.indicatorColor}
-                accentColor={kpi.accentColor}
-                suffix={kpi.suffix}
-              />
-            ))}
-          </Box>
-        </motion.div>
+      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
+        <Button variant="contained" startIcon={<FactCheckOutlinedIcon />} onClick={() => navigate('/guardia/revision')}>
+          Revisión manual
+        </Button>
+        <Button variant="outlined" startIcon={<ListAltIcon />} onClick={() => navigate('/guardia/cola')}>
+          Cola de eventos
+        </Button>
+        <Button variant="outlined" color="warning" startIcon={<PersonAddAltIcon />} onClick={() => navigate('/guardia/contingencia')}>
+          Registrar invitado
+        </Button>
+        <Button variant="outlined" color="error" startIcon={<NotificationsActiveOutlinedIcon />} onClick={() => navigate('/guardia/alertas')}>
+          Ver alertas
+        </Button>
+      </Stack>
 
-        {/* BLOQUE 3: Cola y Alertas (Side by side en desktop) */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '2fr 1.2fr' },
-            gap: `${vigiaSpacing.cardGap}px`,
-          }}
-        >
-          {/* Columna Izquierda: Cola de Pendientes */}
-          <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-            <Card sx={{ borderRadius: vigiaRadius.md, boxShadow: vigiaShadows.sm, height: '100%' }}>
-              <CardContent sx={{ p: 0 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <HourglassTopIcon sx={{ color: '#8B4513' }} />
-                    <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, fontSize: '1.1rem', color: '#0A2F86' }}>
-                      Cola de Pendientes
-                    </Typography>
-                  </Box>
-                  <Typography
-                    onClick={() => {}}
-                    sx={{ fontSize: '0.75rem', color: vigiaColors.primary, cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    VER TODOS (3)
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  {MOCK_COLA.map((item) => (
+      <Typography variant="overline" sx={{ fontWeight: 700, color: vigiaColors.textTertiary, letterSpacing: 1 }}>
+        Actividad de hoy
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3, mt: 0.25 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          {eventosPorTipo.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={eventosPorTipo.data?.entradas ?? 0}
+              label="Entradas de hoy"
+              accentColor={vigiaColors.success ?? '#2E7D32'}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'ENTRADA' } })}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          {eventosPorTipo.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={eventosPorTipo.data?.salidas ?? 0}
+              label="Salidas de hoy"
+              accentColor={vigiaColors.warning ?? '#F2851F'}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'SALIDA' } })}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          {eventosCount.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={eventosCount.data ?? 0}
+              label="Eventos de hoy (total)"
+              accentColor={vigiaColors.primary}
+              onClick={() => navigate('/guardia/cola', { state: { filtroMov: 'TODOS' } })}
+            />
+          )}
+        </Grid>
+      </Grid>
+
+      <Typography variant="overline" sx={{ fontWeight: 700, color: vigiaColors.textTertiary, letterSpacing: 1 }}>
+        Requiere tu atención
+      </Typography>
+      <Grid container spacing={2} sx={{ mb: 3, mt: 0.25 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          {invitadosCount.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={invitadosCount.data ?? 0}
+              label="Invitados en campus"
+              accentColor={vigiaColors.gold}
+              onClick={() => navigate('/guardia/cola')}
+              indicator={
+                invitadosActivos.data?.some((i) => i.estaExcedido)
+                  ? '⚠️ Hay invitados con tiempo excedido'
+                  : undefined
+              }
+              indicatorColor={vigiaColors.error}
+            />
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          {alertasCount.isLoading ? (
+            <LoadingSkeleton variant="cards" rows={1} />
+          ) : (
+            <KpiCard
+              value={alertasCount.data ?? 0}
+              label="Alertas no atendidas"
+              accentColor={vigiaColors.error}
+              onClick={() => navigate('/guardia/alertas')}
+              indicator={(alertasCount.data ?? 0) > 0 ? 'Requieren atención' : undefined}
+              indicatorColor={vigiaColors.error}
+            />
+          )}
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                  Eventos recientes
+                </Typography>
+                <Button size="small" onClick={() => navigate('/guardia/cola')}>
+                  Ver todos
+                </Button>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              {eventosRecientes.isLoading ? (
+                <LoadingSkeleton variant="table" rows={3} />
+              ) : eventosRecientes.isError ? (
+                <Typography variant="body2" color="error">
+                  No se pudieron cargar los eventos recientes.
+                </Typography>
+              ) : (eventosRecientes.data ?? []).length === 0 ? (
+                <EmptyState titulo="Sin eventos" descripcion="No hay eventos registrados todavía." />
+              ) : (
+                <Box>
+                  {(eventosRecientes.data ?? []).map((evento) => (
                     <EventQueueItem
-                      key={item.placa}
-                      {...item}
-                      onReview={() => navigate('/guardia/revision-manual')}
+                      key={evento.eventoAccesoId}
+                      placa={evento.placaObservada}
+                      timeAgo={tiempoRelativo(evento.capturadoEn)}
+                      timeAgoColor={decisionColor(evento.decisionOperativa)}
+                      motivo={evento.motivoCodigo ?? evento.tipoMovimiento}
+                      onReview={() => navigate('/guardia/revision', { state: { placa: evento.placaObservada } })}
                     />
                   ))}
                 </Box>
-              </CardContent>
-            </Card>
-          </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-          {/* Columna Derecha: Alertas Recientes */}
-          <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-            <Card sx={{ borderRadius: vigiaRadius.md, boxShadow: vigiaShadows.sm, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CampaignIcon sx={{ color: '#C62828' }} />
-                  <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 600, fontSize: '1.1rem', color: '#0A2F86' }}>
-                    Alertas Recientes
-                  </Typography>
-                </Box>
-                <Box sx={{ p: 2, flex: 1 }}>
-                  {MOCK_ALERTAS.map((alerta, i) => (
-                    <RecentAlertItem key={i} {...alerta} />
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                  Invitados activos
+                </Typography>
+                <Button size="small" onClick={() => navigate('/guardia/cola')}>
+                  Gestionar
+                </Button>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              {invitadosActivos.isLoading ? (
+                <LoadingSkeleton variant="table" rows={3} />
+              ) : invitadosActivos.isError ? (
+                <Typography variant="body2" color="error">
+                  No se pudieron cargar los invitados activos.
+                </Typography>
+              ) : (invitadosActivos.data ?? []).length === 0 ? (
+                <EmptyState titulo="Sin invitados" descripcion="No hay invitados activos en el campus." />
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {(invitadosActivos.data ?? []).map((invitado) => (
+                    <Box
+                      key={invitado.eventoId}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        p: 1.5,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: invitado.estaExcedido ? 'error.light' : 'divider',
+                        backgroundColor: invitado.estaExcedido ? 'rgba(198, 40, 40, 0.06)' : 'background.paper',
+                      }}
+                    >
+                      <PersonOutlineIcon sx={{ color: invitado.estaExcedido ? 'error.main' : 'text.secondary' }} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: vigiaColors.textHeading }}>
+                          {invitado.placaObservada}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {invitado.motivoDetalle || 'Sin detalle'} · Ingresó {tiempoRelativo(invitado.capturadoEn)}
+                          {invitado.duracionAutorizadaMin ? ` · Autorizado ${invitado.duracionAutorizadaMin} min` : ''}
+                        </Typography>
+                      </Box>
+                      {invitado.estaExcedido && (
+                        <Chip
+                          icon={<WarningAmberIcon />}
+                          label="Excedido"
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                   ))}
                 </Box>
-                <Box sx={{ p: 2, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => navigate('/guardia/alertas')}
-                    sx={{
-                      fontFamily: '"Inter", sans-serif',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      color: '#0A2F86',
-                      borderColor: 'rgba(10, 47, 134, 0.3)',
-                      borderRadius: vigiaRadius.sm,
-                      '&:hover': { backgroundColor: 'rgba(10, 47, 134, 0.05)' }
-                    }}
-                  >
-                    Ver Historial de Alertas
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </Box>
-      </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </DashboardTemplate>
   );
-};
-
-export default GuardiaInicioPage;
+}

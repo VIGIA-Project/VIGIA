@@ -17,8 +17,8 @@ export const AUTH_ROUTES = {
 export const DASHBOARD_ROUTES: Record<string, string> = {
   PROPIETARIO: '/propietario/inicio',
   OWNER: '/propietario/inicio',
-  GUARDIA: '/guardia/inicio',
-  GUARD: '/guardia/inicio',
+  GUARDIA: '/guardia',
+  GUARD: '/guardia',
   ADMINISTRADOR: '/admin',
   ADMIN: '/admin',
 };

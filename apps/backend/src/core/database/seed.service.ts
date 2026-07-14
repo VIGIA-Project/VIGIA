@@ -10,12 +10,48 @@ interface SeedUser {
   email: string;
   password: string;
   role: 'ADMIN' | 'GUARD' | 'OWNER';
+  mustChangePassword: boolean;
+  biometricRegistered: boolean;
+  vehicleRegistered: boolean;
 }
 
+// Usuarios de TESTING — bypass completo de onboarding para poder probar
+// Authorization sin quedar atascado en /cambiar-password o el onboarding.
 const SEED_USERS: SeedUser[] = [
-  { email: 'admin@uce.edu.ec', password: 'Admin123!', role: 'ADMIN' },
-  { email: 'guardia@uce.edu.ec', password: 'Guard123!', role: 'GUARD' },
-  { email: 'propietario@uce.edu.ec', password: 'Owner123!', role: 'OWNER' },
+  {
+    email: 'admin@uce.edu.ec',
+    password: 'Admin123!',
+    role: 'ADMIN',
+    mustChangePassword: false,
+    biometricRegistered: true,
+    vehicleRegistered: true,
+  },
+  {
+    email: 'guardia@uce.edu.ec',
+    password: 'Guard123!',
+    role: 'GUARD',
+    mustChangePassword: false,
+    biometricRegistered: true,
+    vehicleRegistered: true,
+  },
+  {
+    email: 'propietario@uce.edu.ec',
+    password: 'Owner123!',
+    role: 'OWNER',
+    mustChangePassword: false,
+    biometricRegistered: true,
+    vehicleRegistered: true,
+  },
+  // Usuario para probar el flujo completo de onboarding (cambio de
+  // contraseña → biometría → vehículo → dashboard).
+  {
+    email: 'nuevo@uce.edu.ec',
+    password: 'Nuevo123!',
+    role: 'OWNER',
+    mustChangePassword: true,
+    biometricRegistered: false,
+    vehicleRegistered: false,
+  },
 ];
 
 @Injectable()
@@ -51,7 +87,9 @@ export class SeedService implements OnModuleInit {
         passwordHash,
         role: seed.role,
         status: 'ACTIVE',
-        mustChangePassword: false,
+        mustChangePassword: seed.mustChangePassword,
+        biometricRegistered: seed.biometricRegistered,
+        vehicleRegistered: seed.vehicleRegistered,
       });
       await this.userRepo.save(user);
     }

@@ -1,0 +1,149 @@
+// src/services/admin.service.ts
+// Cliente del dashboard ADMIN — endpoints de auth/users, conteos y consultas
+// institucionales de Registry, Authorization, Biometric, Alerting y Access Control.
+
+import { apiGetData, apiPostData, apiPatchData } from './api';
+import {
+  UsuarioAdmin,
+  ListarUsuariosQuery,
+  UsuariosPaginados,
+  ResetPasswordResult,
+  CrearUsuarioDto,
+  PerfilBiometrico,
+  Alerta,
+  Notificacion,
+  EventoAcceso,
+  RegistrarEventoManualDto,
+} from './types/admin.types';
+import { Persona, Vehiculo, AsignacionRol, CrearAsignacionRolDto } from './types/registry.types';
+import { PermisoTemporal, PaseAccesoRapido, ConjuntoAutorizado, MiembroGrupoFamiliar } from './types/authorization.types';
+
+// ─── Auth — usuarios ────────────────────────────────────────────────────────
+
+export const listarUsuarios = (query: ListarUsuariosQuery = {}): Promise<UsuariosPaginados> =>
+  apiGetData('/auth/users', query as Record<string, unknown>);
+
+export const buscarUsuarioPorId = (id: string): Promise<UsuarioAdmin> => apiGetData(`/auth/users/${id}`);
+
+export const activarUsuario = (id: string): Promise<{ message: string }> =>
+  apiPatchData(`/auth/users/${id}/activate`);
+
+export const desactivarUsuario = (id: string): Promise<{ message: string }> =>
+  apiPatchData(`/auth/users/${id}/deactivate`);
+
+export const resetearPasswordUsuario = (id: string): Promise<ResetPasswordResult> =>
+  apiPatchData(`/auth/users/${id}/reset-password`);
+
+export const crearUsuario = (dto: CrearUsuarioDto): Promise<UsuarioAdmin> => apiPostData('/auth/users', dto);
+
+// ─── Registry — personas y vehículos ────────────────────────────────────────
+
+export const listarPersonas = (): Promise<Persona[]> => apiGetData('/registry/personas');
+
+export const contarPersonas = (): Promise<{ count: number }> => apiGetData('/registry/personas/count');
+
+export const listarPersonasSinBiometria = (): Promise<Persona[]> => apiGetData('/registry/personas/sin-biometria');
+
+export const listarVehiculos = (): Promise<Vehiculo[]> => apiGetData('/registry/vehiculos');
+
+export const contarVehiculos = (): Promise<{ count: number }> => apiGetData('/registry/vehiculos/count');
+
+export const buscarVehiculoPorPlaca = (placa: string): Promise<Vehiculo> =>
+  apiGetData(`/registry/vehiculos/placa/${placa}`);
+
+// ─── Authorization — conteos y consultas institucionales ───────────────────
+
+export const contarMiembrosGrupoFamiliar = (): Promise<{ count: number }> =>
+  apiGetData('/authorization/grupo-familiar/count');
+
+export const contarPermisosTemporales = (): Promise<{ count: number }> =>
+  apiGetData('/authorization/temporales/count');
+
+export const listarPermisosProximosAExpirar = (dias = 7): Promise<PermisoTemporal[]> =>
+  apiGetData('/authorization/temporales/proximos-expirar', { dias });
+
+export const listarPermisosPorVehiculo = (vehiculoId: string): Promise<PermisoTemporal[]> =>
+  apiGetData(`/authorization/temporales/vehiculo/${vehiculoId}`);
+
+export const listarPermisosPorPersona = (personaId: string): Promise<PermisoTemporal[]> =>
+  apiGetData(`/authorization/temporales/persona/${personaId}`);
+
+export const revocarPermisoTemporal = (id: string): Promise<PermisoTemporal> =>
+  apiPatchData(`/authorization/temporales/${id}/revocar`);
+
+export const contarPasesActivos = (): Promise<{ count: number }> => apiGetData('/authorization/pases/count');
+
+export const listarPasesPorPlaca = (placa: string): Promise<PaseAccesoRapido[]> =>
+  apiGetData(`/authorization/pases/placa/${placa}`);
+
+export const revocarPase = (id: string): Promise<PaseAccesoRapido> =>
+  apiPatchData(`/authorization/pases/${id}/revocar`);
+
+export const obtenerConjuntoAutorizadoPorVehiculo = (vehiculoId: string): Promise<ConjuntoAutorizado> =>
+  apiGetData(`/authorization/conjunto-autorizado/vehiculo/${vehiculoId}`);
+
+export const listarPermanentesTodos = (): Promise<MiembroGrupoFamiliar[]> => apiGetData('/authorization/permanentes');
+
+export const listarPermanentesPorVehiculo = (vehiculoId: string): Promise<MiembroGrupoFamiliar[]> =>
+  apiGetData(`/authorization/permanentes/vehiculo/${vehiculoId}`);
+
+export const revocarAutorizacionPermanente = (id: string): Promise<MiembroGrupoFamiliar> =>
+  apiPatchData(`/authorization/permanentes/${id}/revocar`);
+
+// ─── Registry — asignaciones de rol institucionales ─────────────────────────
+
+export const listarAsignaciones = (): Promise<AsignacionRol[]> => apiGetData('/registry/asignaciones');
+
+export const crearAsignacionRol = (dto: CrearAsignacionRolDto): Promise<AsignacionRol> =>
+  apiPostData('/registry/asignaciones', dto);
+
+export const desactivarAsignacionRol = (id: string): Promise<{ message: string }> =>
+  apiPatchData(`/registry/asignaciones/${id}/desactivar`);
+
+// ─── Biometric ───────────────────────────────────────────────────────────────
+
+export const listarPerfilesBiometricos = (): Promise<PerfilBiometrico[]> => apiGetData('/biometric/perfiles');
+
+export const contarPerfilesBiometricos = (): Promise<{ count: number }> => apiGetData('/biometric/perfiles/count');
+
+export const buscarPerfilBiometricoPorPersona = (personaId: string): Promise<PerfilBiometrico | null> =>
+  apiGetData(`/biometric/perfiles/persona/${personaId}`);
+
+export const registrarPerfilBiometrico = (personaId: string): Promise<PerfilBiometrico> =>
+  apiPostData(`/biometric/perfiles/persona/${personaId}`);
+
+import { apiPostFormData } from './api';
+
+export const enrolarPerfilBiometrico = (personaId: string, formData: FormData): Promise<{ success: boolean; message: string }> =>
+  apiPostFormData(`/biometric/perfiles/persona/${personaId}/enroll`, formData);
+
+// ─── Alerting ────────────────────────────────────────────────────────────────
+
+export const listarAlertasRecientes = (limite = 10): Promise<Alerta[]> =>
+  apiGetData('/alerting/alertas/recientes', { limite });
+
+export const contarAlertasNoAtendidas = (): Promise<{ count: number }> => apiGetData('/alerting/alertas/count');
+
+export const buscarAlertaPorId = (id: string): Promise<Alerta> => apiGetData(`/alerting/alertas/${id}`);
+
+export const marcarAlertaAtendida = (id: string): Promise<Alerta> => apiPatchData(`/alerting/alertas/${id}/atender`);
+
+export const listarNotificaciones = (): Promise<Notificacion[]> => apiGetData('/alerting/notificaciones');
+
+export const listarTodasLasNotificaciones = (limite = 50): Promise<Notificacion[]> =>
+  apiGetData('/alerting/notificaciones/todas', { limite });
+
+export const marcarNotificacionLeida = (id: string): Promise<Notificacion> =>
+  apiPatchData(`/alerting/notificaciones/${id}/leer`);
+
+// ─── Access Control ──────────────────────────────────────────────────────────
+
+export const listarEventosRecientes = (limite = 10): Promise<EventoAcceso[]> =>
+  apiGetData('/access-control/eventos/recientes', { limite });
+
+export const contarEventosHoy = (): Promise<{ count: number }> => apiGetData('/access-control/eventos/count');
+
+export const buscarEventoPorId = (id: string): Promise<EventoAcceso> => apiGetData(`/access-control/eventos/${id}`);
+
+export const registrarEventoManual = (dto: RegistrarEventoManualDto): Promise<EventoAcceso> =>
+  apiPostData('/access-control/eventos/manual', dto);

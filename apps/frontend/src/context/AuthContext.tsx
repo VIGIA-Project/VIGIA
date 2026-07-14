@@ -1,4 +1,7 @@
+// apps/frontend/src/context/AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { actualizarOnboardingStatus } from '../services/auth.service';
 
 interface AuthUser {
   email: string;
@@ -7,7 +10,30 @@ interface AuthUser {
   must_change_password: boolean;
   biometric_registered?: boolean;
   vehicle_registered?: boolean;
+  /** ID de Persona en Registry — viene embebido en el JWT (claim `personaId`), no en el body del login. */
+  personaId?: string;
 }
+
+/**
+ * Decodifica el payload de un JWT sin verificar la firma (solo lectura de
+ * claims en el cliente — la verificación real ocurre en el backend).
+ */
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+        atob(base64)
+            .split('')
+            .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+            .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,8 +45,8 @@ interface AuthContextType {
   login: (user: AuthUser, authToken?: string) => void;
   logout: () => void;
   completePasswordChange: () => void;
-  completeBiometricOnboarding: () => void;
-  completeVehicleOnboarding: () => void;
+  completeBiometricOnboarding: () => Promise<void>;
+  completeVehicleOnboarding: () => Promise<void>;
   clearSessionExpired: () => void;
   setAuthNotice: (message: string | null) => void;
 }
@@ -36,6 +62,7 @@ const normalizeUser = (userData: Partial<AuthUser>): AuthUser => ({
   must_change_password: Boolean(userData.must_change_password),
   biometric_registered: userData.biometric_registered,
   vehicle_registered: userData.vehicle_registered,
+  personaId: userData.personaId,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -45,6 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [sessionExpired, setSessionExpired] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
+  // 1. Cargar estado inicial desde localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -62,8 +90,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   }, []);
 
+  // 2. Interceptor reactivo para capturar cierres de sesión 401 desde api.ts
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setToken(null);
+      setSessionExpired(true);
+      setAuthNotice('Su sesión ha expirado por inactividad.');
+
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.assign('/login');
+      }
+    };
+
+    window.addEventListener('vigia_unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('vigia_unauthorized', handleUnauthorized);
+    };
+  }, []);
+
   const login = (userData: AuthUser, authToken?: string) => {
-    const normalizedUser = normalizeUser(userData);
+    const claims = authToken ? decodeJwtPayload(authToken) : null;
+    const personaId = typeof claims?.personaId === 'string' ? claims.personaId : undefined;
+    const normalizedUser = normalizeUser({ ...userData, personaId });
     setUser(normalizedUser);
     setToken(authToken || null);
     setSessionExpired(false);
@@ -90,19 +139,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const completeBiometricOnboarding = () => {
-    if (user) {
-      const updated = { ...user, biometric_registered: true };
-      setUser(updated);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  const completeBiometricOnboarding = async () => {
+    if (!user) return;
+
+    const updated = { ...user, biometric_registered: true };
+    setUser(updated);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+
+    try {
+      await actualizarOnboardingStatus({ biometric_registered: true });
+    } catch (err) {
+      console.error('Failed to persist biometric status:', err);
     }
   };
 
-  const completeVehicleOnboarding = () => {
-    if (user) {
-      const updated = { ...user, vehicle_registered: true };
-      setUser(updated);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  const completeVehicleOnboarding = async () => {
+    if (!user) return;
+
+    const updated = { ...user, vehicle_registered: true };
+    setUser(updated);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+
+    try {
+      await actualizarOnboardingStatus({ vehicle_registered: true });
+    } catch (err) {
+      console.error('Failed to persist vehicle status:', err);
     }
   };
 
@@ -111,25 +172,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated: !!user && !!token,
-        isLoading,
-        sessionExpired,
-        authNotice,
-        login,
-        logout,
-        completePasswordChange,
-        completeBiometricOnboarding,
-        completeVehicleOnboarding,
-        clearSessionExpired,
-        setAuthNotice,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider
+          value={{
+            user,
+            token,
+            isAuthenticated: !!user && !!token,
+            isLoading,
+            sessionExpired,
+            authNotice,
+            login,
+            logout,
+            completePasswordChange,
+            completeBiometricOnboarding,
+            completeVehicleOnboarding,
+            clearSessionExpired,
+            setAuthNotice,
+          }}
+      >
+        {children}
+      </AuthContext.Provider>
   );
 };
 

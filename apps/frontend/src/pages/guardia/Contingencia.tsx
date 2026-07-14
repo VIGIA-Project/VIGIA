@@ -1,290 +1,349 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
-  Paper,
-  Grid,
-  Select,
-  MenuItem,
+  Card,
+  CardContent,
   TextField,
   Button,
+  ToggleButtonGroup,
+  ToggleButton,
   FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Stack,
+  Grid2 as Grid,
+  Chip,
 } from '@mui/material';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DashboardTemplate from '../../components/templates/DashboardTemplate';
-import { fadeInUp, staggerContainer } from '../../config/animations.config';
-import { vigiaRadius, vigiaColors } from '../../theme/vigia-theme';
+import { StatusChip } from '../../components/atoms';
+import { useEventosRecientes, useRegistrarEventoManual } from '../../hooks/useGuard';
+import { TipoMovimiento } from '../../services/types/guard.types';
 
-// Icons
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+const CAUSAS = ['INGRESO_INVITADO', 'BIOMETRIA_NO_DISPONIBLE', 'CAMARA_NO_DISPONIBLE', 'OCR_NO_DISPONIBLE', 'CAIDA_RED', 'OPERACION_MANUAL'];
+const CAUSA_DESC: Record<string, string> = {
+  INGRESO_INVITADO: 'Ingreso de un invitado sin registro ni evidencia biométrica previa.',
+  BIOMETRIA_NO_DISPONIBLE: 'Servicio biométrico caído o sin respuesta.',
+  CAMARA_NO_DISPONIBLE: 'Cámara de garita sin señal o dañada.',
+  OCR_NO_DISPONIBLE: 'Servicio de lectura de placas no responde.',
+  CAIDA_RED: 'Pérdida de conectividad en el punto.',
+  OPERACION_MANUAL: 'Decisión tomada sin evidencia automática.',
+};
 
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import BugReportIcon from '@mui/icons-material/BugReport';
-import SaveIcon from '@mui/icons-material/Save';
+const DURACIONES = [
+  { value: 30, label: '30 minutos' },
+  { value: 60, label: '1 hora' },
+  { value: 120, label: '2 horas' },
+  { value: 240, label: '4 horas' },
+  { value: 480, label: '8 horas' },
+];
 
-export const ContingenciaPage: React.FC = () => {
+export function ContingenciaPage() {
   const navigate = useNavigate();
-  
+  const location = useLocation();
+  const placaInicial = (location.state as { placa?: string } | null)?.placa ?? '';
+
+  const [placa, setPlaca] = useState(placaInicial.toUpperCase());
+  const [tipoMovimiento, setTipoMovimiento] = useState<TipoMovimiento>('ENTRADA');
   const [causa, setCausa] = useState('');
+  const [decision, setDecision] = useState<'AUTORIZAR' | 'DENEGAR' | null>(null);
+  const [duracion, setDuracion] = useState(60);
   const [detalle, setDetalle] = useState('');
+  const [validacion, setValidacion] = useState('');
 
-  const handleConfirmar = () => {
-    if (!causa || detalle.length < 10) return;
-    navigate('/guardia/cola-eventos'); 
+  const eventosRecientes = useEventosRecientes(30);
+  const registrar = useRegistrarEventoManual();
+
+  const contexto = useMemo(
+    () => (eventosRecientes.data ?? []).filter((e) => e.placaObservada === placa.trim().toUpperCase()).slice(0, 3),
+    [eventosRecientes.data, placa]
+  );
+
+  const esValido = placa.trim().length >= 5 && causa !== '' && decision !== null && detalle.trim().length >= 10;
+
+  const handleRegistrar = () => {
+    if (placa.trim().length < 5) {
+      setValidacion('La placa debe tener al menos 5 caracteres.');
+      return;
+    }
+    if (!causa) {
+      setValidacion('Selecciona qué ocurrió.');
+      return;
+    }
+    if (!decision) {
+      setValidacion('Selecciona una decisión.');
+      return;
+    }
+    if (detalle.trim().length < 10) {
+      setValidacion('Escribe al menos 10 caracteres explicando la situación.');
+      return;
+    }
+    setValidacion('');
+
+    registrar.mutate({
+      placaObservada: placa.trim().toUpperCase(),
+      tipoMovimiento,
+      decisionOperativa: decision === 'AUTORIZAR' ? 'SUCCESSFUL' : 'DENIED',
+      motivoCodigo: 'CONTINGENCIA',
+      motivoDetalle: `${CAUSA_DESC[causa]} ${detalle.trim()}`.trim(),
+      duracionAutorizadaMin: decision === 'AUTORIZAR' && tipoMovimiento === 'ENTRADA' ? duracion : undefined,
+    });
   };
 
-  const handleCancelar = () => {
-    navigate(-1);
-  };
-
-  return (
-    <DashboardTemplate rol="GUARD" pageTitle="Contingencia Operativa">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1000, margin: '0 auto' }}>
-        
-        {/* Header Section */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography variant="h4" sx={{ color: vigiaColors.textBody, mb: 1, fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                Registro de Contingencia
-              </Typography>
-              <Typography variant="body2" sx={{ color: vigiaColors.textSecondary, fontFamily: '"Inter", sans-serif' }}>
-                Documentación obligatoria frente a un fallo técnico o de sistema (UC-04).
-              </Typography>
-            </Box>
-            
-            {/* Status Pill */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 1,
-                borderRadius: vigiaRadius.full,
-                backgroundColor: '#FEE2E2',
-                border: '1px solid #FCA5A5',
-                color: '#DC2626',
+  if (registrar.isSuccess && registrar.data) {
+    const evento = registrar.data;
+    return (
+      <DashboardTemplate rol="GUARD" pageTitle="Registro de contingencia">
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <CheckCircleOutlineIcon sx={{ fontSize: 56, color: 'success.main', mb: 2 }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+            Contingencia registrada
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+            Placa: <strong>{evento.placaObservada}</strong> · Causa: <strong>{causa}</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Decisión:{' '}
+            <strong style={{ color: evento.decisionOperativa === 'SUCCESSFUL' ? '#2E7D32' : '#C62828' }}>
+              {evento.decisionOperativa === 'SUCCESSFUL' ? 'AUTORIZADO' : 'DENEGADO'}
+            </strong>
+          </Typography>
+          <Stack direction="row" spacing={2} justifyContent="center">
+            <Button variant="outlined" onClick={() => navigate('/guardia/cola')}>
+              Ir a la cola de eventos
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                registrar.reset();
+                setPlaca('');
+                setDecision(null);
+                setDetalle('');
               }}
             >
-              <ReportProblemIcon sx={{ fontSize: '1.2rem' }} />
-              <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: '"Exo 2", sans-serif' }}>
-                MODO CONTINGENCIA
+              Registrar otra
+            </Button>
+          </Stack>
+        </Box>
+      </DashboardTemplate>
+    );
+  }
+
+  return (
+    <DashboardTemplate rol="GUARD" pageTitle="Registro de contingencia">
+      <Button
+        size="small"
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/guardia/cola')}
+        sx={{ mb: 2 }}
+      >
+        Cola de eventos
+      </Button>
+
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h5" sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700 }}>
+          Registrar contingencia o invitado
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Usa este formulario cuando no haya evidencia automática (biometría/cámara caídas) o para registrar el
+          ingreso de un invitado sin registro previo.
+        </Typography>
+      </Box>
+
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                Vehículo
               </Typography>
-            </Box>
-          </Box>
-        </motion.div>
 
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <Grid container spacing={3}>
-            
-            {/* LEFT COLUMN: CONTEXTO DEL FALLO */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                
-                {/* Evento Info */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                    <WarningAmberIcon sx={{ color: '#D97706' }} />
-                    <Typography sx={{ fontWeight: 700, color: vigiaColors.textHeading, fontFamily: '"Exo 2", sans-serif', fontSize: '1.1rem' }}>
-                      Contexto del Evento
-                    </Typography>
-                  </Box>
+              {registrar.isError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  No se pudo registrar la contingencia. Intenta nuevamente.
+                </Alert>
+              )}
+              {validacion && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {validacion}
+                </Alert>
+              )}
 
-                  <Grid container spacing={3}>
-                    <Grid item xs={6}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        ACTOR RESPONSABLE
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PersonOutlineIcon sx={{ color: vigiaColors.primary, fontSize: '1.2rem' }} />
-                        <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontFamily: '"Inter", sans-serif' }}>
-                          Guardia de Turno
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        REFERENCIA EVENTO
-                      </Typography>
-                      <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontFamily: '"Inter", sans-serif' }}>
-                        EV-8821
-                      </Typography>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 1 }}>
-                        FECHA Y HORA
-                      </Typography>
-                      <Typography sx={{ fontWeight: 600, color: vigiaColors.textBody, fontFamily: '"Inter", sans-serif' }}>
-                        2026-07-06 14:35:22
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
-
-                {/* Evidencia (Vehiculo si aplica) */}
-                <Paper elevation={0} sx={{ p: 3, borderRadius: vigiaRadius.md, border: '1px solid rgba(0,0,0,0.08)', backgroundColor: vigiaColors.white }}>
-                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: vigiaColors.textSecondary, letterSpacing: 0.5, mb: 2 }}>
-                    VEHÍCULO / PLACA INVOLUCRADA (SI APLICA)
-                  </Typography>
-                  
-                  <Box sx={{ backgroundColor: '#F3F4F6', p: 2, borderRadius: vigiaRadius.sm, textAlign: 'center', mb: 2 }}>
-                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: '"Exo 2", sans-serif', color: '#1F2937', letterSpacing: 2 }}>
-                      ABC-1234
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      justifyContent: 'center',
-                      backgroundColor: '#1E3A8A', 
-                      color: '#FFFFFF',
-                      p: 1.5,
-                      borderRadius: vigiaRadius.sm,
-                    }}
+              <Stack spacing={2.5}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="Placa"
+                    value={placa}
+                    onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+                    fullWidth
+                    required
+                  />
+                  <ToggleButtonGroup
+                    value={tipoMovimiento}
+                    exclusive
+                    onChange={(_, val) => val && setTipoMovimiento(val)}
+                    size="small"
                   >
-                    <ArrowRightAltIcon />
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', letterSpacing: 1 }}>
-                      TIPO DE MOVIMIENTO: ENTRADA
+                    <ToggleButton value="ENTRADA">Entrada</ToggleButton>
+                    <ToggleButton value="SALIDA">Salida</ToggleButton>
+                  </ToggleButtonGroup>
+                </Stack>
+
+                {contexto.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                      Eventos recientes de esta placa
                     </Typography>
+                    <Stack spacing={0.5}>
+                      {contexto.map((e) => (
+                        <Box key={e.eventoAccesoId} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(e.capturadoEn).toLocaleString('es-EC')} · {e.tipoMovimiento}
+                          </Typography>
+                          <StatusChip estado={e.decisionOperativa} />
+                        </Box>
+                      ))}
+                    </Stack>
                   </Box>
-                </Paper>
-              </Box>
-            </Grid>
+                )}
 
-            {/* RIGHT COLUMN: ACTION */}
-            <Grid item xs={12} md={6}>
-              <Paper 
-                elevation={0} 
-                sx={{ 
-                  p: 3, 
-                  borderRadius: vigiaRadius.md, 
-                  border: '1px solid #FCA5A5', 
-                  backgroundColor: '#FEF2F2',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                  <BugReportIcon sx={{ color: '#DC2626' }} />
-                  <Typography sx={{ fontWeight: 700, color: '#991B1B', fontFamily: '"Exo 2", sans-serif', fontSize: '1.2rem' }}>
-                    Formulario de Contingencia
-                  </Typography>
-                </Box>
-
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#991B1B', mb: 1, letterSpacing: 0.5 }}>
-                    CAUSA PRINCIPAL DEL FALLO *
-                  </Typography>
+                <FormControl fullWidth required>
+                  <InputLabel id="causa-label" shrink>¿Qué ocurrió?</InputLabel>
                   <Select
+                    labelId="causa-label"
+                    label="¿Qué ocurrió?"
+                    displayEmpty
                     value={causa}
                     onChange={(e) => setCausa(e.target.value)}
-                    displayEmpty
-                    size="small"
-                    sx={{
-                      backgroundColor: vigiaColors.white,
-                      borderRadius: vigiaRadius.sm,
-                      fontFamily: '"Inter", sans-serif',
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(220,38,38,0.3)' },
-                    }}
-                  >
-                    <MenuItem value="" disabled sx={{ color: vigiaColors.textTertiary }}>
-                      Seleccione la causa técnica...
-                    </MenuItem>
-                    <MenuItem value="FALLO_RED">Fallo de red / Sin conectividad</MenuItem>
-                    <MenuItem value="FALLO_CAMARA">Cámara LPR fuera de línea</MenuItem>
-                    <MenuItem value="SISTEMA_CAIDO">Caída general del sistema</MenuItem>
-                    <MenuItem value="FALLO_BIOMETRICO">Fallo en módulo biométrico</MenuItem>
-                    <MenuItem value="OTRO">Otro problema técnico</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth sx={{ mb: 4, flex: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#991B1B', letterSpacing: 0.5 }}>
-                      DETALLE DE LA CONTINGENCIA *
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.7rem', color: detalle.length < 10 ? '#DC2626' : '#059669', fontWeight: 600 }}>
-                      {detalle.length}/10 mín.
-                    </Typography>
-                  </Box>
-                  <TextField
-                    multiline
-                    rows={6}
-                    value={detalle}
-                    onChange={(e) => setDetalle(e.target.value)}
-                    placeholder="Describa el comportamiento observado, pasos previos al fallo y medidas inmediatas tomadas..."
-                    variant="outlined"
-                    sx={{
-                      backgroundColor: vigiaColors.white,
-                      borderRadius: vigiaRadius.sm,
-                      '& .MuiOutlinedInput-root': {
-                        fontFamily: '"Inter", sans-serif',
-                        fontSize: '0.9rem',
-                        '& fieldset': { borderColor: 'rgba(220,38,38,0.3)' },
-                        '&.Mui-focused fieldset': { borderColor: '#DC2626' },
+                    renderValue={(selected) => {
+                      if (!selected) {
+                        return <Typography color="text.secondary">Seleccionar</Typography>;
                       }
-                    }}
-                  />
-                </FormControl>
-
-                <Box sx={{ display: 'flex', gap: 2, mt: 'auto' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={handleCancelar}
-                    sx={{
-                      flex: 1,
-                      borderColor: 'rgba(220,38,38,0.3)',
-                      color: '#DC2626',
-                      py: 1.5,
-                      fontWeight: 600,
-                      borderRadius: vigiaRadius.sm,
-                      textTransform: 'none',
-                      fontFamily: '"Inter", sans-serif',
-                      backgroundColor: 'rgba(255,255,255,0.5)',
-                      '&:hover': { backgroundColor: '#FEE2E2', borderColor: '#DC2626' }
+                      return selected as string;
                     }}
                   >
+                    <MenuItem value="" disabled>
+                      Seleccionar
+                    </MenuItem>
+                    {CAUSAS.map((c) => (
+                      <MenuItem key={c} value={c}>
+                        {c}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {causa && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                      {CAUSA_DESC[causa]}
+                    </Typography>
+                  )}
+                </FormControl>
+
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    ¿Qué decidiste hacer?
+                  </Typography>
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      fullWidth
+                      variant={decision === 'AUTORIZAR' ? 'contained' : 'outlined'}
+                      color="success"
+                      onClick={() => setDecision('AUTORIZAR')}
+                    >
+                      ✓ Autorizar paso
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant={decision === 'DENEGAR' ? 'contained' : 'outlined'}
+                      color="error"
+                      onClick={() => setDecision('DENEGAR')}
+                    >
+                      ✕ Denegar paso
+                    </Button>
+                  </Stack>
+                </Box>
+
+                {decision === 'AUTORIZAR' && tipoMovimiento === 'ENTRADA' && (
+                  <FormControl fullWidth>
+                    <InputLabel id="duracion-label">Duración autorizada de permanencia</InputLabel>
+                    <Select
+                      labelId="duracion-label"
+                      label="Duración autorizada de permanencia"
+                      value={duracion}
+                      onChange={(e) => setDuracion(Number(e.target.value))}
+                    >
+                      {DURACIONES.map((d) => (
+                        <MenuItem key={d.value} value={d.value}>
+                          {d.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+
+                <TextField
+                  label="Explica la situación"
+                  value={detalle}
+                  onChange={(e) => setDetalle(e.target.value)}
+                  multiline
+                  rows={3}
+                  required
+                  helperText={`${detalle.length}/10 mínimo`}
+                />
+
+                <Alert severity="warning">
+                  Esta contingencia quedará registrada con tu usuario y timestamp. Es trazable e irrevocable.
+                </Alert>
+
+                <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+                  <Button variant="outlined" onClick={() => navigate('/guardia/cola')}>
                     Cancelar
                   </Button>
                   <Button
                     variant="contained"
-                    onClick={handleConfirmar}
-                    disabled={!causa || detalle.length < 10}
-                    startIcon={<SaveIcon />}
-                    sx={{
-                      flex: 2,
-                      backgroundColor: '#DC2626',
-                      color: vigiaColors.white,
-                      py: 1.5,
-                      fontWeight: 600,
-                      borderRadius: vigiaRadius.sm,
-                      textTransform: 'none',
-                      fontFamily: '"Inter", sans-serif',
-                      '&:hover': { backgroundColor: '#B91C1C' },
-                      '&.Mui-disabled': { backgroundColor: 'rgba(220, 38, 38, 0.4)', color: 'rgba(255,255,255,0.7)' }
-                    }}
+                    color="warning"
+                    onClick={handleRegistrar}
+                    disabled={!esValido || registrar.isPending}
                   >
-                    Confirmar Registro
+                    {registrar.isPending ? 'Registrando...' : 'Registrar y cerrar evento'}
                   </Button>
-                </Box>
-              </Paper>
-            </Grid>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
 
-          </Grid>
-        </motion.div>
-
-      </Box>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+                Causas válidas
+              </Typography>
+              <Stack spacing={1.5}>
+                {CAUSAS.map((c) => (
+                  <Box key={c} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Chip
+                      label={c}
+                      size="small"
+                      color={causa === c ? 'primary' : 'default'}
+                      sx={{ fontWeight: 700, fontSize: 10, flexShrink: 0 }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {CAUSA_DESC[c]}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </DashboardTemplate>
   );
-};
+}
 
 export default ContingenciaPage;

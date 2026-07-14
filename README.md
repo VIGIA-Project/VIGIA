@@ -1,146 +1,124 @@
-# 🚨 VIGIA — Control de Acceso Vehicular Inteligente
+# VIGIA — Vehicle Access & Exit Control System
 
-**Sistema de control de acceso vehicular** para la Universidad Central del Ecuador, construido como monorepo con **NestJS** (backend), **React + Vite** (frontend) y **PostgreSQL** (multi-schema), siguiendo **Clean Architecture** y **Domain-Driven Design (DDD)**.
+> Universidad Central del Ecuador · Monorepo (pnpm workspaces)
 
-> 📦 Este es un **monorepo con pnpm workspaces**. Usa siempre **`pnpm`**, nunca `npm` o `yarn` — el lockfile y los `workspace:*` de `package.json` dependen de él.
+## What is VIGIA
 
----
-
-## 📌 Estado actual del proyecto
-
-Antes de reproducir el proyecto, es importante entender qué está realmente implementado hoy:
-
-| Capa | Estado |
-|------|--------|
-| **Frontend — Propietario** | Completo e iterado: onboarding, vehículos, personas autorizadas (con biometría presencial), permisos temporales, pases rápidos, historial, perfil, alertas. Usa datos **mock en memoria/localStorage** donde el backend aún no expone endpoints. |
-| **Frontend — Guardia / Admin** | Implementado con datos mock; no se ha tocado en las últimas iteraciones (ver reglas de aislamiento por rol más abajo). |
-| **Backend — `auth`** | Real: login JWT, cambio de contraseña, gestión de usuarios (CRUD, activar/desactivar, reset password). Seeder automático en desarrollo. |
-| **Backend — `registry`** | Real: CRUD de `Persona`, `Vehiculo` y `AsignacionRol` contra PostgreSQL. |
-| **Backend — `authorization`, `biometric`, `access_control`, `alerting`** | Módulos y schemas de base de datos **scaffolded** (entidades/tablas existen), pero **sin controllers ni endpoints expuestos todavía**. El frontend cubre estas features con mocks. |
-| **Onboarding biométrico / vehicular** | El flujo de UI está completo, pero `POST /api/v1/auth/login` **no persiste ni devuelve** `biometric_registered` / `vehicle_registered` todavía — esos dos flags se resuelven hoy en el cliente (`AuthContext`) y se pierden al cerrar sesión. Es una limitación conocida, no un bug de esta rama. |
-
-Si vas a extender el backend, revisa primero `apps/backend/src/modules/<bc>/` para confirmar si el Bounded Context ya tiene `presentation/*.controller.ts` o solo `domain/`+`infrastructure/`.
+VIGIA is a vehicle access control system for the university campus. It combines a vehicle/people registry, biometric enrollment (UI-complete, verification service not yet connected), and three authorization mechanisms to decide who may bring a vehicle in or out: a global family group per owner, time-bound temporary permits, and single-use quick-access passes.
 
 ---
 
-## 🧱 Stack Tecnológico
+## Current state of the project
 
-| Capa | Tecnología |
-|------|-----------|
+Before reproducing this locally, it matters to know what's actually wired to a real database today:
+
+| Layer | Status |
+|-------|--------|
+| **Frontend — Propietario (Owner)** | Most complete and iterated dashboard: onboarding, vehicles, authorized people (with in-person biometric capture), temporary permits, quick passes, history, profile, alerts. Connected to the real API where the backend exposes it; falls back to in-memory/localStorage mocks where it doesn't yet. |
+| **Frontend — Guardia / Admin** | Implemented with mock data; not touched in recent iterations (see role-isolation rules below). |
+| **Backend — `core/auth`** | Real: JWT login, forced password change, user management (CRUD, activate/deactivate, reset password). Automatic dev seeder. |
+| **Backend — `registry`** | Real: CRUD for `Persona`, `Vehiculo`, and `AsignacionRol` against PostgreSQL. |
+| **Backend — `authorization`** | Real: family group membership (global per owner), temporary permits, and quick-access passes — all with live endpoints and PostgreSQL persistence. |
+| **Backend — `biometric`, `access_control`, `alerting`** | Modules and database schemas scaffolded. **Biometric is now live and integrated with `vigia-bio` microservice**, auto-creating `pgvector` extensions and raw tables. Access Control and Alerting are pending. |
+| **Biometric / vehicle onboarding** | Real: `POST /api/v1/auth/login` returns `biometric_registered` / `vehicle_registered`, persisted on the `User` entity and updated via `PATCH /api/v1/auth/users/me/onboarding-status` when the owner completes each step. Authorized Persons (Familiares/Invitados) biometric flow is also fully wired to the backend and AI microservice. |
+
+Before extending the backend, check `apps/backend/src/modules/<bc>/` first to confirm whether that Bounded Context already has a `presentation/*.controller.ts` or only `domain/` + `infrastructure/`.
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
 | Frontend | React 19, Vite 6, MUI 6, React Router 7, TanStack Query, React Hook Form + Zod, Framer Motion |
 | Backend | NestJS 10, TypeORM 0.3, PostgreSQL 17 (multi-schema), Passport JWT, bcrypt |
-| Monorepo | pnpm workspaces, Webpack (bundle del backend vía `nest build`) |
-| Runtime | **Node.js 22.x** (requerido — ver nota sobre enums de TypeScript más abajo) |
+| Monorepo | pnpm workspaces, Webpack (backend bundle via `nest build`) |
+| Runtime | **Node.js 22.x** (required — see the TypeScript enum note below) |
 
-> ⚠️ **Por qué Node 22.x y no solo "≥18"**: el backend usa `@PrimaryGeneratedColumn` y enums de TypeScript que TypeORM carga en runtime vía `autoLoadEntities`. En versiones de Node con soporte experimental de "type stripping" distinto, esto puede romperse. El `engines` de `package.json` dice `>=18.0.0` por compatibilidad histórica, pero el entorno de desarrollo real y probado es **Node 22.x**.
+> ⚠️ **Why Node 22.x and not just "≥18"**: the backend uses `@PrimaryGeneratedColumn` and TypeScript enums that TypeORM loads at runtime via `autoLoadEntities`. Different Node versions' experimental type-stripping support can break this. Root `package.json` `engines` says `>=18.0.0` for historical compatibility, but the tested development environment is **Node 22.x**.
 
 ---
 
-## 📚 Estructura del Monorepo
+## Architecture
+
+- **Modular monolith** with a hexagonal / Clean Architecture approach (ports & adapters)
+- **Domain-Driven Design** — 5 Bounded Contexts, each with its own isolated PostgreSQL schema: `registry`, `authorization`, `biometric`, `access_control`, `alerting` (plus `auth`, cross-cutting infrastructure rather than a business BC)
+- **Inter-BC communication** — exclusively through contracts in `src/shared/interfaces/contracts/`; Bounded Contexts never import each other's modules directly
+
+## Implemented modules (MVP)
+
+| Module | Status | Description |
+|--------|:---:|-------------|
+| `core/auth` | ✅ Complete | JWT, bcrypt, roles, guards, forced password change |
+| `registry` | ✅ Complete | People, vehicles, biometric enrollment (structure) |
+| `authorization` | ✅ Complete | Family group (global per owner), temporary permits, quick-access passes |
+| `access-control` | 🔲 Scaffolded | Gate/checkpoint evaluation (post-MVP) |
+| `biometric` | ✅ Complete | Face embeddings generation & comparison connected to `vigia-bio` with InsightFace |
+| `alerting` | 🔲 Scaffolded | Notifications and alerts (post-MVP) |
+
+## Authorization model
 
 ```
-VIGIA/
-├── apps/
-│   ├── backend/                  # API REST NestJS — Clean Architecture + DDD
-│   │   ├── src/
-│   │   │   ├── core/             # Config, database, auth, guards, interceptores
-│   │   │   ├── modules/          # 5 Bounded Contexts (ver apps/backend/README.md)
-│   │   │   ├── shared/           # Contratos entre BCs, DTOs, enums, utils
-│   │   │   └── presentation/     # Health checks
-│   │   ├── .env                  # Config local (NO versionado)
-│   │   ├── .env.example
-│   │   └── README.md             # ← Documentación detallada del backend
-│   │
-│   └── frontend/                 # SPA React + Vite
-│       ├── src/
-│       │   ├── pages/            # propietario/ · guardia/ · admin/ · auth/
-│       │   ├── components/       # Atomic Design: atoms/molecules/organisms/templates
-│       │   ├── config/           # Mocks, copy en español, navegación, tema
-│       │   ├── context/          # AuthContext (JWT, roles, onboarding)
-│       │   └── services/         # Cliente Axios
-│       ├── .env.example
-│       └── README.md             # ← Documentación detallada del frontend
-│
-├── packages/
-│   └── shared-types/              # Enums y DTOs TS compartidos (uso parcial hoy)
-│
-├── .claude/                       # Reglas y skills del asistente Claude Code
-├── CLAUDE.md                      # Contexto e instrucciones para el asistente
-├── docker-compose.yml             # Postgres + stubs mock de OCR/biometría
-├── .env.example                   # Plantilla de referencia para docker-compose
-├── pnpm-workspace.yaml
-└── README.md                      # ← Estás aquí
+Owner (1) ──→ (N) Vehicles [status: ACTIVE | INACTIVE]
+Owner (1) ──→ (up to 5) Family Group Members [access to ALL of the owner's active vehicles]
+Vehicle (1) ──→ (N) Temporary Permits [validity ≤ 30 days from start]
+Vehicle (1) ──→ (N) Quick-Access Passes [single use, no biometric check]
 ```
 
 ---
 
-## 🚀 Inicio Rápido
-
-### 1️⃣ Prerequisitos
-
-- **Node.js 22.x**
-- **pnpm 11.x** (`packageManager` fijado en `package.json`)
-- **PostgreSQL 16/17** local, o Docker para levantar el de `docker-compose.yml`
-
-### 2️⃣ Clonar e instalar
+## Quick start
 
 ```bash
+# Clone and install
 git clone https://github.com/VIGIA-Project/VIGIA.git
 cd VIGIA
 pnpm install
 ```
 
-### 3️⃣ Configurar la base de datos
+### Infrastructure (Docker Compose)
 
-Elige **una** de las dos opciones. El backend real (`apps/backend/.env`) está preparado para la opción A.
-
-**Opción A — PostgreSQL local (recomendado, coincide con el `.env` de desarrollo):**
+Docker Compose is the only supported infrastructure source — PostgreSQL, Redis, and the OCR/BIO AI-service stubs all run as containers. Requires Docker Desktop 4.x.
 
 ```bash
-psql -U postgres -c "CREATE DATABASE vigia_db;"
+docker compose up -d
+docker compose ps   # all four services should show "healthy"
 ```
 
-Credenciales esperadas: `postgres` / `admin` en `localhost:5432`, base `vigia_db`.
+Expected credentials: `postgres` / `admin` on `localhost:5433` (note the mapped port from docker-compose), database `vigia_db` (matches `apps/backend/.env`).
 
-**Opción B — Docker Compose:**
-
-```bash
-docker-compose up -d postgres
-```
-
-⚠️ El Postgres de `docker-compose.yml` expone el puerto **5434** (no 5432, para no chocar con una instalación local) y usa las credenciales de `docker-compose.yml` (`DB_USERNAME`/`DB_PASSWORD`, default `vigia_user`/`vigia_secret`). Si usas esta opción, ajusta `DB_PORT=5434` y las credenciales en `apps/backend/.env`.
-
-### 4️⃣ Configurar variables de entorno
+### Environment variables
 
 ```bash
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env.local
 ```
 
-Los valores por defecto de `apps/backend/.env.example` ya apuntan a la Opción A. Ver la sección [Variables de entorno](#-variables-de-entorno) para el detalle completo.
+`apps/backend/.env.example` defaults already match the docker-compose credentials/ports. See [Environment variables](#environment-variables) below for the full list.
 
-### 5️⃣ Levantar el backend
+### Backend
 
 ```bash
 pnpm dev:backend
 ```
 
-**No hace falta ejecutar migraciones ni seeds manualmente en desarrollo.** Al arrancar, el backend:
-1. Crea los schemas `auth` y `registry` si no existen (`ensureSchemas`, ver `apps/backend/src/core/database/init-schemas.ts`).
-2. Sincroniza las tablas automáticamente porque `DB_SYNCHRONIZE=true` (TypeORM `synchronize`).
-3. Inserta los 3 usuarios de prueba si la tabla `auth.users` está vacía y `NODE_ENV=development` (`SeedService`).
+**No manual migrations or seeds needed in development.** On boot, the backend:
+1. Creates the 6 schemas if missing — `auth`, `registry`, `authorization`, `biometric`, `access_control`, `alerting` (`ensureSchemas`, see `apps/backend/src/core/database/init-schemas.ts`).
+2. Syncs tables automatically because `DB_SYNCHRONIZE=true` (TypeORM `synchronize`).
+3. Inserts the 3 test users if `auth.users` is empty and `NODE_ENV=development` (`SeedService`).
 
-API disponible en `http://localhost:3000/api/v1` · Health check en `http://localhost:3000/health`.
+API available at `http://localhost:3000/api/v1` · Health check at `http://localhost:3000/health`.
+*(Note: If you plan to test biometric features, ensure the `vigia-bio` container is running and `BIO_SERVICE_URL` points to `http://localhost:8002`)*
 
-### 6️⃣ Levantar el frontend
+### Frontend
 
 ```bash
 pnpm dev:frontend
 ```
 
-Disponible en `http://localhost:5173`.
+Available at `http://localhost:5173`.
 
-### 7️⃣ O ambos en paralelo
+### Both in parallel
 
 ```bash
 pnpm dev
@@ -148,69 +126,74 @@ pnpm dev
 
 ---
 
-## 🔑 Credenciales de desarrollo (seed automático)
+## Development credentials (automatic seed)
 
-Solo se insertan cuando `NODE_ENV=development` y la tabla de usuarios está vacía.
+Only inserted when `NODE_ENV=development` and the users table is empty.
 
-| Email | Password | Rol |
-|-------|----------|-----|
+| Email | Password | Role |
+|-------|----------|------|
 | `admin@uce.edu.ec` | `Admin123!` | ADMIN |
 | `guardia@uce.edu.ec` | `Guard123!` | GUARD |
 | `propietario@uce.edu.ec` | `Owner123!` | OWNER |
 
-El login solo acepta correos con dominio `@uce.edu.ec`.
+Login only accepts `@uce.edu.ec` email addresses.
 
 ---
 
-## 🔧 Variables de entorno
+## Environment variables
 
 ### Backend (`apps/backend/.env`)
 
-| Variable | Requerida | Default | Descripción |
+| Variable | Required | Default | Description |
 |----------|:---:|---------|-------------|
-| `DB_HOST` | ✅ | — | Host de PostgreSQL |
-| `DB_PORT` | ✅ | 5432 | Puerto |
-| `DB_USERNAME` | ✅ | — | Usuario de la BD |
-| `DB_PASSWORD` | ✅ | — | Password de la BD |
-| `DB_NAME` | ✅ | — | Nombre de la base de datos |
-| `DB_SYNCHRONIZE` | — | `false` | `true` en dev para que TypeORM cree/actualice tablas automáticamente |
-| `DB_LOGGING` | — | `false` | Log de queries SQL en consola |
-| `JWT_SECRET` | ✅ | — | Secreto de firma de tokens JWT |
-| `JWT_EXPIRATION` | — | `1d` | Expiración del token (ej. `8h`) |
-| `BCRYPT_ROUNDS` | — | `10` | Rondas de hashing de contraseñas |
-| `NODE_ENV` | — | `development` | `development` habilita el seeder automático |
-| `APP_PORT` | — | `3000` | Puerto HTTP del backend |
+| `DB_HOST` | ✅ | — | PostgreSQL host |
+| `DB_PORT` | ✅ | 5432 | Port |
+| `DB_USERNAME` | ✅ | — | Database user |
+| `DB_PASSWORD` | ✅ | — | Database password |
+| `DB_NAME` | ✅ | — | Database name |
+| `DB_SYNCHRONIZE` | — | `false` | `true` in dev so TypeORM creates/updates tables automatically |
+| `DB_LOGGING` | — | `false` | Log SQL queries to console |
+| `REDIS_HOST` | — | — | Redis host (docker-compose) |
+| `REDIS_PORT` | — | — | Redis port (docker-compose) |
+| `JWT_SECRET` | ✅ | — | JWT signing secret |
+| `JWT_EXPIRATION` | — | `1d` | Token expiration (e.g. `8h`) |
+| `BCRYPT_ROUNDS` | — | `10` | Password hashing rounds |
+| `NODE_ENV` | — | `development` | `development` enables the automatic seeder |
+| `APP_PORT` | — | `3000` | Backend HTTP port |
+| `OCR_SERVICE_URL` | — | — | OCR stub base URL (docker-compose) |
+| `BIO_SERVICE_URL` | — | — | Biometric stub base URL (docker-compose) |
+| `USE_AI_STUBS` | — | — | Flags that OCR/BIO calls should hit the docker-compose stubs |
 
-Validadas al arrancar con Joi (`apps/backend/src/core/config/env.validation.ts`) — si falta una variable requerida, el backend no levanta.
+Validated at boot with Joi (`apps/backend/src/core/config/env.validation.ts`) — the backend refuses to start if a required variable is missing.
 
-> `envFilePath` solo resuelve dentro de `apps/backend/` (`.env` / `.env.local`). El `.env` de la raíz **no** lo usa el backend, es solo referencia para `docker-compose.yml`.
+> `envFilePath` only resolves inside `apps/backend/` (`.env` / `.env.local`). The backend never reads the repo-root `.env` — that one is only a reference for `docker-compose.yml`.
 
 ### Frontend (`apps/frontend/.env.local`)
 
-| Variable | Default | Descripción |
+| Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_BASE_URL` | `http://localhost:3000/api/v1` | URL base del backend. También se acepta `VITE_API_URL` como alias. |
-| `VITE_APP_ENV` | `development` | Entorno lógico de la app |
-| `VITE_APP_NAME` | `VIGIA` | Usado en títulos/meta tags |
-| `VITE_APP_VERSION` | `0.1.0` | Versión mostrada en la UI |
+| `VITE_API_BASE_URL` | `http://localhost:3000/api/v1` | Backend base URL (also accepts `VITE_API_URL` as an alias) |
+| `VITE_APP_ENV` | `development` | Logical app environment |
+| `VITE_APP_NAME` | `VIGIA` | Used in titles/meta tags |
+| `VITE_APP_VERSION` | `0.1.0` | Version shown in the UI |
 
 ---
 
-## 📦 Scripts disponibles
+## Available scripts
 
-### Monorepo (raíz)
+### Monorepo (root)
 
-| Comando | Descripción |
-|---------|------------|
-| `pnpm dev` | Backend + frontend en paralelo |
-| `pnpm dev:backend` | Solo backend (`nest start --watch`) |
-| `pnpm dev:frontend` | Solo frontend (Vite dev server) |
-| `pnpm build` | Build de todos los workspaces |
-| `pnpm build:backend` | Build solo del backend → `apps/backend/dist` |
-| `pnpm build:frontend` | Build solo del frontend → `apps/frontend/dist` |
-| `pnpm lint` | ESLint en todos los workspaces |
-| `pnpm test` | Tests (Jest) en todos los workspaces |
-| `pnpm clean` | Borra `node_modules` y `dist` de todos los workspaces |
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Backend + frontend in parallel |
+| `pnpm dev:backend` | Backend only (`nest start --watch`) |
+| `pnpm dev:frontend` | Frontend only (Vite dev server) |
+| `pnpm build` | Build every workspace |
+| `pnpm build:backend` | Build backend only → `apps/backend/dist` |
+| `pnpm build:frontend` | Build frontend only → `apps/frontend/dist` |
+| `pnpm lint` | ESLint across every workspace |
+| `pnpm test` | Tests (Jest) across every workspace |
+| `pnpm clean` | Removes `node_modules` and `dist` from every workspace |
 
 ### Backend (`apps/backend`)
 
@@ -220,175 +203,170 @@ pnpm --filter @vigia/backend run build
 pnpm --filter @vigia/backend run test
 pnpm --filter @vigia/backend run test:e2e
 pnpm --filter @vigia/backend run test:cov
-pnpm --filter @vigia/backend run migration:run     # solo si DB_SYNCHRONIZE=false
-pnpm --filter @vigia/backend run migration:generate -- src/core/database/migrations/NombreMigracion
-pnpm --filter @vigia/backend run seed               # inserción manual alternativa al SeedService
+pnpm --filter @vigia/backend run migration:run     # only if DB_SYNCHRONIZE=false
+pnpm --filter @vigia/backend run migration:generate -- src/core/database/migrations/MigrationName
+pnpm --filter @vigia/backend run seed               # manual alternative to SeedService
 ```
 
-> Las migraciones (`apps/backend/src/core/database/migrations/`) existen para escenarios donde `DB_SYNCHRONIZE=false` (p. ej. producción). En desarrollo normal no se ejecutan — `synchronize: true` + el seeder automático son suficientes.
+> Migrations (`apps/backend/src/core/database/migrations/`) exist for scenarios where `DB_SYNCHRONIZE=false` (e.g. production). In normal development they don't run — `synchronize: true` plus the automatic seeder are enough.
 
 ### Frontend (`apps/frontend`)
 
 ```bash
 pnpm --filter frontend run dev
-pnpm --filter frontend run build   # ejecuta tsc + vite build — obligatorio antes de push
+pnpm --filter frontend run build   # runs tsc + vite build — required before push
 pnpm --filter frontend run lint
 pnpm --filter frontend run preview
 ```
 
 ---
 
-## 🐳 Docker Compose
+## Docker Compose
 
-`docker-compose.yml` levanta:
+`docker-compose.yml` brings up:
 
-| Servicio | Puerto host | Notas |
-|----------|-------------|-------|
-| `postgres` | `5434→5432` | Imagen `pgvector/pgvector:pg16` (pgvector reservado para biometría futura, aún no se usa) |
-| `ocr` | `8001` | **Stub** FastAPI que responde datos aleatorios mock (`/detect-plate`) — no es un servicio de OCR real |
-| `bio` | `8002` | **Stub** FastAPI que responde datos aleatorios mock (`/compare-face`) — no es un servicio biométrico real |
+| Service | Host port | Notes |
+|---------|-----------|-------|
+| `postgres` | `5432→5432` | `pgvector/pgvector:pg17` image (pgvector reserved for future biometric use, not used yet) |
+| `redis` | `6379→6379` | `redis:7-alpine`, reserved for future caching/queues, not used yet |
+| `ocr` | `8001→8000` | **Stub** FastAPI service (`docker/ocr/`), `GET /health`, `POST /detect-plate` → `{ placa, confianza }` |
+| `bio` | `8002→8000` | **Live** FastAPI service (`docker/bio/`), real InsightFace models mounted on `/root/.insightface/models` |
 
 ```bash
-docker-compose up -d        # levantar todo
-docker-compose logs -f      # ver logs
-docker-compose down         # detener
-docker-compose down -v      # detener y borrar el volumen de datos
+docker compose up -d        # start everything
+docker compose ps           # check health status
+docker compose logs -f      # tail logs
+docker compose down         # stop
+docker compose down -v      # stop and delete the data volume
 ```
 
-Estos dos servicios OCR/Bio son placeholders para integrar los servicios de IA reales más adelante; hoy el frontend no los consume.
+The Bio service is fully connected for capturing, encoding, and verifying face vectors (using `pgvector` in PostgreSQL). The OCR service remains a placeholder for future real AI-service integration.
 
 ---
 
-## 🗄️ Esquema de base de datos
+## Database schema
 
 ```
 6 schemas
-├── auth            (1 tabla)   → usuarios, roles, políticas de contraseña
-├── registry        (3 tablas)  → personas, vehículos, asignaciones_rol   [único con endpoints reales]
-├── authorization    (3 tablas) → permisos permanentes/temporales, pases rápidos
-├── biometric        (3 tablas) → perfiles biométricos (pgvector futuro)
-├── access_control   (4 tablas) → eventos de entrada/salida
-└── alerting         (2 tablas) → alertas y notificaciones
+├── auth            (1 table)   → users, roles, password policies
+├── registry        (3 tables)  → personas, vehiculos, asignaciones_rol
+├── authorization    (3 tables) → family group, temporary permits, quick-access passes
+├── biometric        (3 tables) → biometric profiles (pgvector, future)
+├── access_control   (4 tables) → entry/exit events
+└── alerting         (2 tables) → alerts and notifications
 ```
 
-`auth` y `registry` se crean automáticamente al arrancar el backend; el resto de schemas los crea `synchronize: true` a partir de las entidades TypeORM cuando existan.
+All 6 schemas are created explicitly on boot via `ensureSchemas`; tables within them are created by `synchronize: true` from TypeORM entities as they get mapped to those schemas.
 
 ---
 
-## 🏥 Health Check
+## Health check
 
 ```bash
-curl http://localhost:3000/health             # estado completo (DB, memoria, uptime)
+curl http://localhost:3000/health             # full status (DB, memory, uptime)
 curl http://localhost:3000/health/liveness     # liveness probe
 curl http://localhost:3000/health/readiness    # readiness probe
 ```
 
 ---
 
-## 🔐 Flujo de autenticación (frontend)
+## Authentication flow (frontend)
 
 ```
 Login (/login)
   └─ must_change_password? ──► /cambiar-password
   └─ OWNER + !biometric_registered? ──► /propietario/onboarding/biometria
   └─ OWNER + !vehicle_registered? ──► /propietario/onboarding/primer-vehiculo
-  └─ Dashboard según rol (OWNER → /propietario/inicio, GUARD → /guardia/inicio, ADMIN → /admin)
+  └─ Dashboard for the role (OWNER → /propietario/inicio, GUARD → /guardia/inicio, ADMIN → /admin)
 ```
 
-- El backend envía `role: 'OWNER' | 'GUARD' | 'ADMIN'`. El frontend normaliza y expone tanto `role` como `rol` (alias legado `PROPIETARIO`/`GUARDIA`) — compara siempre contra el valor del backend en código nuevo.
-- `isActive()` en el backend acepta `ACTIVE` y `PENDING_PASSWORD_CHANGE`; solo `INACTIVE` bloquea el login.
-- Como se explicó en [Estado actual](#-estado-actual-del-proyecto), `biometric_registered`/`vehicle_registered` no vienen del backend todavía — el frontend los completa por `AuthContext` y no persisten entre sesiones.
+- The backend sends `role: 'OWNER' | 'GUARD' | 'ADMIN'`. The frontend normalizes and exposes both `role` and `rol` (legacy alias `PROPIETARIO`/`GUARDIA`) — new code always compares against the backend value.
+- `isActive()` on the backend accepts `ACTIVE` and `PENDING_PASSWORD_CHANGE`; only `INACTIVE` blocks login.
+- `biometric_registered`/`vehicle_registered` come from the backend on login and are persisted server-side; `AuthContext.completeBiometricOnboarding()` / `completeVehicleOnboarding()` call `PATCH /auth/users/me/onboarding-status` to update them.
 
 ---
 
-## 🌿 Convenciones de Git
+## Key architectural decisions
 
-- **Branch base:** `dev` (no `main`/`develop`).
-- **Commits:** convencionales, atómicos, en inglés (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
-- Comandos git **siempre separados**, nunca encadenados con `&&`.
-- No hacer merge sin `pnpm --filter frontend build` exitoso y aprobación explícita.
-- No modificar rutas/componentes de un rol (OWNER/GUARD/ADMIN) al trabajar en otro.
+1. **The family group is global per owner**, not per vehicle — a member gets access to every active vehicle the owner has.
+2. **No `PROGRAMADO` (scheduled) state** — a permit is created directly as active; its applicability is determined by its validity window (`vigenciaInicio`/`vigenciaFin`).
+3. **Quick-access passes store a bcrypt hash of the code** — the plain code is shown to the owner exactly once.
+4. **JWT payload carries onboarding claims** — `must_change_password`, `biometric_registered`, `vehicle_registered`.
+5. **Vehicle access is bidirectional** — entry and exit are evaluated under the same authorization logic.
+6. **Legacy `/permanentes` endpoints remain as aliases** of the new `/grupo-familiar` endpoints during the frontend migration (`apps/backend/src/modules/authorization/presentation/authorization.controller.ts`), to avoid breaking existing frontend calls while both are updated in lockstep.
+
+---
+
+## Git conventions
+
+- **Base branch:** `dev` (not `main`/`develop`).
+- **Commits:** conventional, atomic, in English (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
+- Git commands **always run separately**, never chained with `&&`.
+- No merges without a passing `pnpm --filter frontend build` and explicit approval.
+- Never modify another role's routes/components (OWNER/GUARD/ADMIN) while working on a different one.
 
 ```bash
 git fetch origin
 git checkout dev
 git pull origin dev
-git checkout -b feat/descripcion-corta
+git checkout -b feat/short-description
 ```
 
 ---
 
-## 🚀 Build de producción
+## Production build
 
 ```bash
-pnpm build                  # ambos apps
+pnpm build                  # both apps
 pnpm build:backend          # → apps/backend/dist
 pnpm build:frontend         # → apps/frontend/dist
 ```
 
-Variables mínimas en producción:
+Minimum production variables:
 
 ```bash
 # Backend
 NODE_ENV=production
-DB_SYNCHRONIZE=false        # usar migraciones en vez de synchronize en prod
-JWT_SECRET=<valor-seguro>
+DB_SYNCHRONIZE=false        # use migrations instead of synchronize in prod
+JWT_SECRET=<secure-value>
 APP_PORT=3000
 
 # Frontend
-VITE_API_BASE_URL=https://api.tu-dominio.com/api/v1
+VITE_API_BASE_URL=https://api.your-domain.com/api/v1
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## Known limitations (MVP)
 
-**`pnpm: command not found`**
-```bash
-npm install -g pnpm@11.9.0
-```
+| Limitation | Reason | Post-MVP resolution |
+|-----------|--------|----------------------|
+| Temporary permits / quick passes operate on `vehiculos[0]` | No active-vehicle selector yet | Implement a `<VehiculoSelector>` |
+| No real biometric verification | Face-matching service fully implemented and connected for enroll/verify | Done |
+| No real-time plate OCR | Detection/OCR service not connected | Connect the OCR service |
+| Guard dashboard has no real data | Access Control BC not implemented | Implement Access Control |
+| No push notifications | Alerting BC scaffolded | Implement Alerting |
 
-**`Error de conexión. Intente nuevamente.` en el login**
-El backend no está corriendo o no es alcanzable desde el frontend. Verifica `pnpm dev:backend` y que `VITE_API_BASE_URL` apunte al puerto correcto (3000 por defecto).
+## Post-MVP roadmap
 
-**`ECONNREFUSED` / `PostgreSQL connection refused`**
-```bash
-# Local: verifica que el servicio de Postgres esté activo
-# Docker:
-docker-compose ps
-docker-compose logs postgres
-docker-compose restart postgres
-```
-
-**Backend arranca pero las tablas no existen**
-Confirma `DB_SYNCHRONIZE=true` en `apps/backend/.env` para desarrollo, o ejecuta las migraciones manualmente si trabajas con `DB_SYNCHRONIZE=false`.
-
-**No aparecen los usuarios de prueba**
-El `SeedService` solo inserta si `NODE_ENV=development` **y** la tabla `auth.users` está vacía. Si ya insertaste usuarios manualmente, no se re-insertan.
-
-**El onboarding biométrico/vehicular vuelve a pedirse tras cerrar sesión**
-Comportamiento esperado hoy — ver [Estado actual del proyecto](#-estado-actual-del-proyecto).
-
-**Puerto 3000 o 5173 en uso**
-```bash
-# Backend: cambia APP_PORT en apps/backend/.env
-# Frontend: Vite pedirá otro puerto automáticamente, o usa --port
-```
+1. Active-vehicle selector in the owner dashboard
+2. ACTIVE/INACTIVE vehicle status (groundwork for payments)
+3. "Authorize for all my vehicles" checkbox on temporary permits
+4. Access Control BC — checkpoint evaluation with OCR + face recognition
+5. University parking payment integration
+6. Real-time push notifications and alerts
 
 ---
 
-## 📚 Documentación por app
+## Documentation per app
 
-- [`apps/backend/README.md`](./apps/backend/README.md) — arquitectura Clean Architecture + DDD, Bounded Contexts, endpoints reales, health checks.
-- [`apps/frontend/README.md`](./apps/frontend/README.md) — estructura Atomic Design, inventario de páginas por rol, sistema de diseño, estrategia de mocks.
+- [`apps/backend/README.md`](./apps/backend/README.md) — Clean Architecture + DDD, Bounded Contexts, real endpoints, health checks.
+- [`apps/frontend/README.md`](./apps/frontend/README.md) — Atomic Design structure, page inventory per role, design system, mock strategy.
+
+<!-- TODO: verify — link the canonical business/architecture docs (Confluence or equivalent) once confirmed accessible from this repo -->
 
 ---
 
-## 📄 Licencia
+## License
 
 MIT
-
----
-
-**Última actualización:** 2026-07-09
-**Versión:** 0.1.0

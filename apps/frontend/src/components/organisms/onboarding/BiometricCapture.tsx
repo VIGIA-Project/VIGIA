@@ -1,7 +1,8 @@
 // src/components/organisms/onboarding/BiometricCapture.tsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import Webcam from 'react-webcam';
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -24,29 +25,94 @@ const PROCESSING_DELAY_MS = 1500;
 const SUCCESS_GREEN = '#22C55E';
 
 export interface BiometricCaptureProps {
-  onAllCaptured: () => void;
+  onAllCaptured: (files: File[]) => void;
   onSkipForNow: () => void;
+  isSubmitting?: boolean;
   /** Callback para informar al padre cuántas capturas se completaron (para la barra de progreso) */
   onCaptureProgress?: (done: number, total: number) => void;
   /** Copy de la pantalla de éxito final — por defecto usa el copy del onboarding propio del propietario */
   successCopy?: { title: string; subtitle: string; cta: string };
 }
 
-export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow, onCaptureProgress, successCopy = SUCCESS_COPY }) => {
+export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCaptured, onSkipForNow, isSubmitting, onCaptureProgress, successCopy = SUCCESS_COPY }) => {
   const shouldReduceMotion = useReducedMotion();
   const [captureIndex, setCaptureIndex] = useState(0);
   const [statuses, setStatuses] = useState<CaptureStepState[]>(['active', 'pending', 'pending']);
   const [isProcessing, setIsProcessing] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [capturedFiles, setCapturedFiles] = useState<File[]>([]);
+  const [cameraError, setCameraError] = useState(false);
+  
+  const webcamRef = useRef<Webcam>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentStep = CAPTURE_STEPS[Math.min(captureIndex, TOTAL_CAPTURES - 1)];
 
-  const handleCapture = () => {
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const handleCapture = useCallback(() => {
+    if (cameraError) {
+      // If camera failed, click hidden file input
+      fileInputRef.current?.click();
+      return;
+    }
+
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!imageSrc) return;
+
     setIsProcessing(true);
+    const file = dataURLtoFile(imageSrc, `${currentStep.key}.jpg`);
+    
+    // Process the captured image
     setTimeout(() => {
       const isLast = captureIndex === TOTAL_CAPTURES - 1;
       const newDone = captureIndex + 1;
+      
+      const newFiles = [...capturedFiles, file];
+      setCapturedFiles(newFiles);
+
+      setStatuses((prev) =>
+        prev.map((status, i) => {
+          if (i === captureIndex) return 'completed';
+          if (i === captureIndex + 1) return 'active';
+          return status;
+        })
+      );
+      setIsProcessing(false);
+      onCaptureProgress?.(newDone, TOTAL_CAPTURES);
+
+      if (isLast) {
+        setAllDone(true);
+      } else {
+        setCaptureIndex((i) => i + 1);
+      }
+    }, PROCESSING_DELAY_MS);
+  }, [webcamRef, cameraError, captureIndex, currentStep, capturedFiles, onCaptureProgress]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    setIsProcessing(true);
+    // If they select multiple, just take the first one for this step
+    const file = e.target.files[0];
+    
+    setTimeout(() => {
+      const isLast = captureIndex === TOTAL_CAPTURES - 1;
+      const newDone = captureIndex + 1;
+      
+      const newFiles = [...capturedFiles, file];
+      setCapturedFiles(newFiles);
 
       setStatuses((prev) =>
         prev.map((status, i) => {
@@ -101,6 +167,15 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
               <CheckCircleIcon sx={{ fontSize: 44, color: '#FFFFFF' }} />
             </Box>
           </motion.div>
+          {capturedFiles.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <img 
+                src={URL.createObjectURL(capturedFiles[0])} 
+                alt="Frontal" 
+                style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${SUCCESS_GREEN}` }} 
+              />
+            </Box>
+          )}
           <Typography sx={{ fontFamily: '"Exo 2", sans-serif', fontWeight: 700, fontSize: '1.4rem', color: vigiaColors.textHeading, mb: 1 }}>
             {successCopy.title}
           </Typography>
@@ -109,7 +184,8 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
           </Typography>
           <Button
             variant="contained"
-            onClick={onAllCaptured}
+            onClick={() => onAllCaptured(capturedFiles)}
+            disabled={isSubmitting}
             sx={{
               // Gradiente verde → azul: transmite "éxito y continuidad"
               background: 'linear-gradient(90deg, #059669 0%, #0D5CCF 100%)',
@@ -130,7 +206,14 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
               '&:active': { transform: 'scale(0.98)' },
             }}
           >
-            ✓  {successCopy.cta}
+            {isSubmitting ? (
+              <>
+                <CircularProgress size={20} sx={{ color: '#fff', mr: 1 }} />
+                Guardando biometría...
+              </>
+            ) : (
+              `✓  ${successCopy.cta}`
+            )}
           </Button>
         </Box>
       </motion.div>
@@ -180,21 +263,51 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
               p: 3,
             }}
           >
+            {/* Webcam / File Fallback */}
+            <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.8 }}>
+              {!cameraError ? (
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{ facingMode: 'user' }}
+                  onUserMediaError={() => setCameraError(true)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'rgba(0,0,0,0.5)' }}>
+                  <Typography variant="body2" color="white" align="center" sx={{ p: 2 }}>
+                    Cámara no disponible.<br/>Pulsa "Subir Imagen" para continuar.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
             {/* Óvalo guía facial */}
             <Box
               sx={{
                 width: { xs: 140, md: 170 },
                 height: { xs: 180, md: 220 },
                 borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.5)',
+                border: '2px dashed rgba(255,255,255,0.7)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mb: 3,
+                zIndex: 1,
+                pointerEvents: 'none'
               }}
             >
-              <PersonOutlineOutlinedIcon sx={{ fontSize: 72, color: 'rgba(255,255,255,0.55)' }} />
+              {cameraError && <PersonOutlineOutlinedIcon sx={{ fontSize: 72, color: 'rgba(255,255,255,0.55)' }} />}
             </Box>
+
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileUpload} 
+            />
 
             {/* Esquinas de encuadre */}
             {[
@@ -289,7 +402,13 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
       >
         <Box
           component="button"
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            if (cameraError) {
+              onSkipForNow();
+            } else {
+              setModalOpen(true);
+            }
+          }}
           sx={{
             background: 'none',
             border: 'none',
@@ -329,6 +448,8 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
               <CircularProgress size={18} sx={{ color: '#FFFFFF', mr: 1.5 }} />
               Procesando...
             </>
+          ) : cameraError ? (
+            'Subir Imagen'
           ) : (
             currentStep.ctaLabel
           )}
@@ -355,7 +476,10 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
           <Button
             fullWidth
             variant="contained"
-            onClick={() => setModalOpen(false)}
+            onClick={() => {
+              setModalOpen(false);
+              setCameraError(true);
+            }}
             sx={{
               background: vigiaColors.gradientIA,
               fontFamily: '"Inter", sans-serif',

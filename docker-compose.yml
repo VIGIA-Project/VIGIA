@@ -83,7 +83,7 @@ services:
       - DB_LOGGING=false
       - JWT_SECRET=vigia-dev-secret-2026
       - APP_PORT=3000
-      - NODE_ENV=production
+      - NODE_ENV=development
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - OCR_SERVICE_URL=http://ocr:8000

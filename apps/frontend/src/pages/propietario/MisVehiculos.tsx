@@ -49,8 +49,8 @@ const MisVehiculosPage: React.FC = () => {
         marca: v.marca ?? 'Sin marca',
         modelo: v.modelo ?? 'Sin modelo',
         color: v.color ?? 'N/D',
-        anio: 0, // Cambiado de string a número para cumplir con el contrato de la interfaz
-        estado: String(v.estadoRegistro) === 'APROBADO' ? 'ACTIVO' : 'INACTIVO',
+        anio: v.anio ?? 0,
+        estado: v.estadoRegistro === 'ACTIVO' ? 'ACTIVO' : 'INACTIVO',
         tipo: 'Particular',
         permisosActivos: 0,
         alertas: 0,

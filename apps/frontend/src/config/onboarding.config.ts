@@ -87,8 +87,6 @@ export const CAMERA_STATUS_PILLS = [
   { label: 'Centra el rostro', color: 'orange' as const },
 ];
 
-export const QUALITY_MOCK = { value: 85, label: 'Buena' } as const;
-
 export const PRIVACY_NOTE =
   'Tus datos biométricos se almacenan de forma protegida y se usan únicamente para validación de acceso vehicular en VIGIA.';
 

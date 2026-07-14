@@ -1,5 +1,5 @@
 // src/components/organisms/onboarding/BiometricCapture.tsx
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Webcam from 'react-webcam';
@@ -12,7 +12,6 @@ import { CaptureStepCard, CaptureStepState, QualityBar, CameraStatusPills } from
 import {
   CAPTURE_STEPS,
   CAMERA_STATUS_PILLS,
-  QUALITY_MOCK,
   PRIVACY_NOTE,
   NO_CAMERA_MODAL,
   SUCCESS_COPY,
@@ -21,8 +20,41 @@ import {
 
 const TOTAL_CAPTURES = CAPTURE_STEPS.length;
 const PROCESSING_DELAY_MS = 1500;
+const QUALITY_CHECK_INTERVAL_MS = 500;
 // Verde de estado "completado" — consistente con OnboardingProgressPanel y VehicleRegistrationForm
 const SUCCESS_GREEN = '#22C55E';
+
+/** Luminosidad promedio del frame actual de la webcam, normalizada 0-1. */
+const analyzeFrameQuality = (video: HTMLVideoElement | null | undefined): number => {
+  if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+    return 0;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return 0;
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  let sum = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+  }
+
+  return sum / (data.length / 4) / 255;
+};
+
+const qualityLabelFor = (luminosity: number): string => {
+  if (luminosity < 0.35) return 'Baja iluminación';
+  if (luminosity < 0.65) return 'Aceptable';
+  return 'Óptima';
+};
 
 export interface BiometricCaptureProps {
   onAllCaptured: (files: File[]) => void;
@@ -43,11 +75,24 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
   const [modalOpen, setModalOpen] = useState(false);
   const [capturedFiles, setCapturedFiles] = useState<File[]>([]);
   const [cameraError, setCameraError] = useState(false);
-  
+  const [quality, setQuality] = useState({ value: 0, label: 'Detectando…' });
+
   const webcamRef = useRef<Webcam>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentStep = CAPTURE_STEPS[Math.min(captureIndex, TOTAL_CAPTURES - 1)];
+
+  useEffect(() => {
+    if (cameraError || allDone) return;
+
+    const intervalId = setInterval(() => {
+      const luminosity = analyzeFrameQuality(webcamRef.current?.video);
+      if (luminosity === 0) return;
+      setQuality({ value: Math.round(luminosity * 100), label: qualityLabelFor(luminosity) });
+    }, QUALITY_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [cameraError, allDone]);
 
   const dataURLtoFile = (dataurl: string, filename: string): File => {
     const arr = dataurl.split(',');
@@ -339,7 +384,7 @@ export const BiometricCapture: React.FC<BiometricCaptureProps> = ({ onAllCapture
 
       {/* Barra de calidad */}
       <Box sx={{ mt: 2, mb: 3 }}>
-        <QualityBar value={QUALITY_MOCK.value} label={QUALITY_MOCK.label} />
+        <QualityBar value={quality.value} label={quality.label} />
       </Box>
 
       {/* Panel de instrucciones */}

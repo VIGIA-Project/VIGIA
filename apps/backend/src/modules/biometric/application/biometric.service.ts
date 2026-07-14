@@ -215,7 +215,7 @@ export class BiometricService {
         return { match: true, personaId: compareData.persona_id };
       }
 
-      return { match: false, message: 'Rostro no coincide con ningún candidato' };
+      return { match: false, message: 'Rostro no registrado por el propietario' };
 
     } catch (error: any) {
       this.logger.error(`Error en verificarIdentidad: ${error.message}`);

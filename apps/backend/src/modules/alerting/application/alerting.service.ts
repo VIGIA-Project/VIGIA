@@ -83,13 +83,15 @@ export class AlertingService {
     vehiculoId?: string;
     placa: string;
     motivoCodigo: string;
+    tipoMovimiento: string;
   }): Promise<Alerta> {
+    const direccion = props.tipoMovimiento === 'ENTRADA' ? 'Ingreso' : 'Salida';
     return this.crearAlertaIdempotente({
       causaOrigen: 'ACCESO_DENEGADO',
       referenciaOrigenId: props.eventoId,
       vehiculoId: props.vehiculoId,
       severidad: SeveridadAlerta.ALTA,
-      mensajeResumen: `Acceso denegado para placa ${props.placa}: ${props.motivoCodigo}`,
+      mensajeResumen: `${direccion} denegado para placa ${props.placa}: ${props.motivoCodigo}`,
     });
   }
 

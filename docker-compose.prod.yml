@@ -1,0 +1,72 @@
+# docker-compose.prod.yml
+# Despliegue en AWS Free Tier (t2.micro)
+# Excluye Frontend (Vercel) y Servicios de IA (Edge Local) para ahorrar RAM.
+
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-vigia_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vigia_secret}
+      POSTGRES_DB: ${DB_NAME:-vigia_db}
+    ports:
+      - "5432:5432" # Mantener en 5432 para consistencia
+    volumes:
+      - vigia_prod_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-vigia_user} -d ${DB_NAME:-vigia_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - vigia_prod_redis_data:/data
+    command: redis-server --appendonly yes
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - apps/backend/.env
+    # Variables críticas de producción. Las URLs de IA vendrán del .env (ngrok)
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - USE_AI_STUBS=false
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    # - "443:443" # Descomentar en el servidor cuando Certbot haya generado los certificados SSL
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - backend
+
+volumes:
+  vigia_prod_db_data:
+  vigia_prod_redis_data:

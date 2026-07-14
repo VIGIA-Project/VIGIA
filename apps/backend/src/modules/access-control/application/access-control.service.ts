@@ -54,6 +54,7 @@ export class AccessControlService {
           vehiculoId: guardado.vehiculoId,
           placa: guardado.placaObservada,
           motivoCodigo: guardado.motivoCodigo,
+          tipoMovimiento: guardado.tipoMovimiento,
         })
         .catch((err) => this.logger.warn(`No se pudo generar alerta de acceso denegado: ${err?.message}`));
     }
@@ -142,7 +143,7 @@ export class AccessControlService {
         tipoMovimiento,
         decisionOperativa: DecisionOperativa.DENIED,
         motivoCodigo: 'CONDUCTOR_NO_AUTORIZADO',
-        motivoDetalle: resultadoBio.message || 'El rostro no coincide con ningún autorizado',
+        motivoDetalle: resultadoBio.message || 'Rostro no registrado por el propietario',
       });
     }
 
@@ -209,6 +210,7 @@ export class AccessControlService {
           vehiculoId: guardado.vehiculoId,
           placa: guardado.placaObservada,
           motivoCodigo: guardado.motivoCodigo,
+          tipoMovimiento: data.tipoMovimiento,
         })
         .catch((err) => this.logger.warn(`No se pudo generar alerta de acceso denegado: ${err?.message}`));
     }

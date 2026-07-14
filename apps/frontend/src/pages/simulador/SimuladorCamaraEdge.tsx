@@ -99,6 +99,13 @@ export const SimuladorCamaraEdge: React.FC = () => {
     try {
       const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
       const token = localStorage.getItem('vigia_access_token');
+      
+      if (!token) {
+        setError("Acceso Denegado (401): No se encontró un Token JWT. Por favor, abre otra pestaña, inicia sesión en el sistema (ej. como Guardia) y vuelve a intentarlo.");
+        setLoading(false);
+        return;
+      }
+
       const res = await axios.post(`${API_URL}/access-control/edge/reconocimiento`, formData, {
         headers: { 
           'Content-Type': 'multipart/form-data',

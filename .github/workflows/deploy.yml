@@ -1,0 +1,38 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Desplegar en EC2 vía SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USER }}
+          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          script: |
+            echo "Iniciando despliegue en AWS EC2..."
+            
+            # Navegar a la carpeta del proyecto (asume que ya fue clonado la primera vez)
+            cd ~/VIGIA || { echo "Directorio ~/VIGIA no existe. Clona el repo primero en la instancia."; exit 1; }
+            
+            # Obtener los últimos cambios de la rama main
+            git pull origin main
+            
+            # Detener y construir los contenedores de producción
+            sudo docker-compose -f docker-compose.prod.yml down
+            sudo docker-compose -f docker-compose.prod.yml up -d --build
+            
+            # Limpiar imágenes colgadas para evitar llenar el disco de 8GB de Free Tier
+            sudo docker image prune -f
+            
+            echo "Despliegue finalizado exitosamente."

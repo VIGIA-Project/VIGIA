@@ -122,7 +122,7 @@ const AnimatedRoutes: React.FC = () => {
 
             {/* ═══ Simulador Edge Device ═══ */}
             <Route
-              path="/camara-ip"
+              path="/camara-seguridad"
               element={
                 <PageTransition>
                   <SimuladorCamaraEdge />

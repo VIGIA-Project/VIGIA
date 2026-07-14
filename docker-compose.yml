@@ -34,7 +34,7 @@ services:
       - vigia-network
 
   ocr:
-    build: ./docker/ocr
+    build: ./services/ocr
     container_name: vigia-ocr
     restart: unless-stopped
     ports:

@@ -7,6 +7,7 @@ import { INotificacionRepository } from '../domain/repositories/notificacion.rep
 import { Alerta } from '../domain/entities/alerta.entity';
 import { Notificacion } from '../domain/entities/notificacion.entity';
 import { SeveridadAlerta } from '../domain/value-objects/severidad-alerta.vo';
+import { Subject } from 'rxjs';
 
 /**
  * Servicio de aplicación — orquesta los casos de uso del BC Alerting.
@@ -15,6 +16,7 @@ import { SeveridadAlerta } from '../domain/value-objects/severidad-alerta.vo';
  */
 @Injectable()
 export class AlertingService {
+  public readonly alertas$ = new Subject<Alerta>();
   constructor(
     @Inject(ALERTA_REPOSITORY)
     private readonly alertaRepository: IAlertaRepository,
@@ -71,7 +73,9 @@ export class AlertingService {
       severidad: props.severidad,
       mensajeResumen: props.mensajeResumen,
     });
-    return this.alertaRepository.guardar(alerta);
+    const guardado = await this.alertaRepository.guardar(alerta);
+    this.alertas$.next(guardado);
+    return guardado;
   }
 
   async crearAlertaDesdeEventoDenegado(props: {

@@ -1,7 +1,7 @@
 // src/components/templates/DashboardTemplate.tsx
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Drawer, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Drawer, useMediaQuery, useTheme, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Typography, Button } from '@mui/material';
 import { Sidebar } from '../organisms/Sidebar';
 import { Header } from '../organisms/Header';
 import { useAuth } from '../../context';
@@ -56,6 +56,54 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
     navigate(path);
     if (isMobile) setMobileOpen(false);
   };
+
+  // SSE Notifications for Guards
+  const [guardAlert, setGuardAlert] = React.useState<{ open: boolean; message: string; severity: 'error' | 'warning' | 'info' | 'success' }>({
+    open: false,
+    message: '',
+    severity: 'error'
+  });
+
+  React.useEffect(() => {
+    if (rol !== 'GUARD') return;
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const eventSource = new EventSource(`${API_URL}/alerting/stream`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const rawData = JSON.parse(event.data);
+        // Si el backend envía {"data": { ... }} extraemos el payload real
+        const payload = (rawData.data && typeof rawData.data === 'object') ? rawData.data : rawData;
+        
+        const severidadStr = String(payload.severidad || '').toUpperCase();
+        const causa = String(payload.causaOrigen || '').toUpperCase();
+        const mensaje = String(payload.mensajeResumen || '').toLowerCase();
+        
+        const isError = severidadStr === 'ALTA' || causa === 'ACCESO_DENEGADO' || mensaje.includes('denegado') || mensaje.includes('no autorizado');
+        const isWarning = severidadStr === 'MEDIA' || causa.includes('EXCEDIO') || mensaje.includes('contingencia');
+        
+        const sev = isError ? 'error' : isWarning ? 'warning' : 'info';
+        
+        setGuardAlert({
+          open: true,
+          message: payload.mensajeResumen || 'Nueva alerta de seguridad',
+          severity: sev
+        });
+      } catch (e) {
+        console.error("Error parsing SSE data", e);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      // EventSource intentará reconectar automáticamente
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [rol]);
 
   const sidebarContent = (
     <Sidebar
@@ -144,6 +192,79 @@ export const DashboardTemplate: React.FC<DashboardTemplateProps> = ({
           {children}
         </Box>
       </Box>
+
+      {rol === 'GUARD' && (
+        <>
+          {/* Alertas normales (INFO, WARNING, SUCCESS) */}
+          <Snackbar
+            open={guardAlert.open && guardAlert.severity !== 'error'}
+            autoHideDuration={6000}
+            onClose={() => setGuardAlert({ ...guardAlert, open: false })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Alert
+              onClose={() => setGuardAlert({ ...guardAlert, open: false })}
+              severity={guardAlert.severity}
+              sx={{ width: '100%', fontSize: '1.1rem', py: 1.5, px: 2, boxShadow: 3 }}
+              variant="filled"
+            >
+              {guardAlert.message}
+            </Alert>
+          </Snackbar>
+
+          {/* Modal Rojo Gigante para Peligro / Denegado (ERROR) */}
+          <Dialog
+            open={guardAlert.open && guardAlert.severity === 'error'}
+            onClose={() => setGuardAlert({ ...guardAlert, open: false })}
+            PaperProps={{
+              sx: {
+                border: '5px solid #d32f2f',
+                borderRadius: 4,
+                p: 3,
+                minWidth: { xs: 300, sm: 500 },
+                textAlign: 'center',
+                animation: 'pulse 1.5s infinite',
+                '@keyframes pulse': {
+                  '0%': { boxShadow: '0 0 0 0 rgba(211, 47, 47, 0.7)' },
+                  '70%': { boxShadow: '0 0 0 20px rgba(211, 47, 47, 0)' },
+                  '100%': { boxShadow: '0 0 0 0 rgba(211, 47, 47, 0)' }
+                }
+              }
+            }}
+          >
+            <DialogTitle
+              sx={{
+                color: '#d32f2f',
+                fontWeight: '900',
+                fontSize: '2rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <div style={{ fontSize: '4rem', lineHeight: 1 }}>🚫</div>
+              ¡ALERTA DE SEGURIDAD!
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="h5" sx={{ mt: 2, fontWeight: 600, color: 'text.primary' }}>
+                {guardAlert.message}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'center', mt: 3, mb: 1 }}>
+              <Button
+                variant="contained"
+                color="error"
+                size="large"
+                onClick={() => setGuardAlert({ ...guardAlert, open: false })}
+                sx={{ px: 6, py: 1.5, fontSize: '1.2rem', fontWeight: 'bold' }}
+              >
+                ENTENDIDO
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      )}
     </Box>
   );
 };

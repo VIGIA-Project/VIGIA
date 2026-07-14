@@ -67,8 +67,32 @@ export class AccessControlService {
     fotoPlaca?: Buffer,
     placaManual?: string
   ): Promise<EventoAcceso> {
-    // 1. Obtener placa (mockeando OCR si no llega placa manual)
-    const placa = placaManual || 'PCH0001';
+    // 1. Obtener placa (mockeando OCR si no llega placa manual o foto)
+    let placa = placaManual || 'PCH0001';
+    
+    if (fotoPlaca) {
+      try {
+        const ocrUrl = process.env.OCR_SERVICE_URL || 'http://127.0.0.1:8001';
+        const formData = new FormData();
+        formData.append('imagen', new Blob([fotoPlaca as any]), 'placa.jpg');
+
+        const ocrRes = await fetch(`${ocrUrl}/ocr/leer-placa`, {
+          method: 'POST',
+          body: formData as any,
+        });
+
+        if (ocrRes.ok) {
+          const ocrData = await ocrRes.json();
+          if (ocrData.placa && ocrData.es_formato_valido !== false) {
+            placa = ocrData.placa;
+          }
+        } else {
+          this.logger.warn(`OCR API falló con status: ${ocrRes.status}`);
+        }
+      } catch (err: any) {
+        this.logger.error(`Error de red al invocar OCR: ${err.message}`);
+      }
+    }
     
     // 2. Validar vehiculo
     const vehiculo = await this.registryPort.findVehiculoByPlaca(placa);
@@ -90,9 +114,10 @@ export class AccessControlService {
     const autorizados = await this.registryPort.findPersonasAutorizadasByVehiculo(vehiculo.vehiculoId);
 
     const candidatosIds = new Set<string>();
+    if (vehiculo.propietarioPersonaId) candidatosIds.add(vehiculo.propietarioPersonaId);
     if (propietario) candidatosIds.add(propietario.personaId);
-    grupoFamiliar.forEach(p => candidatosIds.add(p.personaId));
-    autorizados.forEach(p => candidatosIds.add(p.personaId));
+    grupoFamiliar.forEach(f => candidatosIds.add(f.personaId));
+    autorizados.forEach(a => candidatosIds.add(a.personaId));
 
     if (candidatosIds.size === 0) {
        return this.guardarEventoEdge({
@@ -122,14 +147,40 @@ export class AccessControlService {
     }
 
     // Match exitoso
+    let roleName = 'Conductor Autorizado';
+    let personName = 'Desconocido';
+
+    if (resultadoBio.personaId) {
+      const persona = await this.registryPort.findPersonaById(resultadoBio.personaId);
+      if (persona) {
+        personName = persona.nombreCompleto;
+        if (vehiculo.propietarioPersonaId === persona.personaId) {
+          roleName = 'Propietario';
+        } else if (grupoFamiliar.some(f => f.personaId === persona.personaId)) {
+          roleName = 'Familiar Autorizado';
+        } else {
+          // Verify against autorizados enum if we had a specific sub-role
+          const asignacion = autorizados.find(a => a.personaId === persona.personaId);
+          if (asignacion && asignacion.rol) {
+             const rolesMap: Record<string, string> = {
+               'FAMILIAR_AUTORIZADO': 'Familiar Autorizado',
+               'CONDUCTOR_PERMANENTE': 'Conductor Permanente',
+               'PERSONA_AUTORIZADA': 'Persona Autorizada'
+             };
+             roleName = rolesMap[asignacion.rol] || 'Conductor Autorizado';
+          }
+        }
+      }
+    }
+
     return this.guardarEventoEdge({
       vehiculoId: vehiculo.vehiculoId,
       personaId: resultadoBio.personaId,
       placaObservada: placa,
       tipoMovimiento,
       decisionOperativa: DecisionOperativa.SUCCESSFUL,
-      motivoCodigo: 'BIOMETRIA_VALIDADA',
-      motivoDetalle: 'Identidad confirmada automáticamente',
+      motivoCodigo: 'ACCESO_AUTORIZADO',
+      motivoDetalle: `Identidad confirmada automáticamente ${roleName} (${personName})`,
     });
   }
 

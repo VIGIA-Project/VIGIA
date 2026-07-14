@@ -3,7 +3,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AccessControlService } from '../application/access-control.service';
 import { TipoMovimiento } from '../domain/value-objects/tipo-movimiento.vo';
 
-@Controller('v1/access-control/edge')
+@Controller('access-control/edge')
 export class EdgeDeviceController {
   constructor(private readonly accessControlService: AccessControlService) {}
 
@@ -36,13 +36,10 @@ export class EdgeDeviceController {
     );
 
     return {
-      success: true,
-      data: {
-        eventoId: evento.id,
-        decision: evento.decisionOperativa,
-        motivo: evento.motivoDetalle,
-        placa: evento.placaObservada,
-      },
+      eventoId: evento.id,
+      decision: evento.decisionOperativa,
+      motivo: evento.motivoDetalle,
+      placa: evento.placaObservada,
     };
   }
 }

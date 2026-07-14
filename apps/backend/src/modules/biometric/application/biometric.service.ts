@@ -180,13 +180,23 @@ export class BiometricService {
          return { match: false, message: 'Candidatos no tienen biometría enrolada' };
       }
 
-      // 3. Comparar con los embeddings de los candidatos
+      // 3. Agrupar embeddings por persona_id y perfil_biometrico_id
+      const referenceEmbeddingsMap = new Map<string, any>();
+      representaciones.forEach((r: any) => {
+        if (!referenceEmbeddingsMap.has(r.persona_id)) {
+          referenceEmbeddingsMap.set(r.persona_id, {
+            persona_id: r.persona_id,
+            perfil_biometrico_id: r.perfil_biometrico_id,
+            embeddings: []
+          });
+        }
+        referenceEmbeddingsMap.get(r.persona_id).embeddings.push(JSON.parse(r.embedding));
+      });
+
       const compareBody = {
-        source_embedding: embeddingArray,
-        candidates: representaciones.map((r: any) => ({
-          id: r.persona_id,
-          embedding: JSON.parse(r.embedding)
-        }))
+        capture_embedding: embeddingArray,
+        reference_embeddings: Array.from(referenceEmbeddingsMap.values()),
+        threshold: 0.45
       };
 
       const compareRes = await fetch(`${fastApiUrl}/api/bio/compare`, {
@@ -201,8 +211,8 @@ export class BiometricService {
 
       const compareData = await compareRes.json();
 
-      if (compareData.match) {
-        return { match: true, personaId: compareData.best_match_id };
+      if (compareData.resultado === 'COINCIDENCIA_SUFICIENTE') {
+        return { match: true, personaId: compareData.persona_id };
       }
 
       return { match: false, message: 'Rostro no coincide con ningún candidato' };

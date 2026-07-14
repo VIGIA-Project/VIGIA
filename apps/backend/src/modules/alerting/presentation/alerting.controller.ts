@@ -1,18 +1,30 @@
-import { Controller, Get, Patch, Param, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, Request, UseGuards, Sse, MessageEvent } from '@nestjs/common';
 import { JwtAuthGuard } from '@core/auth/presentation/jwt-auth.guard';
 import { RolesGuard } from '@core/auth/presentation/roles.guard';
 import { Roles } from '@core/auth/presentation/roles.decorator';
 import { UserRole } from '@core/auth/domain/user.entity';
 import { AlertingService } from '../application/alerting.service';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Controller('alerting')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class AlertingController {
   constructor(private readonly alertingService: AlertingService) {}
+
+  @Sse('stream')
+  // No usamos AuthGuard en el simulador SSE por simplicidad en MVP (o lo configuramos si el front pasa token)
+  // Pero para que el guardia escuche, sí lo usaríamos. Como el EventSource del navegador no envía Headers Authorization fácil,
+  // en un caso real se pasaría por query. Por ahora lo dejamos público u omitimos el guard solo para este endpoint.
+  streamAlerts(): Observable<MessageEvent> {
+    return this.alertingService.alertas$.pipe(
+      map((alerta) => ({ data: alerta.toJSON() } as MessageEvent)),
+    );
+  }
 
   // ─── Alertas ────────────────────────────────────────────────────────────
 
   @Get('alertas/recientes')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarAlertasRecientes(@Query('limite') limite?: string) {
     const cantidad = limite ? parseInt(limite, 10) : 10;
@@ -21,6 +33,7 @@ export class AlertingController {
   }
 
   @Get('alertas/count')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async contarAlertas() {
     const count = await this.alertingService.contarNoResueltas();
@@ -28,6 +41,7 @@ export class AlertingController {
   }
 
   @Patch('alertas/:id/atender')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD)
   async marcarAlertaAtendida(@Param('id') id: string) {
     const alerta = await this.alertingService.marcarAtendida(id);
@@ -35,6 +49,7 @@ export class AlertingController {
   }
 
   @Get('alertas/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async buscarAlertaPorId(@Param('id') id: string) {
     const alerta = await this.alertingService.buscarPorId(id);
@@ -44,6 +59,7 @@ export class AlertingController {
   // ─── Notificaciones ─────────────────────────────────────────────────────
 
   @Get('notificaciones/todas')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async listarTodasLasNotificaciones(@Query('limite') limite?: string) {
     const cantidad = limite ? parseInt(limite, 10) : 50;
@@ -52,6 +68,7 @@ export class AlertingController {
   }
 
   @Get('notificaciones')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async listarNotificaciones(@Request() req: any) {
     const personaId = req.user?.personaId;
@@ -64,6 +81,7 @@ export class AlertingController {
   }
 
   @Patch('notificaciones/:id/leer')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.GUARD, UserRole.OWNER)
   async marcarNotificacionLeida(@Param('id') id: string) {
     const notificacion = await this.alertingService.marcarLeida(id);

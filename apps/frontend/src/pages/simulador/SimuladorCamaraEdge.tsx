@@ -99,7 +99,10 @@ export const SimuladorCamaraEdge: React.FC = () => {
     try {
       const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
       const res = await axios.post(`${API_URL}/access-control/edge/reconocimiento`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-API-Key': import.meta.env.VITE_EDGE_DEVICE_API_KEY || '',
+        }
       });
       setResultado(res.data.data);
     } catch (err: any) {

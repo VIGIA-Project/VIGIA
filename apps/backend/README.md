@@ -43,9 +43,8 @@ src/
 │   │   ├── database.module.ts     # TypeORM.forRootAsync + ensureSchemas()
 │   │   ├── database.service.ts
 │   │   ├── init-schemas.ts        # Creates the "auth" and "registry" schemas + uuid-ossp extension
-│   │   ├── seed.service.ts        # Inserts test users when NODE_ENV=development
-│   │   ├── migrations/            # TypeORM migrations (optional use, see below)
-│   │   └── seeds/                 # Alternative manual seed script (pnpm run seed)
+│   │   ├── seed.service.ts        # Inserts test users + personas + vehiculo when NODE_ENV=development
+│   │   └── migrations/            # TypeORM migrations (optional use, see below)
 │   ├── decorators/                # Shared decorators
 │   ├── exceptions/                # AllExceptionsFilter + base DomainException
 │   ├── guards/                    # Generic JwtAuthGuard
@@ -132,7 +131,7 @@ pnpm --filter @vigia/backend run start:dev
 On boot, the backend automatically:
 1. Creates the `auth` and `registry` schemas if missing, plus the `uuid-ossp` extension (`ensureSchemas`, see `core/database/init-schemas.ts`).
 2. Syncs tables from TypeORM entities if `DB_SYNCHRONIZE=true` — **no need to run migrations in development**.
-3. Inserts the 3 test users (`admin@uce.edu.ec`, `guardia@uce.edu.ec`, `propietario@uce.edu.ec`) if `NODE_ENV=development` and `auth.users` is empty (`SeedService.onModuleInit`).
+3. Inserts the test users, their linked `Persona` records, and a test vehicle for the OWNER seed user if `NODE_ENV=development` and `auth.users` is empty (`SeedService.onModuleInit`). This is the only seed mechanism — there is no separate manual seed script.
 
 ### Migrations (optional — only if `DB_SYNCHRONIZE=false`)
 
@@ -144,14 +143,6 @@ pnpm --filter @vigia/backend run migration:run
 pnpm --filter @vigia/backend run migration:generate -- src/core/database/migrations/MigrationName
 pnpm --filter @vigia/backend run migration:revert
 ```
-
-### Manual seed (alternative to the automatic `SeedService`)
-
-```bash
-pnpm --filter @vigia/backend run seed
-```
-
-Runs `src/core/database/seeds/run-seed.ts` directly with `ts-node`. Useful to re-seed data without restarting the Nest process.
 
 ---
 
@@ -189,7 +180,6 @@ Validated at boot with Joi (`src/core/config/env.validation.ts`) — the process
 | `test` / `test:watch` / `test:cov` | Unit tests (Jest) |
 | `test:e2e` | End-to-end tests |
 | `migration:generate` / `migration:run` / `migration:revert` | TypeORM migration management |
-| `seed` | Runs the manual seed script |
 | `format` | Prettier over `src/` and `test/` |
 | `lint` | ESLint with `--fix` |
 

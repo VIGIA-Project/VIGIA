@@ -151,10 +151,17 @@ export class BiometricService {
       formData.append('tipo_captura', 'FRONTAL');
       
       const fastApiUrl = process.env.BIO_SERVICE_URL || 'http://127.0.0.1:8002';
+
+      const embedController = new AbortController();
+      const embedTimeout = setTimeout(() => embedController.abort(), 15_000);
+
       const embedRes = await fetch(`${fastApiUrl}/api/bio/generate-embedding`, {
         method: 'POST',
         body: formData as any,
+        signal: embedController.signal,
       });
+
+      clearTimeout(embedTimeout);
 
       if (!embedRes.ok) {
         throw new Error(`Error en API IA: ${embedRes.statusText}`);
@@ -167,14 +174,14 @@ export class BiometricService {
       const embeddingArray = embedData.embedding;
 
       // 2. Extraer embeddings de los candidatos
-      const candidatosStr = candidatosIds.map(id => `'${id}'`).join(',');
+      const placeholders = candidatosIds.map((_, i) => `$${i + 1}`).join(',');
       const rawQuery = `
         SELECT r.representacion_biometrica_id, r.perfil_biometrico_id, r.embedding_vector::text as embedding, p.persona_id
         FROM biometric.representaciones_biometricas r
         JOIN biometric.perfiles_biometricos p ON r.perfil_biometrico_id = p.perfil_biometrico_id
-        WHERE p.persona_id IN (${candidatosStr}) AND r.activa = true
+        WHERE p.persona_id IN (${placeholders}) AND r.activa = true
       `;
-      const representaciones = await this.dataSource.query(rawQuery);
+      const representaciones = await this.dataSource.query(rawQuery, candidatosIds);
 
       if (!representaciones || representaciones.length === 0) {
          return { match: false, message: 'Candidatos no tienen biometría enrolada' };
@@ -199,11 +206,17 @@ export class BiometricService {
         threshold: 0.45
       };
 
+      const compareController = new AbortController();
+      const compareTimeout = setTimeout(() => compareController.abort(), 15_000);
+
       const compareRes = await fetch(`${fastApiUrl}/api/bio/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(compareBody)
+        body: JSON.stringify(compareBody),
+        signal: compareController.signal,
       });
+
+      clearTimeout(compareTimeout);
 
       if (!compareRes.ok) {
         throw new Error(`Error en API IA al comparar: ${compareRes.statusText}`);
@@ -218,8 +231,18 @@ export class BiometricService {
       return { match: false, message: 'Rostro no coincide con ningún candidato' };
 
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        this.logger.error('Timeout en verificación biométrica (15s)');
+        return { match: false, message: 'Servicio biométrico no respondió a tiempo' };
+      }
+
+      if (error.cause?.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        this.logger.error('Servicio biométrico no disponible');
+        return { match: false, message: 'Servicio biométrico no disponible' };
+      }
+
       this.logger.error(`Error en verificarIdentidad: ${error.message}`);
-      return { match: false, message: 'Error interno de biometría' };
+      return { match: false, message: 'Error interno en verificación biométrica' };
     }
   }
 }
